@@ -818,27 +818,29 @@ class ChickenFarmApp(QMainWindow):
         # Get mix ingredients
         mix_ingredients = report_data["mix_ingredients"]
 
-        # Get linked mix formula name if available
-        linked_mix_name = report_data.get("linked_mix_formula", "")
+        # Get mix formulas used if available
+        mix_formulas_used = report_data.get("mix_formulas_used", {})
         tong_hop_amount = report_data.get("tong_hop_amount", 0)
         mix_total = report_data.get("mix_total", 0)
 
-        # Set title with linked formula info if available
-        if linked_mix_name:
-            self.history_tabs.setTabText(2, f"Thành Phần Mix ({linked_mix_name})")
+        # Set title with mix formula info if available
+        if mix_formulas_used:
+            mix_names = ", ".join(mix_formulas_used.keys())
+            self.history_tabs.setTabText(2, f"Thành Phần Mix ({mix_names})")
         else:
             self.history_tabs.setTabText(2, "Thành Phần Mix")
 
-        # Prepare data for table
+        # Prepare data for table - chỉ lấy các thành phần có giá trị > 0
         table_data = []
         total_amount = 0
         total_bags = 0
 
         for ingredient, amount in mix_ingredients.items():
-            bags = self.inventory_manager.calculate_bags(ingredient, amount)
-            table_data.append((ingredient, amount, bags))
-            total_amount += amount
-            total_bags += bags
+            if amount > 0:  # Chỉ hiển thị thành phần có giá trị > 0
+                bags = self.inventory_manager.calculate_bags(ingredient, amount)
+                table_data.append((ingredient, amount, bags))
+                total_amount += amount
+                total_bags += bags
 
         # Sort by amount (descending)
         table_data.sort(key=lambda x: x[1], reverse=True)
@@ -866,6 +868,19 @@ class ChickenFarmApp(QMainWindow):
         total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
         total_bags_item.setBackground(QColor(230, 250, 200))  # Light green background
         self.history_mix_table.setItem(total_row, 2, total_bags_item)
+
+        # Hiển thị thông tin thêm về nguyên liệu tổ hợp nếu có
+        if tong_hop_amount > 0:
+            info_text = f"Tổng lượng nguyên liệu tổ hợp: {format_number(tong_hop_amount)} kg"
+
+            # Thêm thông tin về từng công thức mix được sử dụng
+            if mix_formulas_used:
+                info_text += "\n\nCông thức Mix được sử dụng:"
+                for mix_name, mix_data in mix_formulas_used.items():
+                    mix_amount = mix_data.get("tong_hop_amount", 0)
+                    info_text += f"\n- {mix_name}: {format_number(mix_amount)} kg"
+
+            QMessageBox.information(self, "Thông tin Mix", info_text)
 
     def visualize_history_data(self):
         """Visualize historical data for the selected date"""
@@ -1105,6 +1120,13 @@ class ChickenFarmApp(QMainWindow):
         # Dictionary để lưu tổng thành phần mix
         mix_ingredients = {}
 
+        # Dictionary để lưu thông tin về công thức mix được sử dụng
+        mix_formulas_used = {}
+
+        # Lưu thông tin tổng lượng nguyên liệu tổ hợp
+        total_tong_hop = 0
+
+        # Trước tiên, tính toán tổng thành phần cám (không bao gồm mix)
         for formula_name, batch_count in formula_batches.items():
             if not formula_name:
                 continue
@@ -1124,48 +1146,60 @@ class ChickenFarmApp(QMainWindow):
                         feed_ingredients[ingredient] += feed_amount
                     else:
                         feed_ingredients[ingredient] = feed_amount
-
-            # Lấy tên công thức mix được liên kết với preset cám hiện tại
-            linked_mix_name = self.formula_manager.get_linked_mix_formula_name(formula_name)
-
-            # Lấy dữ liệu công thức mix được liên kết
-            mix_formula = self.formula_manager.get_linked_mix_formula(formula_name)
-
-            # Lấy lượng nguyên liệu tổ hợp từ công thức cám
-            tong_hop_amount = feed_formula.get("Nguyên liệu tổ hợp", 0)
-
-            # Tính tổng lượng mix nếu có
-            mix_total = 0
-            if mix_formula:
-                mix_total = self.formula_manager.calculate_mix_total(mix_formula)
-
-            # Tính tỷ lệ giữa các thành phần mix
-            mix_ratios = {}
-            if mix_total > 0:
-                for ingredient, amount in mix_formula.items():
-                    mix_ratios[ingredient] = amount / mix_total
-
-            # Tính toán thành phần mix dựa trên tỷ lệ
-            for ingredient, ratio in mix_ratios.items():
-                # Tính lượng mix theo tỷ lệ với tổng lượng mix và số mẻ
-                mix_amount = ratio * tong_hop_amount * batch_count
-
-                # Cộng dồn vào tổng thành phần mix
-                if ingredient in mix_ingredients:
-                    mix_ingredients[ingredient] += mix_amount
                 else:
-                    mix_ingredients[ingredient] = mix_amount
+                    # Tính tổng lượng nguyên liệu tổ hợp
+                    tong_hop_amount = amount_per_batch * batch_count
+                    total_tong_hop += tong_hop_amount
+
+                    # Lấy tên công thức mix được liên kết với preset cám hiện tại
+                    linked_mix_name = self.formula_manager.get_linked_mix_formula_name(formula_name)
+
+                    if linked_mix_name:
+                        # Lấy công thức mix
+                        mix_formula = self.formula_manager.load_mix_preset(linked_mix_name)
+
+                        if mix_formula:
+                            # Lưu thông tin công thức mix được sử dụng
+                            if linked_mix_name not in mix_formulas_used:
+                                mix_formulas_used[linked_mix_name] = {
+                                    "formula": mix_formula,
+                                    "tong_hop_amount": 0
+                                }
+
+                            # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
+                            mix_formulas_used[linked_mix_name]["tong_hop_amount"] += tong_hop_amount
 
             # Lưu thông tin công thức và thành phần cho hiển thị chi tiết nếu cần
             formula_ingredients[formula_name] = {
                 "batches": batch_count,
-                "linked_mix_name": linked_mix_name,
-                "tong_hop_amount": tong_hop_amount
+                "linked_mix_name": self.formula_manager.get_linked_mix_formula_name(formula_name),
+                "tong_hop_amount": feed_formula.get("Nguyên liệu tổ hợp", 0) * batch_count
             }
 
+        # Tính toán thành phần mix từ tất cả các công thức mix được sử dụng
+        for mix_name, mix_data in mix_formulas_used.items():
+            mix_formula = mix_data["formula"]
+            tong_hop_amount = mix_data["tong_hop_amount"]
+
+            # Tính tổng lượng mix
+            mix_total = self.formula_manager.calculate_mix_total(mix_formula)
+
+            if mix_total > 0:
+                # Tính tỷ lệ từng thành phần trong mix
+                for ingredient, amount in mix_formula.items():
+                    # Tính lượng thành phần theo tỷ lệ với tổng lượng nguyên liệu tổ hợp
+                    ratio = amount / mix_total
+                    mix_amount = ratio * tong_hop_amount
+
+                    # Cộng dồn vào tổng thành phần mix
+                    if ingredient in mix_ingredients:
+                        mix_ingredients[ingredient] += mix_amount
+                    else:
+                        mix_ingredients[ingredient] = mix_amount
+
         # Tính tổng lượng cám và mix
-        total_feed_amount = sum(feed_ingredients.values())
-        total_mix_amount = sum(mix_ingredients.values())
+        total_feed_amount = sum(feed_ingredients.values()) if feed_ingredients else 0
+        total_mix_amount = sum(mix_ingredients.values()) if mix_ingredients else 0
 
         # Cập nhật bảng kết quả
         # Sắp xếp các thành phần để đưa bắp và nành lên đầu
@@ -1233,15 +1267,28 @@ class ChickenFarmApp(QMainWindow):
         row += 1
 
         # Thêm tiêu đề kho mix
-        mix_header = QTableWidgetItem("THÀNH PHẦN KHO MIX")
+        mix_title = "THÀNH PHẦN KHO MIX"
+        if mix_formulas_used:
+            mix_names = ", ".join(mix_formulas_used.keys())
+            mix_title += f" ({mix_names})"
+
+        mix_header = QTableWidgetItem(mix_title)
         mix_header.setBackground(QColor(230, 250, 200))  # Light green background
         mix_header.setFont(font)
         self.results_table.setItem(row, 0, mix_header)
         self.results_table.setSpan(row, 0, 1, 3)  # Merge cells across all columns
         row += 1
 
-        # Thêm các thành phần kho mix
+        # Thêm các thành phần kho mix - chỉ thêm các thành phần có giá trị > 0
+        sorted_mix_ingredients = {}
         for ingredient, amount in mix_ingredients.items():
+            if amount > 0:  # Chỉ hiển thị thành phần có giá trị > 0
+                sorted_mix_ingredients[ingredient] = amount
+
+        # Sắp xếp theo giá trị giảm dần
+        sorted_mix_items = sorted(sorted_mix_ingredients.items(), key=lambda x: x[1], reverse=True)
+
+        for ingredient, amount in sorted_mix_items:
             # Ingredient name
             self.results_table.setItem(row, 0, QTableWidgetItem(ingredient))
 
@@ -1279,6 +1326,12 @@ class ChickenFarmApp(QMainWindow):
                 results_text += f"{formula_name}: {format_number(batches)} mẻ | "
 
         self.results_label.setText(results_text)
+
+        # Lưu dữ liệu thành phần để sử dụng trong báo cáo
+        self.current_feed_ingredients = feed_ingredients
+        self.current_mix_ingredients = mix_ingredients
+        self.current_mix_formulas_used = mix_formulas_used
+        self.current_total_tong_hop = total_tong_hop
 
         # Update inventory after calculation
         all_ingredients = {**feed_ingredients, **mix_ingredients}
@@ -1471,7 +1524,7 @@ class ChickenFarmApp(QMainWindow):
             os.makedirs(reports_dir, exist_ok=True)
 
             # Get current date
-            current_date = QDate.currentDate().toString("yyyy-MM-dd")
+            current_date = QDate.currentDate().toString("yyyyMMdd")
             filename = os.path.join(reports_dir, f"report_{current_date}.json")
 
             # Collect data from the feed usage table
@@ -1514,33 +1567,30 @@ class ChickenFarmApp(QMainWindow):
                         row_data[header] = item.text()
                 results_data.append(row_data)
 
-            # Get feed formula data
-            feed_formula_data = {}
-            for row in range(self.feed_formula_table.rowCount()):
-                ingredient_item = self.feed_formula_table.item(row, 0)
-                if ingredient_item and ingredient_item.text():
-                    ingredient = ingredient_item.text()
-                    amount_item = self.feed_formula_table.item(row, 1)
-                    if amount_item:
-                        try:
-                            amount = float(amount_item.text().replace(',', '.'))
-                            feed_formula_data[ingredient] = amount
-                        except ValueError:
-                            pass
+            # Lấy dữ liệu thành phần cám và mix đã tính toán
+            feed_ingredients = {}
+            mix_ingredients = {}
+            mix_formulas_used = {}
+            tong_hop_amount = 0
 
-            # Get mix formula data
-            mix_formula_data = {}
-            for row in range(self.mix_formula_table.rowCount()):
-                ingredient_item = self.mix_formula_table.item(row, 0)
-                if ingredient_item and ingredient_item.text():
-                    ingredient = ingredient_item.text()
-                    amount_item = self.mix_formula_table.item(row, 1)
-                    if amount_item:
-                        try:
-                            amount = float(amount_item.text().replace(',', '.'))
-                            mix_formula_data[ingredient] = amount
-                        except ValueError:
-                            pass
+            if hasattr(self, 'current_feed_ingredients') and self.current_feed_ingredients:
+                feed_ingredients = self.current_feed_ingredients
+
+            if hasattr(self, 'current_mix_ingredients') and self.current_mix_ingredients:
+                mix_ingredients = self.current_mix_ingredients
+
+            if hasattr(self, 'current_mix_formulas_used'):
+                mix_formulas_used = self.current_mix_formulas_used
+
+            if hasattr(self, 'current_total_tong_hop'):
+                tong_hop_amount = self.current_total_tong_hop
+
+            # Chuẩn bị dữ liệu về công thức mix để lưu vào JSON
+            mix_formulas_data = {}
+            for mix_name, mix_data in mix_formulas_used.items():
+                mix_formulas_data[mix_name] = {
+                    "tong_hop_amount": mix_data["tong_hop_amount"]
+                }
 
             # Prepare data to save
             report_data = {
@@ -1548,8 +1598,11 @@ class ChickenFarmApp(QMainWindow):
                 "feed_usage": feed_data,
                 "formula_usage": formula_data,  # Dữ liệu về công thức cám cho từng mẻ
                 "results": results_data,
-                "feed_formula": feed_formula_data,
-                "mix_formula": mix_formula_data
+                "feed_ingredients": feed_ingredients,  # Dữ liệu thành phần cám
+                "mix_ingredients": mix_ingredients,    # Dữ liệu thành phần mix
+                "mix_formulas_used": mix_formulas_data,  # Thông tin về các công thức mix được sử dụng
+                "tong_hop_amount": tong_hop_amount,    # Tổng lượng nguyên liệu tổ hợp
+                "mix_total": sum(mix_ingredients.values()) if mix_ingredients else 0  # Tổng lượng mix
             }
 
             # Save to file
