@@ -6,7 +6,8 @@ import pandas as pd
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout,
                             QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
-                            QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog)
+                            QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
+                            QGroupBox, QDialog)
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QFont, QColor
 
@@ -55,7 +56,7 @@ class ChickenFarmApp(QMainWindow):
         screen_width = screen_rect.width()
         screen_height = screen_rect.height()
 
-        # Tính toán kích thước cửa sổ (75% kích thước màn hình)
+        # Tính toán kích thước cửa sổ (95% kích thước màn hình)
         window_width = int(screen_width * 0.95)
         window_height = int(screen_height * 0.95)
 
@@ -68,6 +69,52 @@ class ChickenFarmApp(QMainWindow):
 
         # Set application icon
         self.setWindowIcon(create_app_icon())
+
+        # Thiết lập style cho toàn bộ ứng dụng
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f5f5f5;
+            }
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+                border-radius: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 10px 15px;
+                margin-right: 2px;
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+            QLabel {
+                color: #333333;
+            }
+            QMessageBox {
+                background-color: #ffffff;
+            }
+            QMessageBox QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 4px;
+                padding: 5px 15px;
+                min-width: 80px;
+                min-height: 25px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
 
         # Initialize managers
         self.formula_manager = FormulaManager()
@@ -89,6 +136,35 @@ class ChickenFarmApp(QMainWindow):
         # Create main tab widget
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+                border-radius: 5px;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 10px 20px;
+                margin-right: 5px;
+                font-weight: bold;
+                min-width: 120px;
+                font-size: 12pt;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
 
         # Create tabs
         self.feed_usage_tab = QWidget()
@@ -122,6 +198,35 @@ class ChickenFarmApp(QMainWindow):
     def create_menu_bar(self):
         """Create the menu bar"""
         menu_bar = self.menuBar()
+        menu_bar.setStyleSheet("""
+            QMenuBar {
+                background-color: #4CAF50;
+                color: white;
+                padding: 5px;
+                font-weight: bold;
+            }
+            QMenuBar::item {
+                background-color: transparent;
+                padding: 5px 10px;
+                margin: 0px 2px;
+                border-radius: 4px;
+            }
+            QMenuBar::item:selected {
+                background-color: #45a049;
+            }
+            QMenu {
+                background-color: white;
+                border: 1px solid #cccccc;
+            }
+            QMenu::item {
+                padding: 5px 25px 5px 20px;
+                border: 1px solid transparent;
+            }
+            QMenu::item:selected {
+                background-color: #e0f2f1;
+                color: #333333;
+            }
+        """)
 
         # File menu
         file_menu = menu_bar.addMenu("Tệp")
@@ -148,10 +253,10 @@ class ChickenFarmApp(QMainWindow):
         QMessageBox.about(
             self,
             "Giới thiệu",
-            """<h1>Phần mềm Quản lý Cám - Trại Gà</h1>
-            <p>Phiên bản 1.0</p>
-            <p>Phần mềm quản lý cám cho trại gà, giúp theo dõi lượng cám sử dụng hàng ngày và quản lý tồn kho.</p>
-            <p>© 2023 Minh-Tan_Phat</p>"""
+            """<h1 style="color: #4CAF50;">Phần mềm Quản lý Cám - Trại Gà</h1>
+            <p style="font-size: 14px;">Phiên bản 1.0</p>
+            <p style="font-size: 14px;">Phần mềm quản lý cám cho trại gà, giúp theo dõi lượng cám sử dụng hàng ngày và quản lý tồn kho.</p>
+            <p style="font-size: 14px;">© 2023 Minh-Tan_Phat</p>"""
         )
 
     def setup_feed_usage_tab(self):
@@ -177,6 +282,8 @@ class ChickenFarmApp(QMainWindow):
 
         self.default_formula_combo = QComboBox()
         self.default_formula_combo.setFont(DEFAULT_FONT)
+        self.default_formula_combo.setMinimumHeight(35)
+        self.default_formula_combo.setStyleSheet("QComboBox { padding: 5px; border: 1px solid #aaa; border-radius: 3px; }")
         # Lấy danh sách các công thức cám có sẵn
         presets = self.formula_manager.get_feed_presets()
         self.default_formula_combo.addItem("")  # Thêm lựa chọn trống
@@ -187,6 +294,8 @@ class ChickenFarmApp(QMainWindow):
         # Nút áp dụng công thức mặc định
         apply_default_button = QPushButton("Áp dụng cho tất cả")
         apply_default_button.setFont(BUTTON_FONT)
+        apply_default_button.setMinimumHeight(35)
+        apply_default_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border-radius: 5px; padding: 5px 15px; }")
         apply_default_button.clicked.connect(self.apply_default_formula)
         default_formula_layout.addWidget(apply_default_button)
 
@@ -195,10 +304,12 @@ class ChickenFarmApp(QMainWindow):
         # Create table for feed usage input
         self.feed_table = QTableWidget()
         self.feed_table.setFont(TABLE_CELL_FONT)
+        self.feed_table.setStyleSheet("QTableWidget { gridline-color: #aaa; }")
 
         # Set font for table headers
         self.feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+        self.feed_table.verticalHeader().setStyleSheet("QHeaderView::section { background-color: #e0e0e0; padding: 5px; }")
 
         # Calculate total number of farms
         total_farms = sum(len(farms) for farms in FARMS.values())
@@ -214,34 +325,57 @@ class ChickenFarmApp(QMainWindow):
         self.feed_table.horizontalHeader().setVisible(False)
 
         # Set row headers
-        self.feed_table.setVerticalHeaderItem(0, QTableWidgetItem("Khu"))
-        self.feed_table.setVerticalHeaderItem(1, QTableWidgetItem("Trại"))
+        khu_header = QTableWidgetItem("Khu")
+        khu_header.setFont(TABLE_HEADER_FONT)
+        self.feed_table.setVerticalHeaderItem(0, khu_header)
+
+        trai_header = QTableWidgetItem("Trại")
+        trai_header.setFont(TABLE_HEADER_FONT)
+        self.feed_table.setVerticalHeaderItem(1, trai_header)
+
         for i, shift in enumerate(SHIFTS):
-            self.feed_table.setVerticalHeaderItem(i + 2, QTableWidgetItem(shift))
+            shift_header = QTableWidgetItem(shift)
+            shift_header.setFont(TABLE_HEADER_FONT)
+            self.feed_table.setVerticalHeaderItem(i + 2, shift_header)
+
+        # Màu nền cho các khu khác nhau
+        khu_colors = [
+            QColor(240, 248, 255),  # Khu 1: Alice Blue
+            QColor(245, 245, 220),  # Khu 2: Beige
+            QColor(240, 255, 240),  # Khu 3: Honeydew
+            QColor(255, 240, 245),  # Khu 4: Lavender Blush
+            QColor(255, 250, 240),  # Khu 5: Floral White
+        ]
 
         # Populate table with farms and khu information
         col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
         for khu_idx, farms in FARMS.items():
             khu_name = f"Khu {khu_idx + 1}"
+            khu_color = khu_colors[khu_idx]
 
             for farm_idx, farm in enumerate(farms):
                 # Set khu label in first row
                 khu_item = QTableWidgetItem(khu_name)
                 khu_item.setFont(TABLE_CELL_FONT)
+                khu_item.setBackground(khu_color)
+                khu_item.setTextAlignment(Qt.AlignCenter)
                 self.feed_table.setItem(0, col_index, khu_item)
 
                 # Set farm name in second row
                 farm_item = QTableWidgetItem(farm)
                 farm_item.setFont(TABLE_CELL_FONT)
+                farm_item.setBackground(khu_color.lighter(105))
+                farm_item.setTextAlignment(Qt.AlignCenter)
                 self.feed_table.setItem(1, col_index, farm_item)
 
                 # Create editable cells for feed usage for each shift
                 for shift_idx in range(len(SHIFTS)):
                     # Tạo một widget container để chứa cả spinbox và combobox
                     container = QWidget()
+                    container.setStyleSheet(f"background-color: {khu_color.name()};")
                     container_layout = QHBoxLayout(container)
                     container_layout.setContentsMargins(2, 2, 2, 2)
-                    container_layout.setSpacing(2)
+                    container_layout.setSpacing(4)
 
                     # Tạo spinbox cho số lượng mẻ
                     spin_box = QDoubleSpinBox()
@@ -249,15 +383,40 @@ class ChickenFarmApp(QMainWindow):
                     spin_box.setRange(0, 100)
                     spin_box.setSingleStep(0.5)
                     spin_box.setDecimals(1)
+                    spin_box.setAlignment(Qt.AlignCenter)
+                    spin_box.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+                    spin_box.setStyleSheet("""
+                        QDoubleSpinBox {
+                            border: 1px solid #bbb;
+                            border-radius: 4px;
+                            padding: 2px;
+                            background-color: white;
+                        }
+                        QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                            width: 20px;
+                        }
+                    """)
 
                     # Tăng kích thước của spin box để dễ nhìn hơn
-                    spin_box.setMinimumHeight(30)
+                    spin_box.setMinimumHeight(35)
 
                     # Tạo combobox cho công thức cám
                     formula_combo = QComboBox()
                     formula_combo.setFont(TABLE_CELL_FONT)
+                    formula_combo.setStyleSheet("""
+                        QComboBox {
+                            border: 1px solid #bbb;
+                            border-radius: 4px;
+                            padding: 2px;
+                            background-color: white;
+                        }
+                        QComboBox::drop-down {
+                            width: 20px;
+                        }
+                    """)
+
                     # Tăng kích thước của combo box để dễ nhìn hơn
-                    formula_combo.setMinimumHeight(30)
+                    formula_combo.setMinimumHeight(35)
 
                     # Lấy danh sách các công thức cám có sẵn
                     presets = self.formula_manager.get_feed_presets()
@@ -285,18 +444,34 @@ class ChickenFarmApp(QMainWindow):
         self.feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
-        for row in range(self.feed_table.rowCount()):
-            self.feed_table.setRowHeight(row, 40)
+        self.feed_table.setRowHeight(0, 45)  # Hàng khu
+        self.feed_table.setRowHeight(1, 45)  # Hàng trại
+        for row in range(2, self.feed_table.rowCount()):
+            self.feed_table.setRowHeight(row, 50)  # Hàng nhập liệu
 
         # Calculate button
         calc_button = QPushButton("Tính Toán")
         calc_button.setFont(BUTTON_FONT)
+        calc_button.setMinimumHeight(40)
+        calc_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+        """)
         calc_button.clicked.connect(self.calculate_feed_usage)
 
         # Results section
         self.results_label = QLabel("Kết quả tính toán sẽ hiển thị ở đây")
         self.results_label.setFont(DEFAULT_FONT)
         self.results_label.setAlignment(Qt.AlignCenter)
+        self.results_label.setStyleSheet("QLabel { padding: 10px; background-color: #f0f0f0; border-radius: 5px; }")
 
         # Results table
         self.results_table = QTableWidget()
@@ -305,6 +480,18 @@ class ChickenFarmApp(QMainWindow):
         self.results_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
         self.results_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.results_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+            }
+            QHeaderView::section {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+        """)
 
         # Add widgets to layout
         layout.addLayout(header_layout)
@@ -316,12 +503,37 @@ class ChickenFarmApp(QMainWindow):
 
         # Save and export buttons
         button_layout = QHBoxLayout()
+
         save_button = QPushButton("Lưu Báo Cáo")
         save_button.setFont(BUTTON_FONT)
+        save_button.setMinimumHeight(40)
+        save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
         save_button.clicked.connect(self.save_report)
 
         export_button = QPushButton("Xuất Excel")
         export_button.setFont(BUTTON_FONT)
+        export_button.setMinimumHeight(40)
+        export_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff9800;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #e68a00;
+            }
+        """)
         export_button.clicked.connect(self.export_to_excel)
 
         button_layout.addWidget(save_button)
@@ -365,6 +577,31 @@ class ChickenFarmApp(QMainWindow):
         # Create tabs for Feed and Mix inventory
         inventory_tabs = QTabWidget()
         inventory_tabs.setFont(DEFAULT_FONT)
+        inventory_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 12px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
 
         feed_inventory_tab = QWidget()
         mix_inventory_tab = QWidget()
@@ -375,12 +612,36 @@ class ChickenFarmApp(QMainWindow):
         # Setup Feed Inventory tab
         feed_layout = QVBoxLayout()
 
+        # Thêm tiêu đề
+        feed_header = QLabel("Quản Lý Kho Cám")
+        feed_header.setFont(HEADER_FONT)
+        feed_header.setAlignment(Qt.AlignCenter)
+        feed_header.setStyleSheet("QLabel { padding: 10px; background-color: #e0f2f1; border-radius: 5px; }")
+        feed_layout.addWidget(feed_header)
+
         self.feed_inventory_table = QTableWidget()
         self.feed_inventory_table.setFont(TABLE_CELL_FONT)
         self.feed_inventory_table.setColumnCount(4)
         self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
         self.feed_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.feed_inventory_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f9f9f9;
+            }
+            QHeaderView::section {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.feed_inventory_table.setAlternatingRowColors(True)
 
         # Populate feed inventory table
         self.update_feed_inventory_table()
@@ -390,6 +651,18 @@ class ChickenFarmApp(QMainWindow):
         # Add update button for feed inventory
         update_feed_button = QPushButton("Cập Nhật Kho Cám")
         update_feed_button.setFont(BUTTON_FONT)
+        update_feed_button.setMinimumHeight(40)
+        update_feed_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
         update_feed_button.clicked.connect(lambda: self.update_inventory("feed"))
         feed_layout.addWidget(update_feed_button)
 
@@ -398,12 +671,36 @@ class ChickenFarmApp(QMainWindow):
         # Setup Mix Inventory tab
         mix_layout = QVBoxLayout()
 
+        # Thêm tiêu đề
+        mix_header = QLabel("Quản Lý Kho Mix")
+        mix_header.setFont(HEADER_FONT)
+        mix_header.setAlignment(Qt.AlignCenter)
+        mix_header.setStyleSheet("QLabel { padding: 10px; background-color: #e8f5e9; border-radius: 5px; }")
+        mix_layout.addWidget(mix_header)
+
         self.mix_inventory_table = QTableWidget()
         self.mix_inventory_table.setFont(TABLE_CELL_FONT)
         self.mix_inventory_table.setColumnCount(4)
         self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
         self.mix_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.mix_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.mix_inventory_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f9f9f9;
+            }
+            QHeaderView::section {
+                background-color: #8BC34A;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.mix_inventory_table.setAlternatingRowColors(True)
 
         # Populate mix inventory table
         self.update_mix_inventory_table()
@@ -413,6 +710,18 @@ class ChickenFarmApp(QMainWindow):
         # Add update button for mix inventory
         update_mix_button = QPushButton("Cập Nhật Kho Mix")
         update_mix_button.setFont(BUTTON_FONT)
+        update_mix_button.setMinimumHeight(40)
+        update_mix_button.setStyleSheet("""
+            QPushButton {
+                background-color: #8BC34A;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #7CB342;
+            }
+        """)
         update_mix_button.clicked.connect(lambda: self.update_inventory("mix"))
         mix_layout.addWidget(update_mix_button)
 
@@ -430,6 +739,31 @@ class ChickenFarmApp(QMainWindow):
         # Create tabs for Feed and Mix formulas
         formula_tabs = QTabWidget()
         formula_tabs.setFont(DEFAULT_FONT)
+        formula_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 12px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #2196F3;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
 
         feed_formula_tab = QWidget()
         mix_formula_tab = QWidget()
@@ -440,6 +774,13 @@ class ChickenFarmApp(QMainWindow):
         # Setup Feed Formula tab
         feed_layout = QVBoxLayout()
 
+        # Thêm tiêu đề
+        feed_header = QLabel("Quản Lý Công Thức Cám")
+        feed_header.setFont(HEADER_FONT)
+        feed_header.setAlignment(Qt.AlignCenter)
+        feed_header.setStyleSheet("QLabel { padding: 10px; background-color: #e3f2fd; border-radius: 5px; }")
+        feed_layout.addWidget(feed_header)
+
         # Feed formula table
         self.feed_formula_table = QTableWidget()
         self.feed_formula_table.setFont(TABLE_CELL_FONT)
@@ -447,25 +788,89 @@ class ChickenFarmApp(QMainWindow):
         self.feed_formula_table.setHorizontalHeaderLabels(["Thành phần", "Lượng (kg)"])
         self.feed_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.feed_formula_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #2196F3;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+            QDoubleSpinBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 2px;
+                background-color: white;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 20px;
+            }
+        """)
+        self.feed_formula_table.setAlternatingRowColors(True)
 
         # Populate feed formula table
         self.update_feed_formula_table()
 
         feed_layout.addWidget(self.feed_formula_table)
 
-        # Feed formula presets
-        preset_layout = QHBoxLayout()
+        # Feed formula presets section
+        preset_section = QGroupBox("Công Thức Có Sẵn")
+        preset_section.setFont(DEFAULT_FONT)
+        preset_section.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #bbbbbb;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                background-color: white;
+            }
+        """)
 
-        preset_label = QLabel("Công thức có sẵn:")
+        preset_layout = QVBoxLayout()
+
+        # Feed formula presets
+        preset_combo_layout = QHBoxLayout()
+
+        preset_label = QLabel("Chọn công thức:")
         preset_label.setFont(DEFAULT_FONT)
-        preset_layout.addWidget(preset_label)
+        preset_combo_layout.addWidget(preset_label)
 
         # Sử dụng feed_preset_combo đã được khởi tạo trước đó
+        self.feed_preset_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.feed_preset_combo.setMinimumHeight(35)
         self.update_feed_preset_combo()
         self.feed_preset_combo.currentIndexChanged.connect(self.auto_load_feed_preset)
-        preset_layout.addWidget(self.feed_preset_combo)
+        preset_combo_layout.addWidget(self.feed_preset_combo)
+        preset_combo_layout.addStretch()
 
-        preset_layout.addStretch()
+        preset_layout.addLayout(preset_combo_layout)
 
         # Mix formula link
         link_layout = QHBoxLayout()
@@ -475,33 +880,98 @@ class ChickenFarmApp(QMainWindow):
         link_layout.addWidget(link_label)
 
         # Sử dụng mix_link_combo đã được khởi tạo trước đó
+        self.mix_link_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.mix_link_combo.setMinimumHeight(35)
         self.update_mix_link_combo()
         link_layout.addWidget(self.mix_link_combo)
 
         link_button = QPushButton("Liên kết")
         link_button.setFont(BUTTON_FONT)
+        link_button.setMinimumHeight(35)
+        link_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+        """)
         link_button.clicked.connect(self.set_mix_formula_link)
         link_layout.addWidget(link_button)
 
         link_layout.addStretch()
 
-        # Add layouts to feed tab
-        feed_layout.addLayout(preset_layout)
-        feed_layout.addLayout(link_layout)
+        preset_layout.addLayout(link_layout)
+        preset_section.setLayout(preset_layout)
+        feed_layout.addWidget(preset_section)
 
         # Buttons for feed formula
         button_layout = QHBoxLayout()
 
         save_button = QPushButton("Lưu Công Thức")
         save_button.setFont(BUTTON_FONT)
+        save_button.setMinimumHeight(40)
+        save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+        """)
         save_button.clicked.connect(self.save_feed_formula)
 
         save_as_button = QPushButton("Lưu Công Thức Mới")
         save_as_button.setFont(BUTTON_FONT)
+        save_as_button.setMinimumHeight(40)
+        save_as_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
         save_as_button.clicked.connect(self.save_as_feed_preset)
 
         delete_button = QPushButton("Xóa Công Thức")
         delete_button.setFont(BUTTON_FONT)
+        delete_button.setMinimumHeight(40)
+        delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
         delete_button.clicked.connect(self.delete_feed_preset)
 
         button_layout.addWidget(save_button)
@@ -514,6 +984,13 @@ class ChickenFarmApp(QMainWindow):
         # Setup Mix Formula tab
         mix_layout = QVBoxLayout()
 
+        # Thêm tiêu đề
+        mix_header = QLabel("Quản Lý Công Thức Mix")
+        mix_header.setFont(HEADER_FONT)
+        mix_header.setAlignment(Qt.AlignCenter)
+        mix_header.setStyleSheet("QLabel { padding: 10px; background-color: #fff8e1; border-radius: 5px; }")
+        mix_layout.addWidget(mix_header)
+
         # Mix formula table
         self.mix_formula_table = QTableWidget()
         self.mix_formula_table.setFont(TABLE_CELL_FONT)
@@ -521,42 +998,141 @@ class ChickenFarmApp(QMainWindow):
         self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Lượng (kg)"])
         self.mix_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.mix_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.mix_formula_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #FF9800;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+            QDoubleSpinBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 2px;
+                background-color: white;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 20px;
+            }
+        """)
+        self.mix_formula_table.setAlternatingRowColors(True)
 
         # Populate mix formula table
         self.update_mix_formula_table()
 
         mix_layout.addWidget(self.mix_formula_table)
 
-        # Mix formula presets
-        mix_preset_layout = QHBoxLayout()
+        # Mix formula presets section
+        mix_preset_section = QGroupBox("Công Thức Có Sẵn")
+        mix_preset_section.setFont(DEFAULT_FONT)
+        mix_preset_section.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #bbbbbb;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                background-color: white;
+            }
+        """)
 
-        mix_preset_label = QLabel("Công thức có sẵn:")
+        mix_preset_layout = QVBoxLayout()
+
+        # Mix formula presets
+        mix_preset_combo_layout = QHBoxLayout()
+
+        mix_preset_label = QLabel("Chọn công thức:")
         mix_preset_label.setFont(DEFAULT_FONT)
-        mix_preset_layout.addWidget(mix_preset_label)
+        mix_preset_combo_layout.addWidget(mix_preset_label)
 
         # Sử dụng mix_preset_combo đã được khởi tạo trước đó
+        self.mix_preset_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.mix_preset_combo.setMinimumHeight(35)
         self.update_mix_preset_combo()
         self.mix_preset_combo.currentIndexChanged.connect(self.auto_load_mix_preset)
-        mix_preset_layout.addWidget(self.mix_preset_combo)
+        mix_preset_combo_layout.addWidget(self.mix_preset_combo)
 
-        mix_preset_layout.addStretch()
-
-        # Add layouts to mix tab
-        mix_layout.addLayout(mix_preset_layout)
+        mix_preset_combo_layout.addStretch()
+        mix_preset_layout.addLayout(mix_preset_combo_layout)
+        mix_preset_section.setLayout(mix_preset_layout)
+        mix_layout.addWidget(mix_preset_section)
 
         # Buttons for mix formula
         mix_button_layout = QHBoxLayout()
 
         mix_save_button = QPushButton("Lưu Công Thức")
         mix_save_button.setFont(BUTTON_FONT)
+        mix_save_button.setMinimumHeight(40)
+        mix_save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
         mix_save_button.clicked.connect(self.save_mix_formula)
 
         mix_save_as_button = QPushButton("Lưu Công Thức Mới")
         mix_save_as_button.setFont(BUTTON_FONT)
+        mix_save_as_button.setMinimumHeight(40)
+        mix_save_as_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
         mix_save_as_button.clicked.connect(self.save_as_mix_preset)
 
         mix_delete_button = QPushButton("Xóa Công Thức")
         mix_delete_button.setFont(BUTTON_FONT)
+        mix_delete_button.setMinimumHeight(40)
+        mix_delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
         mix_delete_button.clicked.connect(self.delete_mix_preset)
 
         mix_button_layout.addWidget(mix_save_button)
@@ -575,9 +1151,150 @@ class ChickenFarmApp(QMainWindow):
         """Setup the history tab"""
         layout = QVBoxLayout()
 
+        # Thêm tiêu đề
+        history_header = QLabel("Lịch Sử Sử Dụng Cám")
+        history_header.setFont(HEADER_FONT)
+        history_header.setAlignment(Qt.AlignCenter)
+        history_header.setStyleSheet("QLabel { padding: 10px; background-color: #e8eaf6; border-radius: 5px; margin-bottom: 10px; }")
+        layout.addWidget(history_header)
+
+        # Add history date selection
+        date_selection = QGroupBox("Chọn Ngày Báo Cáo")
+        date_selection.setFont(DEFAULT_FONT)
+        date_selection.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #bbbbbb;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding: 10px;
+                background-color: #f5f5f5;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                background-color: #f5f5f5;
+            }
+        """)
+
+        date_layout = QHBoxLayout()
+
+        date_label = QLabel("Chọn ngày:")
+        date_label.setFont(DEFAULT_FONT)
+        date_layout.addWidget(date_label)
+
+        # Khởi tạo history_date_combo nếu chưa có
+        if not hasattr(self, 'history_date_combo'):
+            self.history_date_combo = QComboBox()
+            self.history_date_combo.setFont(DEFAULT_FONT)
+
+        self.history_date_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.history_date_combo.setMinimumHeight(35)
+        self.update_history_dates()
+        self.history_date_combo.currentIndexChanged.connect(self.load_history_data)
+        date_layout.addWidget(self.history_date_combo)
+
+        # Add compare button
+        compare_button = QPushButton("So Sánh")
+        compare_button.setFont(BUTTON_FONT)
+        compare_button.setMinimumHeight(35)
+        compare_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3F51B5;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #303F9F;
+            }
+        """)
+        compare_button.clicked.connect(self.compare_history_data)
+        date_layout.addWidget(compare_button)
+
+        # Add visualize button
+        visualize_button = QPushButton("Biểu Đồ")
+        visualize_button.setFont(BUTTON_FONT)
+        visualize_button.setMinimumHeight(35)
+        visualize_button.setStyleSheet("""
+            QPushButton {
+                background-color: #009688;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #00796B;
+            }
+        """)
+        visualize_button.clicked.connect(self.visualize_history_data)
+        date_layout.addWidget(visualize_button)
+
+        # Add export button
+        export_button = QPushButton("Xuất Excel")
+        export_button.setFont(BUTTON_FONT)
+        export_button.setMinimumHeight(35)
+        export_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
+        export_button.clicked.connect(self.export_history_to_excel)
+        date_layout.addWidget(export_button)
+
+        date_layout.addStretch()
+        date_selection.setLayout(date_layout)
+        layout.addWidget(date_selection)
+
         # Create tabs for different history views
         history_tabs = QTabWidget()
         history_tabs.setFont(DEFAULT_FONT)
+        history_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 12px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #3F51B5;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
 
         self.history_usage_tab = QWidget()
         self.history_feed_tab = QWidget()
@@ -592,44 +1309,7 @@ class ChickenFarmApp(QMainWindow):
         self.setup_history_feed_tab()
         self.setup_history_mix_tab()
 
-        # Add history date selection
-        date_layout = QHBoxLayout()
-
-        date_label = QLabel("Chọn ngày:")
-        date_label.setFont(DEFAULT_FONT)
-        date_layout.addWidget(date_label)
-
-        # Khởi tạo history_date_combo nếu chưa có
-        if not hasattr(self, 'history_date_combo'):
-            self.history_date_combo = QComboBox()
-            self.history_date_combo.setFont(DEFAULT_FONT)
-
-        self.update_history_dates()
-        self.history_date_combo.currentIndexChanged.connect(self.load_history_data)
-        date_layout.addWidget(self.history_date_combo)
-
-        # Add compare button
-        compare_button = QPushButton("So Sánh")
-        compare_button.setFont(BUTTON_FONT)
-        compare_button.clicked.connect(self.compare_history_data)
-        date_layout.addWidget(compare_button)
-
-        # Add visualize button
-        visualize_button = QPushButton("Biểu Đồ")
-        visualize_button.setFont(BUTTON_FONT)
-        visualize_button.clicked.connect(self.visualize_history_data)
-        date_layout.addWidget(visualize_button)
-
-        # Add export button
-        export_button = QPushButton("Xuất Excel")
-        export_button.setFont(BUTTON_FONT)
-        export_button.clicked.connect(self.export_history_to_excel)
-        date_layout.addWidget(export_button)
-
-        date_layout.addStretch()
-
         # Add to main layout
-        layout.addLayout(date_layout)
         layout.addWidget(history_tabs)
 
         self.history_tab.setLayout(layout)
@@ -641,8 +1321,60 @@ class ChickenFarmApp(QMainWindow):
         # Create table for history usage data
         self.history_usage_table = QTableWidget()
         self.history_usage_table.setFont(TABLE_CELL_FONT)
-        self.history_usage_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.history_usage_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+
+        # Calculate total number of farms
+        total_farms = sum(len(farms) for farms in FARMS.values())
+
+        # Tạo bảng với cấu trúc giống với feed_table:
+        # - Hàng đầu tiên: Khu (label)
+        # - Hàng thứ hai: Trại
+        # - Các hàng tiếp theo: Buổi (Sáng/Chiều)
+        self.history_usage_table.setRowCount(len(SHIFTS) + 2)  # +2 cho hàng Khu và hàng Trại
+        self.history_usage_table.setColumnCount(total_farms)  # Chỉ hiển thị các trại, bỏ cột nhãn
+
+        # Ẩn header row (dãy số trên cùng)
+        self.history_usage_table.horizontalHeader().setVisible(False)
+
+        # Set row headers
+        khu_header = QTableWidgetItem("Khu")
+        khu_header.setFont(TABLE_HEADER_FONT)
+        self.history_usage_table.setVerticalHeaderItem(0, khu_header)
+
+        trai_header = QTableWidgetItem("Trại")
+        trai_header.setFont(TABLE_HEADER_FONT)
+        self.history_usage_table.setVerticalHeaderItem(1, trai_header)
+
+        for i, shift in enumerate(SHIFTS):
+            shift_header = QTableWidgetItem(shift)
+            shift_header.setFont(TABLE_HEADER_FONT)
+            self.history_usage_table.setVerticalHeaderItem(i + 2, shift_header)
+
+        # Thiết lập style cho bảng
+        self.history_usage_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #3F51B5;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+
+        # Tăng chiều cao của các hàng để dễ nhìn hơn
+        self.history_usage_table.setRowHeight(0, 45)  # Hàng khu
+        self.history_usage_table.setRowHeight(1, 45)  # Hàng trại
+        for row in range(2, self.history_usage_table.rowCount()):
+            self.history_usage_table.setRowHeight(row, 50)  # Hàng nhập liệu
+
+        # Stretch columns to fill available space
+        self.history_usage_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         layout.addWidget(self.history_usage_table)
         self.history_usage_tab.setLayout(layout)
@@ -656,6 +1388,23 @@ class ChickenFarmApp(QMainWindow):
         self.history_feed_table.setFont(TABLE_CELL_FONT)
         self.history_feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.history_feed_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+        self.history_feed_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #2196F3;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.history_feed_table.setAlternatingRowColors(True)
 
         layout.addWidget(self.history_feed_table)
         self.history_feed_tab.setLayout(layout)
@@ -669,6 +1418,23 @@ class ChickenFarmApp(QMainWindow):
         self.history_mix_table.setFont(TABLE_CELL_FONT)
         self.history_mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.history_mix_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+        self.history_mix_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #FF9800;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.history_mix_table.setAlternatingRowColors(True)
 
         layout.addWidget(self.history_mix_table)
         self.history_mix_tab.setLayout(layout)
@@ -679,8 +1445,6 @@ class ChickenFarmApp(QMainWindow):
         combo_boxes = []
         if combo_box is None:
             combo_boxes.append(self.history_date_combo)
-            if hasattr(self, 'compare_date_combo'):
-                combo_boxes.append(self.compare_date_combo)
         else:
             combo_boxes.append(combo_box)
 
@@ -689,13 +1453,16 @@ class ChickenFarmApp(QMainWindow):
             cb.clear()
 
         # Reports directory
-        reports_dir = "reports"
+        reports_dir = "src/data/reports"
 
         # Check if reports directory exists
         if not os.path.exists(reports_dir):
-            for cb in combo_boxes:
-                cb.addItem("Không có dữ liệu")
-            return
+            # Thử đường dẫn cũ
+            reports_dir = "reports"
+            if not os.path.exists(reports_dir):
+                for cb in combo_boxes:
+                    cb.addItem("Không có dữ liệu")
+                return
 
         # Find all report files in the reports directory
         report_files = [os.path.join(reports_dir, f) for f in os.listdir(reports_dir)
@@ -711,8 +1478,8 @@ class ChickenFarmApp(QMainWindow):
         report_files.sort(reverse=True)
 
         # Thêm option "Không so sánh" cho combo box so sánh
-        if combo_box is None and hasattr(self, 'compare_date_combo'):
-            self.compare_date_combo.addItem("Không so sánh", "")
+        if combo_box is not None:
+            combo_box.addItem("Không so sánh")
 
         # Add to combo box
         for report_file in report_files:
@@ -722,243 +1489,210 @@ class ChickenFarmApp(QMainWindow):
                 # Format date as DD/MM/YYYY for display
                 date = QDate.fromString(date_str, "yyyyMMdd")
                 formatted_date = date.toString("dd/MM/yyyy")
+
                 for cb in combo_boxes:
-                    cb.addItem(formatted_date, report_file)
+                    cb.addItem(formatted_date)
             except:
                 # If date parsing fails, just add the filename
                 for cb in combo_boxes:
                     cb.addItem(os.path.basename(report_file))
 
     def load_history_data(self):
-        """Load historical data for the selected date"""
-        # Get selected report file
-        current_index = self.history_date_combo.currentIndex()
-        if current_index < 0:
-            QMessageBox.warning(self, "Lỗi", "Không có dữ liệu lịch sử để tải")
+        """Load history data based on selected date"""
+        selected_date = self.history_date_combo.currentText()
+
+        if selected_date == "Không có dữ liệu":
+            # Xóa dữ liệu hiện tại
+            self.history_usage_table.setRowCount(0)
+            self.history_feed_table.setRowCount(0)
+            self.history_mix_table.setRowCount(0)
+            self.current_report_data = None
             return
 
-        report_file = self.history_date_combo.itemData(current_index)
-        if not report_file:
-            QMessageBox.warning(self, "Lỗi", "Không tìm thấy file báo cáo")
+        # Tải dữ liệu báo cáo
+        report_data = self.load_report_data(selected_date)
+
+        if not report_data:
+            QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu cho ngày {selected_date}")
             return
 
-        try:
-            # Load report data
-            with open(report_file, 'r', encoding='utf-8') as f:
-                report_data = json.load(f)
+        # Lưu dữ liệu báo cáo hiện tại
+        self.current_report_data = report_data
 
-            # Update usage table
-            self.update_history_usage_table(report_data)
-
-            # Update feed ingredients table
-            self.update_history_feed_table(report_data)
-
-            # Update mix ingredients table
-            self.update_history_mix_table(report_data)
-
-            QMessageBox.information(self, "Thành công", f"Đã tải dữ liệu lịch sử ngày {self.history_date_combo.currentText()}")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu lịch sử: {str(e)}")
+        # Cập nhật các bảng
+        self.update_history_usage_table(report_data)
+        self.update_history_feed_table(report_data)
+        self.update_history_mix_table(report_data)
 
     def update_history_usage_table(self, report_data):
         """Update the history usage table with data from a report"""
-        if "feed_usage" not in report_data:
-            return
+        try:
+            # Kiểm tra dữ liệu báo cáo
+            if not report_data or "feed_usage" not in report_data:
+                return
 
-        # Xóa dữ liệu cũ
-        self.history_usage_table.clearContents()
+            # Lấy dữ liệu sử dụng cám
+            feed_usage = report_data.get("feed_usage", {})
+            formula_usage = report_data.get("formula_usage", {})
 
-        # Populate table with farms and khu information
-        col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
-        for khu_idx, farms in FARMS.items():
-            khu_name = f"Khu {khu_idx + 1}"
+            # Màu nền cho các khu khác nhau
+            khu_colors = [
+                QColor(240, 248, 255),  # Khu 1: Alice Blue
+                QColor(245, 245, 220),  # Khu 2: Beige
+                QColor(240, 255, 240),  # Khu 3: Honeydew
+                QColor(255, 240, 245),  # Khu 4: Lavender Blush
+                QColor(255, 250, 240),  # Khu 5: Floral White
+            ]
 
-            for farm_idx, farm in enumerate(farms):
-                # Set khu label in first row
-                self.history_usage_table.setItem(0, col_index, QTableWidgetItem(khu_name))
+            # Populate table with farms and khu information
+            col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
+            for khu_idx, farms in FARMS.items():
+                khu_name = f"Khu {khu_idx + 1}"
+                khu_color = khu_colors[khu_idx]
 
-                # Set farm name in second row
-                self.history_usage_table.setItem(1, col_index, QTableWidgetItem(farm))
+                for farm in farms:
+                    # Set khu label in first row
+                    khu_item = QTableWidgetItem(khu_name)
+                    khu_item.setFont(TABLE_CELL_FONT)
+                    khu_item.setBackground(khu_color)
+                    khu_item.setTextAlignment(Qt.AlignCenter)
+                    self.history_usage_table.setItem(0, col_index, khu_item)
 
-                # Set values for each shift
-                if khu_name in report_data["feed_usage"] and farm in report_data["feed_usage"][khu_name]:
-                    farm_data = report_data["feed_usage"][khu_name][farm]
+                    # Set farm name in second row
+                    farm_item = QTableWidgetItem(farm)
+                    farm_item.setFont(TABLE_CELL_FONT)
+                    farm_item.setBackground(khu_color.lighter(105))
+                    farm_item.setTextAlignment(Qt.AlignCenter)
+                    self.history_usage_table.setItem(1, col_index, farm_item)
 
-                    # Kiểm tra xem có dữ liệu công thức không
-                    has_formula_data = ("formula_usage" in report_data and
-                                       khu_name in report_data["formula_usage"] and
-                                       farm in report_data["formula_usage"][khu_name])
+                    # Set values for each shift
+                    if khu_name in feed_usage and farm in feed_usage[khu_name]:
+                        farm_data = feed_usage[khu_name][farm]
 
-                    for shift_idx, shift in enumerate(SHIFTS):
-                        if shift in farm_data:
-                            value = farm_data[shift]
+                        # Kiểm tra xem có dữ liệu công thức không
+                        has_formula_data = (formula_usage and
+                                          khu_name in formula_usage and
+                                          farm in formula_usage[khu_name])
 
-                            # Nếu có dữ liệu công thức, hiển thị cả số lượng và công thức
-                            if has_formula_data and shift in report_data["formula_usage"][khu_name][farm]:
-                                formula = report_data["formula_usage"][khu_name][farm][shift]
-                                if formula:
-                                    display_text = f"{format_number(value)} ({formula})"
-                                else:
-                                    display_text = format_number(value)
-                            else:
-                                display_text = format_number(value)
+                        for shift_idx, shift in enumerate(SHIFTS):
+                            if shift in farm_data:
+                                value = farm_data[shift]
+                                formula = ""
 
-                            self.history_usage_table.setItem(shift_idx + 2, col_index,
-                                                          QTableWidgetItem(display_text))
+                                # Nếu có dữ liệu công thức, lấy tên công thức
+                                if has_formula_data and shift in formula_usage[khu_name][farm]:
+                                    formula = formula_usage[khu_name][farm][shift]
 
-                col_index += 1
+                                # Tạo cell hiển thị số mẻ và công thức
+                                cell_item = QTableWidgetItem(f"{format_number(value)} ({formula})")
+                                cell_item.setFont(TABLE_CELL_FONT)
+                                cell_item.setTextAlignment(Qt.AlignCenter)
+                                cell_item.setBackground(khu_color)
+                                self.history_usage_table.setItem(shift_idx + 2, col_index, cell_item)
 
-        # Calculate and display totals
-        # Calculate total for each area
-        for area_idx in range(AREAS):
-            area_name = f"Khu {area_idx + 1}"
-            farms = FARMS[area_idx]
-            col_start = 0
-            for idx in range(area_idx):
-                col_start += len(FARMS[idx])
+                    col_index += 1
 
-            # Calculate total for each shift
-            for shift_idx, shift in enumerate(SHIFTS):
-                total = 0
-                for farm_idx in range(len(farms)):
-                    col = col_start + farm_idx
-                    item = self.history_usage_table.item(shift_idx + 2, col)
-                    if item and item.text():
-                        try:
-                            # Trích xuất số từ văn bản (có thể có công thức trong ngoặc)
-                            text = item.text()
-                            if "(" in text:
-                                text = text.split("(")[0].strip()
-                            total += float(text.replace(',', '.'))
-                        except ValueError:
-                            pass
-
-                # Add total to area totals row
-                self.history_usage_table.setItem(shift_idx + 2 + len(SHIFTS), col_start,
-                                              QTableWidgetItem(format_number(total)))
-
-                # Merge cells for area total
-                if len(farms) > 1:
-                    self.history_usage_table.setSpan(shift_idx + 2 + len(SHIFTS), col_start, 1, len(farms))
+        except Exception as e:
+            print(f"Lỗi khi cập nhật bảng lịch sử sử dụng cám: {str(e)}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể hiển thị dữ liệu lịch sử sử dụng cám: {str(e)}")
 
     def update_history_feed_table(self, report_data):
-        """Update the history feed ingredients table with data from the report"""
-        if "feed_ingredients" not in report_data:
-            return
+        """Update the history feed table with data from a report"""
+        try:
+            # Kiểm tra dữ liệu báo cáo
+            if not report_data or "feed_ingredients" not in report_data:
+                self.history_feed_table.setRowCount(0)
+                return
 
-        # Get feed ingredients
-        feed_ingredients = report_data["feed_ingredients"]
+            # Lấy dữ liệu thành phần cám
+            feed_ingredients = report_data.get("feed_ingredients", {})
 
-        # Prepare data for table
-        table_data = []
-        total_amount = 0
-        total_bags = 0
+            # Thiết lập số hàng và cột cho bảng
+            self.history_feed_table.setRowCount(len(feed_ingredients))
+            self.history_feed_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
+            self.history_feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
 
-        for ingredient, amount in feed_ingredients.items():
-            bags = self.inventory_manager.calculate_bags(ingredient, amount)
-            table_data.append((ingredient, amount, bags))
-            total_amount += amount
-            total_bags += bags
+            # Sắp xếp các thành phần để đưa bắp và nành lên đầu
+            priority_ingredients = ["Bắp", "Nành"]
+            sorted_feed_ingredients = {}
 
-        # Sort by amount (descending)
-        table_data.sort(key=lambda x: x[1], reverse=True)
+            # Thêm các thành phần ưu tiên trước
+            for ingredient in priority_ingredients:
+                if ingredient in feed_ingredients:
+                    sorted_feed_ingredients[ingredient] = feed_ingredients[ingredient]
 
-        # Update table with space for total row
-        self.history_feed_table.setRowCount(len(table_data) + 1)
+            # Thêm các thành phần còn lại
+            for ingredient, amount in feed_ingredients.items():
+                if ingredient not in priority_ingredients:
+                    sorted_feed_ingredients[ingredient] = amount
 
-        for row, (ingredient, amount, bags) in enumerate(table_data):
-            self.history_feed_table.setItem(row, 0, QTableWidgetItem(ingredient))
-            self.history_feed_table.setItem(row, 1, QTableWidgetItem(format_number(amount)))
-            self.history_feed_table.setItem(row, 2, QTableWidgetItem(format_number(bags)))
+            # Đổ dữ liệu vào bảng
+            for row, (ingredient, amount) in enumerate(sorted_feed_ingredients.items()):
+                # Thành phần
+                ingredient_item = QTableWidgetItem(ingredient)
+                ingredient_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                if ingredient in priority_ingredients:
+                    ingredient_item.setBackground(QColor(255, 255, 200))  # Light yellow background for priority
+                self.history_feed_table.setItem(row, 0, ingredient_item)
 
-        # Add total row
-        total_row = len(table_data)
-        total_item = QTableWidgetItem("Tổng lượng Cám")
-        total_item.setFont(QFont("Arial", weight=QFont.Bold))
-        self.history_feed_table.setItem(total_row, 0, total_item)
+                # Số lượng
+                amount_item = QTableWidgetItem(format_number(amount))
+                amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.history_feed_table.setItem(row, 1, amount_item)
 
-        total_amount_item = QTableWidgetItem(format_number(total_amount))
-        total_amount_item.setFont(QFont("Arial", weight=QFont.Bold))
-        total_amount_item.setBackground(QColor(200, 230, 250))  # Light blue background
-        self.history_feed_table.setItem(total_row, 1, total_amount_item)
+                # Số bao (nếu có thông tin)
+                bags = self.inventory_manager.calculate_bags(ingredient, amount)
+                bags_item = QTableWidgetItem(format_number(bags))
+                bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.history_feed_table.setItem(row, 2, bags_item)
 
-        total_bags_item = QTableWidgetItem(format_number(total_bags))
-        total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
-        total_bags_item.setBackground(QColor(200, 230, 250))  # Light blue background
-        self.history_feed_table.setItem(total_row, 2, total_bags_item)
+            # Điều chỉnh kích thước cột
+            self.history_feed_table.resizeColumnsToContents()
+
+        except Exception as e:
+            print(f"Lỗi khi cập nhật bảng lịch sử thành phần cám: {str(e)}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể hiển thị dữ liệu lịch sử thành phần cám: {str(e)}")
 
     def update_history_mix_table(self, report_data):
-        """Update the history mix ingredients table with data from the report"""
-        if "mix_ingredients" not in report_data:
-            return
+        """Update the history mix table with data from a report"""
+        try:
+            # Kiểm tra dữ liệu báo cáo
+            if not report_data or "mix_ingredients" not in report_data:
+                self.history_mix_table.setRowCount(0)
+                return
 
-        # Get mix ingredients
-        mix_ingredients = report_data["mix_ingredients"]
+            # Lấy dữ liệu thành phần mix
+            mix_ingredients = report_data.get("mix_ingredients", {})
 
-        # Get mix formulas used if available
-        mix_formulas_used = report_data.get("mix_formulas_used", {})
-        tong_hop_amount = report_data.get("tong_hop_amount", 0)
-        mix_total = report_data.get("mix_total", 0)
+            # Thiết lập số hàng và cột cho bảng
+            self.history_mix_table.setRowCount(len(mix_ingredients))
+            self.history_mix_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
+            self.history_mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
 
-        # Set title with mix formula info if available
-        if mix_formulas_used:
-            mix_names = ", ".join(mix_formulas_used.keys())
-            self.history_tabs.setTabText(2, f"Thành Phần Mix ({mix_names})")
-        else:
-            self.history_tabs.setTabText(2, "Thành Phần Mix")
+            # Đổ dữ liệu vào bảng
+            for row, (ingredient, amount) in enumerate(mix_ingredients.items()):
+                # Thành phần
+                ingredient_item = QTableWidgetItem(ingredient)
+                ingredient_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                self.history_mix_table.setItem(row, 0, ingredient_item)
 
-        # Prepare data for table - chỉ lấy các thành phần có giá trị > 0
-        table_data = []
-        total_amount = 0
-        total_bags = 0
+                # Số lượng
+                amount_item = QTableWidgetItem(format_number(amount))
+                amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.history_mix_table.setItem(row, 1, amount_item)
 
-        for ingredient, amount in mix_ingredients.items():
-            if amount > 0:  # Chỉ hiển thị thành phần có giá trị > 0
+                # Số bao (nếu có thông tin)
                 bags = self.inventory_manager.calculate_bags(ingredient, amount)
-                table_data.append((ingredient, amount, bags))
-                total_amount += amount
-                total_bags += bags
+                bags_item = QTableWidgetItem(format_number(bags))
+                bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.history_mix_table.setItem(row, 2, bags_item)
 
-        # Sort by amount (descending)
-        table_data.sort(key=lambda x: x[1], reverse=True)
+            # Điều chỉnh kích thước cột
+            self.history_mix_table.resizeColumnsToContents()
 
-        # Update table with space for total row
-        self.history_mix_table.setRowCount(len(table_data) + 1)
-
-        for row, (ingredient, amount, bags) in enumerate(table_data):
-            self.history_mix_table.setItem(row, 0, QTableWidgetItem(ingredient))
-            self.history_mix_table.setItem(row, 1, QTableWidgetItem(format_number(amount)))
-            self.history_mix_table.setItem(row, 2, QTableWidgetItem(format_number(bags)))
-
-        # Add total row
-        total_row = len(table_data)
-        total_item = QTableWidgetItem("Tổng lượng Mix")
-        total_item.setFont(QFont("Arial", weight=QFont.Bold))
-        self.history_mix_table.setItem(total_row, 0, total_item)
-
-        total_amount_item = QTableWidgetItem(format_number(total_amount))
-        total_amount_item.setFont(QFont("Arial", weight=QFont.Bold))
-        total_amount_item.setBackground(QColor(230, 250, 200))  # Light green background
-        self.history_mix_table.setItem(total_row, 1, total_amount_item)
-
-        total_bags_item = QTableWidgetItem(format_number(total_bags))
-        total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
-        total_bags_item.setBackground(QColor(230, 250, 200))  # Light green background
-        self.history_mix_table.setItem(total_row, 2, total_bags_item)
-
-        # Hiển thị thông tin thêm về nguyên liệu tổ hợp nếu có
-        if tong_hop_amount > 0:
-            info_text = f"Tổng lượng nguyên liệu tổ hợp: {format_number(tong_hop_amount)} kg"
-
-            # Thêm thông tin về từng công thức mix được sử dụng
-            if mix_formulas_used:
-                info_text += "\n\nCông thức Mix được sử dụng:"
-                for mix_name, mix_data in mix_formulas_used.items():
-                    mix_amount = mix_data.get("tong_hop_amount", 0)
-                    info_text += f"\n- {mix_name}: {format_number(mix_amount)} kg"
-
-            QMessageBox.information(self, "Thông tin Mix", info_text)
+        except Exception as e:
+            print(f"Lỗi khi cập nhật bảng lịch sử thành phần mix: {str(e)}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể hiển thị dữ liệu lịch sử thành phần mix: {str(e)}")
 
     def visualize_history_data(self):
         """Visualize historical data for the selected date"""
@@ -1165,64 +1899,72 @@ class ChickenFarmApp(QMainWindow):
             self.mix_inventory_table.setRowHeight(row, 40)
 
     def calculate_feed_usage(self):
-        """Calculate feed usage based on input table"""
-        total_batches = 0
-        area_batches = {}
-        farm_batches = {}
+        """Calculate feed usage based on input values"""
+        # Collect data from table
+        formula_batches = {}  # Dictionary to store formula name and total batches
+        farm_formula_batches = {}  # Dictionary to store formula name and batches for each farm
 
-        # Dictionary để lưu số mẻ theo từng công thức cám
-        formula_batches = {}
-
-        # Dictionary để lưu thành phần cám theo từng công thức
+        # Dictionary để lưu thông tin công thức và thành phần
         formula_ingredients = {}
 
-        # Khởi tạo dữ liệu cho từng khu
-        for area in range(AREAS):
-            area_batches[f"Khu {area + 1}"] = 0
+        # Duyệt qua từng cột (farm)
+        for col in range(self.feed_table.columnCount()):
+            # Lấy tên khu và trại
+            khu_item = self.feed_table.item(0, col)
+            farm_item = self.feed_table.item(1, col)
 
-        # Tính tổng số mẻ cám sử dụng theo từng trại và từng khu
-        col_index = 0 # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
-        for khu_idx, farms in FARMS.items():
-            khu_name = f"Khu {khu_idx + 1}"
+            if not khu_item or not farm_item:
+                continue
 
-            for farm in farms:
-                farm_name = farm
-                farm_key = f"{khu_name}-{farm}"
-                farm_batches[farm_key] = 0
+            khu_name = khu_item.text()
+            farm_name = farm_item.text()
+            farm_key = f"{khu_name} - {farm_name}"
 
-                # Tính tổng mẻ cám cho trại này
-                for shift_idx in range(len(SHIFTS)):
-                    cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
-                    if cell_widget:
-                        # Lấy spinbox và combobox từ container
-                        spin_box = cell_widget.spin_box
-                        formula_combo = cell_widget.formula_combo
+            # Duyệt qua các ca (sáng/chiều)
+            for shift_idx, shift in enumerate(SHIFTS):
+                # Lấy container từ cell
+                container = self.feed_table.cellWidget(shift_idx + 2, col)
 
-                        # Lấy giá trị nhập vào và công thức cám
-                        input_value = spin_box.value()
-                        formula_name = formula_combo.currentText()
+                if not container:
+                    continue
 
-                        # Nếu có nhập số lượng và chọn công thức
-                        if input_value > 0 and formula_name:
-                            # Chuyển đổi số lượng từ bảng thành số mẻ
-                            # 0.5 tương đương với 1 mẻ, 1 tương đương với 2 mẻ
-                            actual_batches = input_value * 2  # Nhân đôi giá trị nhập vào để có số mẻ thực tế
+                # Lấy giá trị từ spin_box và formula_combo
+                spin_box = container.spin_box
+                formula_combo = container.formula_combo
 
-                            # Cập nhật số mẻ cho trại và khu
-                            farm_batches[farm_key] += actual_batches
-                            area_batches[khu_name] += actual_batches
-                            total_batches += actual_batches
+                if not spin_box or not formula_combo:
+                    continue
 
-                            # Cộng dồn số mẻ theo công thức
-                            if formula_name not in formula_batches:
-                                formula_batches[formula_name] = 0
-                            formula_batches[formula_name] += actual_batches
+                batch_value = spin_box.value()
+                formula_name = formula_combo.currentText()
 
-                col_index += 1
+                # Nếu không có giá trị hoặc không chọn công thức, bỏ qua
+                if batch_value <= 0 or not formula_name:
+                    continue
 
-        # Tính toán thành phần cám sử dụng cho từng công thức
+                # Cộng dồn số mẻ cho công thức này
+                if formula_name in formula_batches:
+                    formula_batches[formula_name] += batch_value
+                else:
+                    formula_batches[formula_name] = batch_value
+
+                # Lưu thông tin cho từng farm
+                if farm_key not in farm_formula_batches:
+                    farm_formula_batches[farm_key] = {}
+
+                if formula_name in farm_formula_batches[farm_key]:
+                    farm_formula_batches[farm_key][formula_name] += batch_value
+                else:
+                    farm_formula_batches[farm_key][formula_name] = batch_value
+
+        # Nếu không có dữ liệu, hiển thị thông báo và thoát
+        if not formula_batches:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu để tính toán!")
+            return
+
         # Dictionary để lưu tổng thành phần cám
         feed_ingredients = {}
+
         # Dictionary để lưu tổng thành phần mix
         mix_ingredients = {}
 
@@ -1307,6 +2049,12 @@ class ChickenFarmApp(QMainWindow):
         total_feed_amount = sum(feed_ingredients.values()) if feed_ingredients else 0
         total_mix_amount = sum(mix_ingredients.values()) if mix_ingredients else 0
 
+        # Lưu kết quả tính toán vào biến thành viên để sử dụng khi lưu báo cáo
+        self.feed_ingredients = feed_ingredients
+        self.mix_ingredients = mix_ingredients
+        self.mix_formulas_used = mix_formulas_used
+        self.total_tong_hop = total_tong_hop
+
         # Cập nhật bảng kết quả
         # Sắp xếp các thành phần để đưa bắp và nành lên đầu
         priority_ingredients = ["Bắp", "Nành"]
@@ -1332,6 +2080,7 @@ class ChickenFarmApp(QMainWindow):
         feed_header.setBackground(QColor(200, 230, 250))  # Light blue background
         font = QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold)
         feed_header.setFont(font)
+        feed_header.setTextAlignment(Qt.AlignCenter)
         self.results_table.setItem(row, 0, feed_header)
         self.results_table.setSpan(row, 0, 1, 3)  # Merge cells across all columns
         row += 1
@@ -1345,6 +2094,7 @@ class ChickenFarmApp(QMainWindow):
 
             item = QTableWidgetItem(ingredient_name)
             item.setFont(TABLE_CELL_FONT)
+            item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             if ingredient in priority_ingredients:
                 item.setBackground(QColor(255, 255, 200))  # Light yellow background for priority
             self.results_table.setItem(row, 0, item)
@@ -1352,12 +2102,14 @@ class ChickenFarmApp(QMainWindow):
             # Amount used
             amount_item = QTableWidgetItem(format_number(amount))
             amount_item.setFont(TABLE_CELL_FONT)
+            amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.results_table.setItem(row, 1, amount_item)
 
             # Number of bags
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
             bags_item = QTableWidgetItem(format_number(bags))
             bags_item.setFont(TABLE_CELL_FONT)
+            bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.results_table.setItem(row, 2, bags_item)
 
             row += 1
@@ -1365,15 +2117,20 @@ class ChickenFarmApp(QMainWindow):
         # Thêm tổng lượng cám
         total_feed_item = QTableWidgetItem("Tổng lượng Cám")
         total_feed_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_feed_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        total_feed_item.setBackground(QColor(220, 240, 255))  # Light blue background
         self.results_table.setItem(row, 0, total_feed_item)
 
         total_feed_value = QTableWidgetItem(format_number(total_feed_amount))
         total_feed_value.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        total_feed_value.setBackground(QColor(200, 230, 250))  # Light blue background
+        total_feed_value.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        total_feed_value.setBackground(QColor(220, 240, 255))  # Light blue background
         self.results_table.setItem(row, 1, total_feed_value)
 
         # Không hiển thị số bao cho tổng lượng
-        self.results_table.setItem(row, 2, QTableWidgetItem(""))
+        empty_item = QTableWidgetItem("")
+        empty_item.setBackground(QColor(220, 240, 255))  # Light blue background
+        self.results_table.setItem(row, 2, empty_item)
         row += 1
 
         # Thêm tiêu đề kho mix
@@ -1385,6 +2142,7 @@ class ChickenFarmApp(QMainWindow):
         mix_header = QTableWidgetItem(mix_title)
         mix_header.setBackground(QColor(230, 250, 200))  # Light green background
         mix_header.setFont(font)
+        mix_header.setTextAlignment(Qt.AlignCenter)
         self.results_table.setItem(row, 0, mix_header)
         self.results_table.setSpan(row, 0, 1, 3)  # Merge cells across all columns
         row += 1
@@ -1400,48 +2158,73 @@ class ChickenFarmApp(QMainWindow):
 
         for ingredient, amount in sorted_mix_items:
             # Ingredient name
-            self.results_table.setItem(row, 0, QTableWidgetItem(ingredient))
+            item = QTableWidgetItem(ingredient)
+            item.setFont(TABLE_CELL_FONT)
+            item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            self.results_table.setItem(row, 0, item)
 
             # Amount used
-            self.results_table.setItem(row, 1, QTableWidgetItem(format_number(amount)))
+            amount_item = QTableWidgetItem(format_number(amount))
+            amount_item.setFont(TABLE_CELL_FONT)
+            amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.results_table.setItem(row, 1, amount_item)
 
             # Number of bags
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
-            self.results_table.setItem(row, 2, QTableWidgetItem(format_number(bags)))
+            bags_item = QTableWidgetItem(format_number(bags))
+            bags_item.setFont(TABLE_CELL_FONT)
+            bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.results_table.setItem(row, 2, bags_item)
 
             row += 1
 
         # Thêm tổng lượng mix
         total_mix_item = QTableWidgetItem("Tổng lượng Mix")
         total_mix_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_mix_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        total_mix_item.setBackground(QColor(230, 250, 200))  # Light green background
         self.results_table.setItem(row, 0, total_mix_item)
 
         total_mix_value = QTableWidgetItem(format_number(total_mix_amount))
         total_mix_value.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_mix_value.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_mix_value.setBackground(QColor(230, 250, 200))  # Light green background
         self.results_table.setItem(row, 1, total_mix_value)
 
         # Không hiển thị số bao cho tổng lượng
-        self.results_table.setItem(row, 2, QTableWidgetItem(""))
+        empty_mix_item = QTableWidgetItem("")
+        empty_mix_item.setBackground(QColor(230, 250, 200))  # Light green background
+        self.results_table.setItem(row, 2, empty_mix_item)
 
-        # Update results label - hiển thị số mẻ thực tế
-        results_text = f"Tổng số mẻ: {format_number(total_batches)} | "
-        for area, batches in area_batches.items():
-            results_text += f"{area}: {format_number(batches)} mẻ | "
+        # Tăng chiều cao của các hàng tiêu đề và tổng cộng
+        for row in range(self.results_table.rowCount()):
+            item = self.results_table.item(row, 0)
+            if item and (item.text() == "THÀNH PHẦN KHO CÁM" or item.text() == mix_title or
+                         item.text() == "Tổng lượng Cám" or item.text() == "Tổng lượng Mix"):
+                self.results_table.setRowHeight(row, 40)
+            else:
+                self.results_table.setRowHeight(row, 35)
 
-        # Thêm thông tin số mẻ theo công thức
-        results_text += "\nTheo công thức: "
-        for formula_name, batches in formula_batches.items():
-            if batches > 0:
-                results_text += f"{formula_name}: {format_number(batches)} mẻ | "
+        # Lưu dữ liệu kết quả để sử dụng khi lưu báo cáo
+        self.results_data = []
+        for row in range(self.results_table.rowCount()):
+            row_data = {}
+            for col in range(self.results_table.columnCount()):
+                item = self.results_table.item(row, col)
+                if item:
+                    header_item = self.results_table.horizontalHeaderItem(col)
+                    header = header_item.text() if header_item else f"Column {col}"
+                    row_data[header] = item.text()
+            self.results_data.append(row_data)
 
-        self.results_label.setText(results_text)
+        # Hiển thị thông tin chi tiết về công thức sử dụng
+        formula_details = "Công thức sử dụng:\n"
+        for formula_name, batch_count in formula_batches.items():
+            formula_details += f"- {formula_name}: {format_number(batch_count)} mẻ\n"
 
-        # Lưu dữ liệu thành phần để sử dụng trong báo cáo
-        self.current_feed_ingredients = feed_ingredients
-        self.current_mix_ingredients = mix_ingredients
-        self.current_mix_formulas_used = mix_formulas_used
-        self.current_total_tong_hop = total_tong_hop
+        # Hiển thị thông báo
+        QMessageBox.information(self, "Kết quả tính toán",
+                               f"Đã tính toán thành công!\n\n{formula_details}")
 
         # Update inventory after calculation
         all_ingredients = {**feed_ingredients, **mix_ingredients}
@@ -1627,108 +2410,72 @@ class ChickenFarmApp(QMainWindow):
             return False
 
     def save_report(self):
-        """Save the current feed usage report"""
+        """Save current feed usage data as a report"""
         try:
-            # Create reports directory if it doesn't exist
+            # Kiểm tra xem đã tính toán chưa
+            if not hasattr(self, 'feed_ingredients') or not self.feed_ingredients:
+                QMessageBox.warning(self, "Cảnh báo", "Vui lòng tính toán trước khi lưu báo cáo!")
+                return
+
+            # Tạo thư mục báo cáo nếu chưa tồn tại
             reports_dir = "src/data/reports"
-            os.makedirs(reports_dir, exist_ok=True)
+            if not os.path.exists(reports_dir):
+                os.makedirs(reports_dir)
 
-            # Get current date
-            current_date = QDate.currentDate().toString("yyyyMMdd")
-            filename = os.path.join(reports_dir, f"report_{current_date}.json")
+            # Tạo tên file báo cáo với ngày hiện tại
+            date_str = QDate.currentDate().toString("yyyyMMdd")
+            report_file = os.path.join(reports_dir, f"report_{date_str}.json")
 
-            # Collect data from the feed usage table
-            feed_data = {}
-            formula_data = {}  # Dữ liệu về công thức cám cho từng mẻ
+            # Thu thập dữ liệu sử dụng cám
+            feed_usage = {}
+            formula_usage = {}
 
-            # Collect data for each area and farm
-            col_index = 0
+            col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
             for khu_idx, farms in FARMS.items():
                 khu_name = f"Khu {khu_idx + 1}"
-                feed_data[khu_name] = {}
-                formula_data[khu_name] = {}
+                feed_usage[khu_name] = {}
+                formula_usage[khu_name] = {}
 
                 for farm in farms:
-                    farm_name = farm
-                    feed_data[khu_name][farm_name] = {}
-                    formula_data[khu_name][farm_name] = {}
+                    feed_usage[khu_name][farm] = {}
+                    formula_usage[khu_name][farm] = {}
 
                     for shift_idx, shift in enumerate(SHIFTS):
                         cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
                         if cell_widget:
-                            # Lấy spinbox và combobox từ container
                             spin_box = cell_widget.spin_box
                             formula_combo = cell_widget.formula_combo
 
-                            # Lưu giá trị nhập vào và công thức cám
-                            feed_data[khu_name][farm_name][shift] = spin_box.value()
-                            formula_data[khu_name][farm_name][shift] = formula_combo.currentText()
+                            # Lưu giá trị và công thức
+                            feed_usage[khu_name][farm][shift] = spin_box.value()
+                            formula_usage[khu_name][farm][shift] = formula_combo.currentText()
 
                     col_index += 1
 
-            # Collect data from results table
-            results_data = []
-            for row in range(self.results_table.rowCount()):
-                row_data = {}
-                for col in range(self.results_table.columnCount()):
-                    item = self.results_table.item(row, col)
-                    if item:
-                        header = self.results_table.horizontalHeaderItem(col).text()
-                        row_data[header] = item.text()
-                results_data.append(row_data)
-
-            # Lấy dữ liệu thành phần cám và mix đã tính toán
-            feed_ingredients = {}
-            mix_ingredients = {}
-            mix_formulas_used = {}
-            tong_hop_amount = 0
-
-            if hasattr(self, 'current_feed_ingredients') and self.current_feed_ingredients:
-                feed_ingredients = self.current_feed_ingredients
-
-            if hasattr(self, 'current_mix_ingredients') and self.current_mix_ingredients:
-                mix_ingredients = self.current_mix_ingredients
-
-            if hasattr(self, 'current_mix_formulas_used'):
-                mix_formulas_used = self.current_mix_formulas_used
-
-            if hasattr(self, 'current_total_tong_hop'):
-                tong_hop_amount = self.current_total_tong_hop
-
-            # Chuẩn bị dữ liệu về công thức mix để lưu vào JSON
-            mix_formulas_data = {}
-            for mix_name, mix_data in mix_formulas_used.items():
-                mix_formulas_data[mix_name] = {
-                    "tong_hop_amount": mix_data["tong_hop_amount"]
-                }
-
-            # Prepare data to save
+            # Tạo dữ liệu báo cáo
             report_data = {
-                "date": current_date,
-                "feed_usage": feed_data,
-                "formula_usage": formula_data,  # Dữ liệu về công thức cám cho từng mẻ
-                "results": results_data,
-                "feed_ingredients": feed_ingredients,  # Dữ liệu thành phần cám
-                "mix_ingredients": mix_ingredients,    # Dữ liệu thành phần mix
-                "mix_formulas_used": mix_formulas_data,  # Thông tin về các công thức mix được sử dụng
-                "tong_hop_amount": tong_hop_amount,    # Tổng lượng nguyên liệu tổ hợp
-                "mix_total": sum(mix_ingredients.values()) if mix_ingredients else 0  # Tổng lượng mix
+                "date": date_str,
+                "feed_usage": feed_usage,
+                "formula_usage": formula_usage,
+                "results": self.results_data,
+                "feed_ingredients": self.feed_ingredients,
+                "mix_ingredients": self.mix_ingredients
             }
 
-            # Save to file
-            with open(filename, 'w', encoding='utf-8') as f:
+            # Lưu báo cáo
+            with open(report_file, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, ensure_ascii=False, indent=4)
 
-            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào file {filename}")
+            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào {report_file}")
 
-            # Refresh history tab if it exists
-            if hasattr(self, 'history_date_combo'):
-                self.update_history_dates()
+            # Cập nhật danh sách báo cáo trong tab lịch sử
+            self.update_history_dates()
 
-            return True
         except Exception as e:
-            QMessageBox.warning(self, "Lỗi", f"Không thể lưu báo cáo: {str(e)}")
-            return False
+            print(f"Lỗi khi lưu báo cáo: {str(e)}")
+            QMessageBox.critical(self, "Lỗi", f"Không thể lưu báo cáo: {str(e)}")
+
+        return True
 
     def export_to_excel(self):
         """Export current report to Excel"""
@@ -1971,50 +2718,101 @@ class ChickenFarmApp(QMainWindow):
                 QMessageBox.information(self, "Thành công", f"Đã xóa công thức mix '{preset_name}'")
 
     def compare_history_data(self):
-        """Compare data between selected dates in history tab"""
-        current_date_index = self.history_date_combo.currentIndex()
-        compare_date_index = self.compare_date_combo.currentIndex()
-
-        if current_date_index < 0:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn ngày để so sánh.")
+        """Compare current history data with another date"""
+        # Nếu không có dữ liệu hiện tại, không thể so sánh
+        if not hasattr(self, 'current_report_data') or not self.current_report_data:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu hiện tại để so sánh!")
             return
 
-        current_report_file = self.history_date_combo.itemData(current_date_index)
+        # Tạo dialog để chọn ngày so sánh
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chọn Ngày So Sánh")
+        dialog.setMinimumWidth(300)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+            QLabel {
+                font-size: 12pt;
+            }
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-height: 30px;
+                font-size: 11pt;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 4px;
+                padding: 8px 15px;
+                font-weight: bold;
+                min-height: 30px;
+                font-size: 11pt;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
 
-        if not current_report_file:
-            QMessageBox.warning(self, "Lỗi", "Không tìm thấy file báo cáo cho ngày hiện tại.")
+        layout = QVBoxLayout()
+
+        # Thêm label
+        label = QLabel("Chọn ngày để so sánh:")
+        label.setFont(DEFAULT_FONT)
+        layout.addWidget(label)
+
+        # Thêm combobox để chọn ngày
+        compare_date_combo = QComboBox()
+        compare_date_combo.setFont(DEFAULT_FONT)
+
+        # Cập nhật danh sách ngày (loại bỏ ngày hiện tại)
+        self.update_history_dates(compare_date_combo)
+
+        # Nếu chỉ có một lựa chọn (Không có dữ liệu), không thể so sánh
+        if compare_date_combo.count() <= 1:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu khác để so sánh!")
             return
 
-        try:
-            # Tải dữ liệu ngày hiện tại
-            with open(current_report_file, 'r', encoding='utf-8') as f:
-                current_data = json.load(f)
+        layout.addWidget(compare_date_combo)
 
-            # Nếu không có ngày so sánh hoặc chọn "Không so sánh"
-            if compare_date_index <= 0 or not self.compare_date_combo.itemData(compare_date_index):
-                # Chỉ hiển thị dữ liệu ngày hiện tại
-                self.update_history_usage_table(current_data)
-                self.update_history_feed_table(current_data)
-                self.update_history_mix_table(current_data)
+        # Thêm nút OK và Cancel
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("So Sánh")
+        cancel_button = QPushButton("Hủy")
 
-                QMessageBox.information(self, "Thành công", f"Đã tải dữ liệu ngày {self.history_date_combo.currentText()}")
+        ok_button.clicked.connect(dialog.accept)
+        cancel_button.clicked.connect(dialog.reject)
+
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Hiển thị dialog
+        if dialog.exec_() == QDialog.Accepted:
+            # Lấy ngày đã chọn
+            compare_date_index = compare_date_combo.currentIndex()
+            compare_date_text = compare_date_combo.currentText()
+
+            # Nếu chọn "Không so sánh", thoát
+            if compare_date_text == "Không so sánh":
                 return
 
-            # Tải dữ liệu ngày so sánh
-            compare_report_file = self.compare_date_combo.itemData(compare_date_index)
-            with open(compare_report_file, 'r', encoding='utf-8') as f:
-                compare_data = json.load(f)
+            # Lấy dữ liệu báo cáo để so sánh
+            compare_data = self.load_report_data(compare_date_text)
 
-            # Hiển thị dữ liệu so sánh
-            self.update_history_usage_comparison(current_data, compare_data)
-            self.update_history_feed_comparison(current_data, compare_data)
-            self.update_history_mix_comparison(current_data, compare_data)
+            if not compare_data:
+                QMessageBox.warning(self, "Cảnh báo", f"Không thể tải dữ liệu cho ngày {compare_date_text}!")
+                return
 
-            QMessageBox.information(self, "Thành công",
-                f"Đã so sánh dữ liệu giữa ngày {self.history_date_combo.currentText()} và {self.compare_date_combo.currentText()}")
-
-        except Exception as e:
-            QMessageBox.warning(self, "Lỗi", f"Không thể so sánh dữ liệu: {str(e)}")
+            # Cập nhật bảng so sánh
+            self.update_history_usage_comparison(self.current_report_data, compare_data)
+            self.update_history_feed_comparison(self.current_report_data, compare_data)
+            self.update_history_mix_comparison(self.current_report_data, compare_data)
 
     def update_history_usage_comparison(self, current_data, compare_data):
         """Update the history usage table with comparison data"""
@@ -2699,6 +3497,37 @@ class ChickenFarmApp(QMainWindow):
             self.formula_manager.set_mix_formula(preset_formula)
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
+
+    def load_report_data(self, date_text):
+        """Load report data for a specific date"""
+        try:
+            # Trích xuất ngày từ văn bản (format: DD/MM/YYYY)
+            date_parts = date_text.split('/')
+            if len(date_parts) != 3:
+                return None
+
+            day, month, year = date_parts
+            date_str = f"{year}{month.zfill(2)}{day.zfill(2)}"
+
+            # Tạo đường dẫn file báo cáo
+            report_file = f"src/data/reports/report_{date_str}.json"
+
+            # Kiểm tra file tồn tại
+            if not os.path.exists(report_file):
+                # Thử đường dẫn cũ
+                report_file = f"reports/report_{date_str}.json"
+                if not os.path.exists(report_file):
+                    return None
+
+            # Đọc dữ liệu báo cáo
+            with open(report_file, 'r', encoding='utf-8') as f:
+                report_data = json.load(f)
+
+            return report_data
+
+        except Exception as e:
+            print(f"Lỗi khi tải dữ liệu báo cáo: {str(e)}")
+            return None
 
 def main():
     app = QApplication(sys.argv)
