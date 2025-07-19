@@ -8,13 +8,21 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
                             QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
                             QGroupBox, QDialog)
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor
 
-from src.core.formula_manager import FormulaManager
-from src.core.inventory_manager import InventoryManager
-from src.utils.default_formulas import PACKAGING_INFO
-from src.utils.app_icon import create_app_icon
+# Kiểm tra xem đang chạy từ thư mục gốc hay từ thư mục src
+try:
+    from src.core.formula_manager import FormulaManager
+    from src.core.inventory_manager import InventoryManager
+    from src.utils.default_formulas import PACKAGING_INFO
+    from src.utils.app_icon import create_app_icon
+except ImportError:
+    # Nếu không import được từ src, thử import trực tiếp
+    from core.formula_manager import FormulaManager
+    from core.inventory_manager import InventoryManager
+    from utils.default_formulas import PACKAGING_INFO
+    from utils.app_icon import create_app_icon
 
 # Constants
 AREAS = 5  # Number of areas
@@ -194,6 +202,9 @@ class ChickenFarmApp(QMainWindow):
         self.setup_inventory_tab()
         self.setup_formula_tab()
         self.setup_history_tab()  # Thiết lập tab lịch sử
+
+        # Tự động tải báo cáo mới nhất khi khởi động
+        QTimer.singleShot(500, self.load_latest_report)
 
     def create_menu_bar(self):
         """Create the menu bar"""
@@ -1268,9 +1279,9 @@ class ChickenFarmApp(QMainWindow):
         layout.addWidget(date_selection)
 
         # Create tabs for different history views
-        history_tabs = QTabWidget()
-        history_tabs.setFont(DEFAULT_FONT)
-        history_tabs.setStyleSheet("""
+        self.history_tabs = QTabWidget()
+        self.history_tabs.setFont(DEFAULT_FONT)
+        self.history_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #cccccc;
                 background: white;
@@ -1300,9 +1311,9 @@ class ChickenFarmApp(QMainWindow):
         self.history_feed_tab = QWidget()
         self.history_mix_tab = QWidget()
 
-        history_tabs.addTab(self.history_usage_tab, "Sử Dụng Cám")
-        history_tabs.addTab(self.history_feed_tab, "Thành Phần Cám")
-        history_tabs.addTab(self.history_mix_tab, "Thành Phần Mix")
+        self.history_tabs.addTab(self.history_usage_tab, "Sử Dụng Cám")
+        self.history_tabs.addTab(self.history_feed_tab, "Thành Phần Cám")
+        self.history_tabs.addTab(self.history_mix_tab, "Thành Phần Mix")
 
         # Setup each history tab
         self.setup_history_usage_tab()
@@ -1310,7 +1321,7 @@ class ChickenFarmApp(QMainWindow):
         self.setup_history_mix_tab()
 
         # Add to main layout
-        layout.addWidget(history_tabs)
+        layout.addWidget(self.history_tabs)
 
         self.history_tab.setLayout(layout)
 
@@ -1483,21 +1494,31 @@ class ChickenFarmApp(QMainWindow):
 
         # Add to combo box
         for report_file in report_files:
-            # Extract date from filename (format: reports/report_YYYYMMDD.json)
-            date_str = os.path.basename(report_file)[7:-5]  # Remove 'report_' and '.json'
             try:
-                # Format date as DD/MM/YYYY for display
-                date = QDate.fromString(date_str, "yyyyMMdd")
-                formatted_date = date.toString("dd/MM/yyyy")
+                # Extract date from filename (format: reports/report_YYYYMMDD.json)
+                date_str = os.path.basename(report_file)[7:-5]  # Remove 'report_' and '.json'
 
-                for cb in combo_boxes:
-                    cb.addItem(formatted_date)
-            except:
+                # Format date as DD/MM/YYYY for display
+                if len(date_str) == 8:  # Đảm bảo đúng định dạng YYYYMMDD
+                    year = date_str[0:4]
+                    month = date_str[4:6]
+                    day = date_str[6:8]
+                    formatted_date = f"{day}/{month}/{year}"
+
+                    for cb in combo_boxes:
+                        cb.addItem(formatted_date)
+                else:
+                    # Nếu không đúng định dạng, hiển thị tên file
+                    print(f"Định dạng ngày không hợp lệ trong file: {report_file}")
+                    for cb in combo_boxes:
+                        cb.addItem(os.path.basename(report_file))
+            except Exception as e:
                 # If date parsing fails, just add the filename
+                print(f"Lỗi khi xử lý file báo cáo {report_file}: {str(e)}")
                 for cb in combo_boxes:
                     cb.addItem(os.path.basename(report_file))
 
-    def load_history_data(self):
+    def load_history_data(self, show_warnings=True):
         """Load history data based on selected date"""
         selected_date = self.history_date_combo.currentText()
 
@@ -1511,10 +1532,6 @@ class ChickenFarmApp(QMainWindow):
 
         # Tải dữ liệu báo cáo
         report_data = self.load_report_data(selected_date)
-
-        if not report_data:
-            QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu cho ngày {selected_date}")
-            return
 
         # Lưu dữ liệu báo cáo hiện tại
         self.current_report_data = report_data
@@ -3498,35 +3515,92 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
 
+    def load_latest_report(self):
+        """Tự động tải báo cáo mới nhất từ database khi khởi động"""
+        try:
+            # Cập nhật danh sách các ngày có báo cáo
+            self.update_history_dates()
+
+            # Kiểm tra xem có báo cáo nào không
+            if self.history_date_combo.count() > 0 and self.history_date_combo.currentText() != "Không có dữ liệu":
+                # Chọn báo cáo mới nhất (index 0)
+                self.history_date_combo.setCurrentIndex(0)
+                selected_date = self.history_date_combo.currentText()
+
+                # Kiểm tra xem có phải là ngày hợp lệ không
+                if selected_date and '/' in selected_date:
+                    # Tải dữ liệu báo cáo cho tab lịch sử mà không hiển thị cảnh báo
+                    try:
+                        self.load_history_data(show_warnings=False)
+                        print("Đã tự động tải báo cáo mới nhất")
+                    except Exception as e:
+                        print(f"Lỗi khi tải dữ liệu lịch sử: {str(e)}")
+                        # Không hiển thị thông báo lỗi cho người dùng
+                else:
+                    print(f"Không thể tải báo cáo: Định dạng ngày không hợp lệ '{selected_date}'")
+
+                # Không tự động chuyển đến tab lịch sử khi khởi động
+                # self.tabs.setCurrentWidget(self.history_tab)
+        except Exception as e:
+            print(f"Lỗi khi tự động tải báo cáo: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Không hiển thị thông báo lỗi cho người dùng để tránh gây khó chịu khi khởi động
+
     def load_report_data(self, date_text):
         """Load report data for a specific date"""
         try:
             # Trích xuất ngày từ văn bản (format: DD/MM/YYYY)
             date_parts = date_text.split('/')
             if len(date_parts) != 3:
+                print(f"Định dạng ngày không hợp lệ: {date_text}")
                 return None
 
             day, month, year = date_parts
             date_str = f"{year}{month.zfill(2)}{day.zfill(2)}"
+            print(f"Đang tìm báo cáo cho ngày: {date_str}")
 
             # Tạo đường dẫn file báo cáo
             report_file = f"src/data/reports/report_{date_str}.json"
+            print(f"Thử đường dẫn 1: {report_file}")
 
             # Kiểm tra file tồn tại
             if not os.path.exists(report_file):
+                print(f"Không tìm thấy file tại: {report_file}")
                 # Thử đường dẫn cũ
                 report_file = f"reports/report_{date_str}.json"
+                print(f"Thử đường dẫn 2: {report_file}")
                 if not os.path.exists(report_file):
+                    print(f"Không tìm thấy file tại: {report_file}")
+
+                    # Kiểm tra tất cả các file báo cáo hiện có
+                    reports_dir1 = "src/data/reports"
+                    reports_dir2 = "reports"
+
+                    if os.path.exists(reports_dir1):
+                        print(f"Các file trong {reports_dir1}:")
+                        for f in os.listdir(reports_dir1):
+                            print(f"  - {f}")
+
+                    if os.path.exists(reports_dir2):
+                        print(f"Các file trong {reports_dir2}:")
+                        for f in os.listdir(reports_dir2):
+                            print(f"  - {f}")
+
                     return None
 
             # Đọc dữ liệu báo cáo
+            print(f"Đọc file báo cáo: {report_file}")
             with open(report_file, 'r', encoding='utf-8') as f:
                 report_data = json.load(f)
 
+            print(f"Đã đọc thành công file báo cáo: {report_file}")
             return report_data
 
         except Exception as e:
             print(f"Lỗi khi tải dữ liệu báo cáo: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
 def main():
