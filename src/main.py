@@ -40,7 +40,23 @@ class ChickenFarmApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Phần mềm Quản lý Cám - Trại Gà")
-        self.setGeometry(100, 100, 1200, 800)
+
+        # Lấy kích thước màn hình
+        desktop = QApplication.desktop()
+        screen_rect = desktop.availableGeometry()
+        screen_width = screen_rect.width()
+        screen_height = screen_rect.height()
+
+        # Tính toán kích thước cửa sổ (75% kích thước màn hình)
+        window_width = int(screen_width * 0.95)
+        window_height = int(screen_height * 0.95)
+
+        # Tính toán vị trí để cửa sổ xuất hiện ở giữa màn hình
+        x_position = (screen_width - window_width) // 2
+        y_position = (screen_height - window_height) // 2
+
+        # Thiết lập kích thước và vị trí cửa sổ
+        self.setGeometry(x_position, y_position, window_width, window_height)
 
         # Set application icon
         self.setWindowIcon(create_app_icon())
@@ -130,6 +146,25 @@ class ChickenFarmApp(QMainWindow):
         header_layout.addWidget(date_label)
         header_layout.addStretch()
 
+        # Thêm phần chọn công thức cám mặc định
+        default_formula_layout = QHBoxLayout()
+        default_formula_layout.addWidget(QLabel("Công thức cám mặc định:"))
+
+        self.default_formula_combo = QComboBox()
+        # Lấy danh sách các công thức cám có sẵn
+        presets = self.formula_manager.get_feed_presets()
+        self.default_formula_combo.addItem("")  # Thêm lựa chọn trống
+        for preset in presets:
+            self.default_formula_combo.addItem(preset)
+        default_formula_layout.addWidget(self.default_formula_combo)
+
+        # Nút áp dụng công thức mặc định
+        apply_default_button = QPushButton("Áp dụng cho tất cả")
+        apply_default_button.clicked.connect(self.apply_default_formula)
+        default_formula_layout.addWidget(apply_default_button)
+
+        default_formula_layout.addStretch()
+
         # Create table for feed usage input
         self.feed_table = QTableWidget()
 
@@ -166,11 +201,39 @@ class ChickenFarmApp(QMainWindow):
 
                 # Create editable cells for feed usage for each shift
                 for shift_idx in range(len(SHIFTS)):
+                    # Tạo một widget container để chứa cả spinbox và combobox
+                    container = QWidget()
+                    container_layout = QHBoxLayout(container)
+                    container_layout.setContentsMargins(2, 2, 2, 2)
+                    container_layout.setSpacing(2)
+
+                    # Tạo spinbox cho số lượng mẻ
                     spin_box = QDoubleSpinBox()
                     spin_box.setRange(0, 100)
                     spin_box.setSingleStep(0.5)
                     spin_box.setDecimals(1)
-                    self.feed_table.setCellWidget(shift_idx + 2, col_index, spin_box)
+
+                    # Tạo combobox cho công thức cám
+                    formula_combo = QComboBox()
+                    # Lấy danh sách các công thức cám có sẵn
+                    presets = self.formula_manager.get_feed_presets()
+                    formula_combo.addItem("")  # Thêm lựa chọn trống
+                    for preset in presets:
+                        formula_combo.addItem(preset)
+
+                    # Thêm các widget vào container
+                    container_layout.addWidget(spin_box, 1)  # Tỷ lệ 1
+                    container_layout.addWidget(formula_combo, 2)  # Tỷ lệ 2
+
+                    # Lưu reference đến các widget con để truy cập sau này
+                    container.spin_box = spin_box
+                    container.formula_combo = formula_combo
+
+                    # Kết nối sự kiện thay đổi giá trị spin_box để tự động chọn công thức mặc định
+                    spin_box.valueChanged.connect(lambda value, combo=formula_combo: self.auto_select_default_formula(value, combo))
+
+                    # Thêm container vào cell
+                    self.feed_table.setCellWidget(shift_idx + 2, col_index, container)
 
                 col_index += 1
 
@@ -193,6 +256,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Add widgets to layout
         layout.addLayout(header_layout)
+        layout.addLayout(default_formula_layout)
         layout.addWidget(self.feed_table)
         layout.addWidget(calc_button)
         layout.addWidget(self.results_label)
@@ -209,6 +273,34 @@ class ChickenFarmApp(QMainWindow):
         layout.addLayout(button_layout)
 
         self.feed_usage_tab.setLayout(layout)
+
+    def apply_default_formula(self):
+        """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng"""
+        default_formula = self.default_formula_combo.currentText()
+        if not default_formula:
+            QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn một công thức cám mặc định!")
+            return
+
+        # Áp dụng cho tất cả các ô trong bảng
+        for col in range(self.feed_table.columnCount()):
+            for row in range(2, 2 + len(SHIFTS)):
+                cell_widget = self.feed_table.cellWidget(row, col)
+                if cell_widget and hasattr(cell_widget, 'formula_combo'):
+                    cell_widget.formula_combo.setCurrentText(default_formula)
+
+        QMessageBox.information(self, "Thành công", f"Đã áp dụng công thức cám '{default_formula}' cho tất cả các ô!")
+
+    def auto_select_default_formula(self, value, combo):
+        """Tự động chọn công thức mặc định khi người dùng nhập số lượng mẻ"""
+        # Nếu đã chọn công thức rồi thì không thay đổi
+        if combo.currentText():
+            return
+
+        # Nếu người dùng nhập giá trị > 0 và chưa chọn công thức, tự động chọn công thức mặc định
+        if value > 0:
+            default_formula = self.default_formula_combo.currentText()
+            if default_formula:
+                combo.setCurrentText(default_formula)
 
     def setup_inventory_tab(self):
         """Setup the inventory management tab"""
@@ -592,9 +684,12 @@ class ChickenFarmApp(QMainWindow):
             QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu lịch sử: {str(e)}")
 
     def update_history_usage_table(self, report_data):
-        """Update the history usage table with data from the report"""
+        """Update the history usage table with data from a report"""
         if "feed_usage" not in report_data:
             return
+
+        # Xóa dữ liệu cũ
+        self.history_usage_table.clearContents()
 
         # Populate table with farms and khu information
         col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
@@ -608,22 +703,66 @@ class ChickenFarmApp(QMainWindow):
                 # Set farm name in second row
                 self.history_usage_table.setItem(1, col_index, QTableWidgetItem(farm))
 
-                # Fill in usage data for each shift
-                for shift_idx, shift in enumerate(SHIFTS):
-                    # Try to get the usage value from the report data
-                    try:
-                        usage = report_data["feed_usage"][khu_name][farm][shift]
-                        item = QTableWidgetItem(format_number(usage))
-                    except (KeyError, TypeError):
-                        # If data doesn't exist, show empty cell
-                        item = QTableWidgetItem("0.0")
+                # Set values for each shift
+                if khu_name in report_data["feed_usage"] and farm in report_data["feed_usage"][khu_name]:
+                    farm_data = report_data["feed_usage"][khu_name][farm]
 
-                    self.history_usage_table.setItem(shift_idx + 2, col_index, item)
+                    # Kiểm tra xem có dữ liệu công thức không
+                    has_formula_data = ("formula_usage" in report_data and
+                                       khu_name in report_data["formula_usage"] and
+                                       farm in report_data["formula_usage"][khu_name])
+
+                    for shift_idx, shift in enumerate(SHIFTS):
+                        if shift in farm_data:
+                            value = farm_data[shift]
+
+                            # Nếu có dữ liệu công thức, hiển thị cả số lượng và công thức
+                            if has_formula_data and shift in report_data["formula_usage"][khu_name][farm]:
+                                formula = report_data["formula_usage"][khu_name][farm][shift]
+                                if formula:
+                                    display_text = f"{format_number(value)} ({formula})"
+                                else:
+                                    display_text = format_number(value)
+                            else:
+                                display_text = format_number(value)
+
+                            self.history_usage_table.setItem(shift_idx + 2, col_index,
+                                                          QTableWidgetItem(display_text))
 
                 col_index += 1
 
-        # Stretch columns to fill available space
-        self.history_usage_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # Calculate and display totals
+        # Calculate total for each area
+        for area_idx in range(AREAS):
+            area_name = f"Khu {area_idx + 1}"
+            farms = FARMS[area_idx]
+            col_start = 0
+            for idx in range(area_idx):
+                col_start += len(FARMS[idx])
+
+            # Calculate total for each shift
+            for shift_idx, shift in enumerate(SHIFTS):
+                total = 0
+                for farm_idx in range(len(farms)):
+                    col = col_start + farm_idx
+                    item = self.history_usage_table.item(shift_idx + 2, col)
+                    if item and item.text():
+                        try:
+                            # Trích xuất số từ văn bản (có thể có công thức trong ngoặc)
+                            text = item.text()
+                            if "(" in text:
+                                text = text.split("(")[0].strip()
+                            total += float(text.replace(',', '.'))
+                        except ValueError:
+                            pass
+
+                # Add total to area totals row
+                self.history_usage_table.setItem(shift_idx + 2 + len(SHIFTS), col_start,
+                                              QTableWidgetItem(format_number(total)))
+
+                # Merge cells for area total
+                if len(farms) > 1:
+                    self.history_usage_table.setSpan(shift_idx + 2 + len(SHIFTS), col_start, 1, len(farms))
 
     def update_history_feed_table(self, report_data):
         """Update the history feed ingredients table with data from the report"""
@@ -910,6 +1049,12 @@ class ChickenFarmApp(QMainWindow):
         area_batches = {}
         farm_batches = {}
 
+        # Dictionary để lưu số mẻ theo từng công thức cám
+        formula_batches = {}
+
+        # Dictionary để lưu thành phần cám theo từng công thức
+        formula_ingredients = {}
+
         # Khởi tạo dữ liệu cho từng khu
         for area in range(AREAS):
             area_batches[f"Khu {area + 1}"] = 0
@@ -926,83 +1071,143 @@ class ChickenFarmApp(QMainWindow):
 
                 # Tính tổng mẻ cám cho trại này
                 for shift_idx in range(len(SHIFTS)):
-                    spin_box = self.feed_table.cellWidget(shift_idx + 2, col_index)
-                    if spin_box:
-                        # Chuyển đổi số lượng từ bảng thành số mẻ
-                        # 0.5 tương đương với 1 mẻ, 1 tương đương với 2 mẻ
+                    cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
+                    if cell_widget:
+                        # Lấy spinbox và combobox từ container
+                        spin_box = cell_widget.spin_box
+                        formula_combo = cell_widget.formula_combo
+
+                        # Lấy giá trị nhập vào và công thức cám
                         input_value = spin_box.value()
-                        actual_batches = input_value * 2  # Nhân đôi giá trị nhập vào để có số mẻ thực tế
-                        farm_batches[farm_key] += actual_batches
-                        area_batches[khu_name] += actual_batches
-                        total_batches += actual_batches
+                        formula_name = formula_combo.currentText()
+
+                        # Nếu có nhập số lượng và chọn công thức
+                        if input_value > 0 and formula_name:
+                            # Chuyển đổi số lượng từ bảng thành số mẻ
+                            # 0.5 tương đương với 1 mẻ, 1 tương đương với 2 mẻ
+                            actual_batches = input_value * 2  # Nhân đôi giá trị nhập vào để có số mẻ thực tế
+
+                            # Cập nhật số mẻ cho trại và khu
+                            farm_batches[farm_key] += actual_batches
+                            area_batches[khu_name] += actual_batches
+                            total_batches += actual_batches
+
+                            # Cộng dồn số mẻ theo công thức
+                            if formula_name not in formula_batches:
+                                formula_batches[formula_name] = 0
+                            formula_batches[formula_name] += actual_batches
 
                 col_index += 1
 
-        # Tính toán thành phần cám sử dụng (không bao gồm mix)
+        # Tính toán thành phần cám sử dụng cho từng công thức
+        # Dictionary để lưu tổng thành phần cám
         feed_ingredients = {}
-        total_feed_amount = 0
-        for ingredient, amount_per_batch in self.feed_formula.items():
-            if ingredient != "Nguyên liệu tổ hợp":
-                feed_amount = amount_per_batch * total_batches
-                feed_ingredients[ingredient] = feed_amount
-                total_feed_amount += feed_amount
-
-        # Tính toán thành phần mix sử dụng
+        # Dictionary để lưu tổng thành phần mix
         mix_ingredients = {}
 
-        # Lấy công thức mix đã được gắn kết (nếu có)
-        # Lấy preset đang được chọn trong combobox
-        feed_preset_combo = self.feed_preset_combo
-        current_feed_preset = feed_preset_combo.currentText() if feed_preset_combo.currentIndex() >= 0 else None
+        for formula_name, batch_count in formula_batches.items():
+            if not formula_name:
+                continue
 
-        # Lấy tên công thức mix được liên kết với preset cám hiện tại
-        linked_mix_name = self.formula_manager.get_linked_mix_formula_name(current_feed_preset)
+            # Lấy công thức cám
+            feed_formula = self.formula_manager.load_feed_preset(formula_name)
+            if not feed_formula:
+                continue
 
-        # Lấy dữ liệu công thức mix được liên kết
-        mix_formula = self.formula_manager.get_linked_mix_formula(current_feed_preset)
+            # Tính toán thành phần cám (không bao gồm mix)
+            for ingredient, amount_per_batch in feed_formula.items():
+                if ingredient != "Nguyên liệu tổ hợp":
+                    feed_amount = amount_per_batch * batch_count
 
-        # Lấy lượng nguyên liệu tổ hợp từ công thức cám
-        tong_hop_amount = self.feed_formula.get("Nguyên liệu tổ hợp", 0)
+                    # Cộng dồn vào tổng thành phần cám
+                    if ingredient in feed_ingredients:
+                        feed_ingredients[ingredient] += feed_amount
+                    else:
+                        feed_ingredients[ingredient] = feed_amount
 
-        # Tính tổng lượng mix nếu có
-        mix_total = 0
-        if mix_formula:
-            mix_total = self.formula_manager.calculate_mix_total(mix_formula)
+            # Lấy tên công thức mix được liên kết với preset cám hiện tại
+            linked_mix_name = self.formula_manager.get_linked_mix_formula_name(formula_name)
 
-        # Tính tổng lượng mix sử dụng
-        total_mix_amount = 0
+            # Lấy dữ liệu công thức mix được liên kết
+            mix_formula = self.formula_manager.get_linked_mix_formula(formula_name)
 
-        # Tính tỷ lệ giữa các thành phần mix
-        mix_ratios = {}
-        if mix_total > 0:
-            for ingredient, amount in mix_formula.items():
-                mix_ratios[ingredient] = amount / mix_total
+            # Lấy lượng nguyên liệu tổ hợp từ công thức cám
+            tong_hop_amount = feed_formula.get("Nguyên liệu tổ hợp", 0)
 
-        # Tính toán thành phần mix dựa trên tỷ lệ
-        for ingredient, ratio in mix_ratios.items():
-            # Tính lượng mix theo tỷ lệ với tổng lượng mix và số mẻ
-            mix_amount = ratio * tong_hop_amount * total_batches
-            mix_ingredients[ingredient] = mix_amount
-            total_mix_amount += mix_amount
+            # Tính tổng lượng mix nếu có
+            mix_total = 0
+            if mix_formula:
+                mix_total = self.formula_manager.calculate_mix_total(mix_formula)
 
-        # Cập nhật bảng kết quả với hai phần riêng biệt
-        total_rows = len(feed_ingredients) + len(mix_ingredients) + 3  # +3 cho tiêu đề và tổng cộng
+            # Tính tỷ lệ giữa các thành phần mix
+            mix_ratios = {}
+            if mix_total > 0:
+                for ingredient, amount in mix_formula.items():
+                    mix_ratios[ingredient] = amount / mix_total
+
+            # Tính toán thành phần mix dựa trên tỷ lệ
+            for ingredient, ratio in mix_ratios.items():
+                # Tính lượng mix theo tỷ lệ với tổng lượng mix và số mẻ
+                mix_amount = ratio * tong_hop_amount * batch_count
+
+                # Cộng dồn vào tổng thành phần mix
+                if ingredient in mix_ingredients:
+                    mix_ingredients[ingredient] += mix_amount
+                else:
+                    mix_ingredients[ingredient] = mix_amount
+
+            # Lưu thông tin công thức và thành phần cho hiển thị chi tiết nếu cần
+            formula_ingredients[formula_name] = {
+                "batches": batch_count,
+                "linked_mix_name": linked_mix_name,
+                "tong_hop_amount": tong_hop_amount
+            }
+
+        # Tính tổng lượng cám và mix
+        total_feed_amount = sum(feed_ingredients.values())
+        total_mix_amount = sum(mix_ingredients.values())
+
+        # Cập nhật bảng kết quả
+        # Sắp xếp các thành phần để đưa bắp và nành lên đầu
+        priority_ingredients = ["Bắp", "Nành"]
+        sorted_feed_ingredients = {}
+
+        # Thêm các thành phần ưu tiên trước
+        for ingredient in priority_ingredients:
+            if ingredient in feed_ingredients:
+                sorted_feed_ingredients[ingredient] = feed_ingredients[ingredient]
+
+        # Thêm các thành phần còn lại
+        for ingredient, amount in feed_ingredients.items():
+            if ingredient not in priority_ingredients:
+                sorted_feed_ingredients[ingredient] = amount
+
+        # Tính tổng số hàng cần thiết
+        total_rows = len(sorted_feed_ingredients) + len(mix_ingredients) + 4  # +4 cho 2 tiêu đề và 2 tổng cộng
         self.results_table.setRowCount(total_rows)
 
         # Thêm tiêu đề kho cám
+        row = 0
         feed_header = QTableWidgetItem("THÀNH PHẦN KHO CÁM")
         feed_header.setBackground(QColor(200, 230, 250))  # Light blue background
         font = QFont()
         font.setBold(True)
         feed_header.setFont(font)
-        self.results_table.setItem(0, 0, feed_header)
-        self.results_table.setSpan(0, 0, 1, 3)  # Merge cells across all columns
+        self.results_table.setItem(row, 0, feed_header)
+        self.results_table.setSpan(row, 0, 1, 3)  # Merge cells across all columns
+        row += 1
 
-        # Thêm các thành phần kho cám
-        row = 1
-        for ingredient, amount in feed_ingredients.items():
-            # Ingredient name
-            self.results_table.setItem(row, 0, QTableWidgetItem(ingredient))
+        # Thêm các thành phần cám
+        for ingredient, amount in sorted_feed_ingredients.items():
+            # Ingredient name with special marking for priority ingredients
+            ingredient_name = ingredient
+            if ingredient in priority_ingredients:
+                ingredient_name = f"★ {ingredient}"
+
+            item = QTableWidgetItem(ingredient_name)
+            if ingredient in priority_ingredients:
+                item.setBackground(QColor(255, 255, 200))  # Light yellow background for priority
+            self.results_table.setItem(row, 0, item)
 
             # Amount used
             self.results_table.setItem(row, 1, QTableWidgetItem(format_number(amount)))
@@ -1010,23 +1215,6 @@ class ChickenFarmApp(QMainWindow):
             # Number of bags
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
             self.results_table.setItem(row, 2, QTableWidgetItem(format_number(bags)))
-
-            row += 1
-
-        # Thêm nguyên liệu tổ hợp nếu có
-        if tong_hop_amount > 0:
-            ingredient_name = "Nguyên liệu tổ hợp"
-            if linked_mix_name:
-                ingredient_name += f" (Gắn với: {linked_mix_name})"
-
-            self.results_table.setItem(row, 0, QTableWidgetItem(ingredient_name))
-
-            # Hiển thị tổng lượng mix thực tế sử dụng
-            mix_used = tong_hop_amount * total_batches
-            self.results_table.setItem(row, 1, QTableWidgetItem(format_number(mix_used)))
-
-            # Không hiển thị số bao cho nguyên liệu tổ hợp
-            self.results_table.setItem(row, 2, QTableWidgetItem(""))
 
             row += 1
 
@@ -1042,15 +1230,10 @@ class ChickenFarmApp(QMainWindow):
 
         # Không hiển thị số bao cho tổng lượng
         self.results_table.setItem(row, 2, QTableWidgetItem(""))
-
         row += 1
 
         # Thêm tiêu đề kho mix
-        mix_title = "THÀNH PHẦN KHO MIX"
-        if linked_mix_name:
-            mix_title += f" (Công thức: {linked_mix_name})"
-
-        mix_header = QTableWidgetItem(mix_title)
+        mix_header = QTableWidgetItem("THÀNH PHẦN KHO MIX")
         mix_header.setBackground(QColor(230, 250, 200))  # Light green background
         mix_header.setFont(font)
         self.results_table.setItem(row, 0, mix_header)
@@ -1088,6 +1271,12 @@ class ChickenFarmApp(QMainWindow):
         results_text = f"Tổng số mẻ: {format_number(total_batches)} | "
         for area, batches in area_batches.items():
             results_text += f"{area}: {format_number(batches)} mẻ | "
+
+        # Thêm thông tin số mẻ theo công thức
+        results_text += "\nTheo công thức: "
+        for formula_name, batches in formula_batches.items():
+            if batches > 0:
+                results_text += f"{formula_name}: {format_number(batches)} mẻ | "
 
         self.results_label.setText(results_text)
 
@@ -1275,100 +1464,103 @@ class ChickenFarmApp(QMainWindow):
             return False
 
     def save_report(self):
-        """Save the current report"""
-        # Get date for filename
-        date_str = QDate.currentDate().toString('yyyyMMdd')
-
-        # Create reports directory if it doesn't exist
-        reports_dir = "reports"
-        if not os.path.exists(reports_dir):
-            os.makedirs(reports_dir)
-
-        filename = os.path.join(reports_dir, f"report_{date_str}.json")
-
-        # Collect data from feed table
-        feed_data = {}
-
-        # Collect data by farm
-        col_index = 0 # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
-        for khu_idx, farms in FARMS.items():
-            khu_name = f"Khu {khu_idx + 1}"
-            if khu_name not in feed_data:
-                feed_data[khu_name] = {}
-
-            for farm in farms:
-                farm_name = farm
-                feed_data[khu_name][farm_name] = {}
-
-                for shift_idx, shift in enumerate(SHIFTS):
-                    spin_box = self.feed_table.cellWidget(shift_idx + 2, col_index)
-                    if spin_box:
-                        feed_data[khu_name][farm_name][shift] = spin_box.value()
-
-                col_index += 1
-
-        # Tính tổng số mẻ
-        total_batches = 0
-        for khu, farms in feed_data.items():
-            for farm, shifts in farms.items():
-                total_batches += sum(shifts.values())
-
-        # Lấy công thức mix đã được gắn kết (nếu có)
-        linked_mix_name = self.formula_manager.get_linked_mix_formula_name()
-        mix_formula = self.formula_manager.get_linked_mix_formula()
-
-        # Lấy lượng nguyên liệu tổ hợp từ công thức cám
-        tong_hop_amount = self.feed_formula.get("Nguyên liệu tổ hợp", 0)
-
-        # Tính tổng lượng mix nếu có
-        mix_total = 0
-        if mix_formula:
-            mix_total = self.formula_manager.calculate_mix_total(mix_formula)
-
-        # Tính tỷ lệ giữa các thành phần mix
-        mix_ratios = {}
-        if mix_total > 0:
-            for ingredient, amount in mix_formula.items():
-                mix_ratios[ingredient] = amount / mix_total
-
-        # Tính toán thành phần cám sử dụng (không bao gồm mix)
-        feed_ingredients = {}
-        for ingredient, amount_per_batch in self.feed_formula.items():
-            if ingredient != "Nguyên liệu tổ hợp":
-                feed_ingredients[ingredient] = amount_per_batch * total_batches
-
-        # Tính toán thành phần mix sử dụng
-        mix_ingredients = {}
-        total_mix_amount = 0
-
-        # Tính toán thành phần mix dựa trên tỷ lệ
-        for ingredient, ratio in mix_ratios.items():
-            # Tính lượng mix theo tỷ lệ với tổng lượng mix và số mẻ
-            mix_amount = ratio * tong_hop_amount * total_batches
-            mix_ingredients[ingredient] = mix_amount
-            total_mix_amount += mix_amount
-
-        # Create report data
-        report_data = {
-            "date": QDate.currentDate().toString('yyyy-MM-dd'),
-            "feed_usage": feed_data,
-            "feed_ingredients": feed_ingredients,
-            "mix_ingredients": mix_ingredients,
-            "total_batches": total_batches,
-            "linked_mix_formula": linked_mix_name,
-            "tong_hop_amount": tong_hop_amount,
-            "mix_total": mix_total,
-            "total_mix_amount": total_mix_amount
-        }
-
-        # Save report
+        """Save the current feed usage report"""
         try:
+            # Create reports directory if it doesn't exist
+            reports_dir = "src/data/reports"
+            os.makedirs(reports_dir, exist_ok=True)
+
+            # Get current date
+            current_date = QDate.currentDate().toString("yyyy-MM-dd")
+            filename = os.path.join(reports_dir, f"report_{current_date}.json")
+
+            # Collect data from the feed usage table
+            feed_data = {}
+            formula_data = {}  # Dữ liệu về công thức cám cho từng mẻ
+
+            # Collect data for each area and farm
+            col_index = 0
+            for khu_idx, farms in FARMS.items():
+                khu_name = f"Khu {khu_idx + 1}"
+                feed_data[khu_name] = {}
+                formula_data[khu_name] = {}
+
+                for farm in farms:
+                    farm_name = farm
+                    feed_data[khu_name][farm_name] = {}
+                    formula_data[khu_name][farm_name] = {}
+
+                    for shift_idx, shift in enumerate(SHIFTS):
+                        cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
+                        if cell_widget:
+                            # Lấy spinbox và combobox từ container
+                            spin_box = cell_widget.spin_box
+                            formula_combo = cell_widget.formula_combo
+
+                            # Lưu giá trị nhập vào và công thức cám
+                            feed_data[khu_name][farm_name][shift] = spin_box.value()
+                            formula_data[khu_name][farm_name][shift] = formula_combo.currentText()
+
+                    col_index += 1
+
+            # Collect data from results table
+            results_data = []
+            for row in range(self.results_table.rowCount()):
+                row_data = {}
+                for col in range(self.results_table.columnCount()):
+                    item = self.results_table.item(row, col)
+                    if item:
+                        header = self.results_table.horizontalHeaderItem(col).text()
+                        row_data[header] = item.text()
+                results_data.append(row_data)
+
+            # Get feed formula data
+            feed_formula_data = {}
+            for row in range(self.feed_formula_table.rowCount()):
+                ingredient_item = self.feed_formula_table.item(row, 0)
+                if ingredient_item and ingredient_item.text():
+                    ingredient = ingredient_item.text()
+                    amount_item = self.feed_formula_table.item(row, 1)
+                    if amount_item:
+                        try:
+                            amount = float(amount_item.text().replace(',', '.'))
+                            feed_formula_data[ingredient] = amount
+                        except ValueError:
+                            pass
+
+            # Get mix formula data
+            mix_formula_data = {}
+            for row in range(self.mix_formula_table.rowCount()):
+                ingredient_item = self.mix_formula_table.item(row, 0)
+                if ingredient_item and ingredient_item.text():
+                    ingredient = ingredient_item.text()
+                    amount_item = self.mix_formula_table.item(row, 1)
+                    if amount_item:
+                        try:
+                            amount = float(amount_item.text().replace(',', '.'))
+                            mix_formula_data[ingredient] = amount
+                        except ValueError:
+                            pass
+
+            # Prepare data to save
+            report_data = {
+                "date": current_date,
+                "feed_usage": feed_data,
+                "formula_usage": formula_data,  # Dữ liệu về công thức cám cho từng mẻ
+                "results": results_data,
+                "feed_formula": feed_formula_data,
+                "mix_formula": mix_formula_data
+            }
+
+            # Save to file
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, ensure_ascii=False, indent=4)
-            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào file {filename}!")
 
-            # Cập nhật tab lịch sử
-            self.update_history_dates()
+            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào file {filename}")
+
+            # Refresh history tab if it exists
+            if hasattr(self, 'history_date_combo'):
+                self.update_history_dates()
 
             return True
         except Exception as e:
