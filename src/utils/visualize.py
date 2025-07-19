@@ -6,11 +6,16 @@ import pandas as pd
 from datetime import datetime
 
 def format_number(value):
-    """Format a number to display as integer if it has no decimal part, otherwise show 1 decimal place"""
+    """Format a number to display as integer if it has no decimal part, otherwise show decimal places without trailing zeros"""
     if value == int(value):
         return f"{int(value)}"
     else:
-        return f"{value:.1f}"
+        # Sử dụng 'g' để loại bỏ số 0 thừa ở cuối
+        s = f"{value:.10g}"
+        # Nếu có dấu chấm nhưng không có số sau dấu chấm, thêm số 0
+        if s.endswith('.'):
+            s += '0'
+        return s
 
 def load_report(filename):
     """Load report data from JSON file"""

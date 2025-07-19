@@ -45,13 +45,24 @@ BUTTON_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
 TABLE_HEADER_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
 TABLE_CELL_FONT = QFont("Arial", DEFAULT_FONT_SIZE)
 
-# Helper function to format numbers (display integers without decimal places)
+# Helper function to format numbers (display integers without decimal places and remove trailing zeros)
 def format_number(value):
-    """Format a number to display as integer if it has no decimal part, otherwise show 2 decimal places"""
+    """Format a number to display as integer if it has no decimal part, otherwise show decimal places without trailing zeros"""
     if value == int(value):
         return f"{int(value)}"
     else:
-        return f"{value:.2f}"
+        # Sử dụng 'g' để loại bỏ số 0 thừa ở cuối
+        s = f"{value:.10g}"
+        # Nếu có dấu chấm nhưng không có số sau dấu chấm, thêm số 0
+        if s.endswith('.'):
+            s += '0'
+        return s
+
+# Custom QDoubleSpinBox để loại bỏ số 0 thừa ở cuối
+class CustomDoubleSpinBox(QDoubleSpinBox):
+    def textFromValue(self, value):
+        """Định dạng số để loại bỏ số 0 thừa ở cuối"""
+        return format_number(value)
 
 class ChickenFarmApp(QMainWindow):
     def __init__(self):
@@ -398,7 +409,7 @@ class ChickenFarmApp(QMainWindow):
                     container_layout.setSpacing(2)
 
                     # Tạo spinbox cho số lượng mẻ
-                    spin_box = QDoubleSpinBox()
+                    spin_box = CustomDoubleSpinBox()
                     spin_box.setFont(TABLE_CELL_FONT)
                     spin_box.setRange(0, 100)
                     spin_box.setSingleStep(0.5)
@@ -1794,7 +1805,7 @@ class ChickenFarmApp(QMainWindow):
             self.feed_formula_table.setItem(row, 0, ingredient_item)
 
             # Amount input
-            amount_spin = QDoubleSpinBox()
+            amount_spin = CustomDoubleSpinBox()
             amount_spin.setFont(TABLE_CELL_FONT)
             amount_spin.setMinimumHeight(30)
             amount_spin.setRange(0, 2000)
@@ -1834,7 +1845,7 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula_table.setItem(i, 0, ingredient_item)
 
             # Amount input
-            amount_spin = QDoubleSpinBox()
+            amount_spin = CustomDoubleSpinBox()
             amount_spin.setFont(TABLE_CELL_FONT)
             amount_spin.setMinimumHeight(30)
             amount_spin.setRange(0, 2000)
@@ -1873,13 +1884,13 @@ class ChickenFarmApp(QMainWindow):
 
             # Current inventory
             inventory_amount = self.inventory.get(ingredient, 0)
-            inventory_item = QTableWidgetItem(str(inventory_amount))
+            inventory_item = QTableWidgetItem(format_number(inventory_amount))
             inventory_item.setFont(TABLE_CELL_FONT)
             self.feed_inventory_table.setItem(i, 1, inventory_item)
 
             # Bag size
             bag_size = self.inventory_manager.get_bag_size(ingredient)
-            bag_size_item = QTableWidgetItem(str(bag_size))
+            bag_size_item = QTableWidgetItem(format_number(bag_size))
             bag_size_item.setFont(TABLE_CELL_FONT)
             self.feed_inventory_table.setItem(i, 2, bag_size_item)
 
@@ -1909,13 +1920,13 @@ class ChickenFarmApp(QMainWindow):
 
             # Current inventory
             inventory_amount = self.inventory.get(ingredient, 0)
-            inventory_item = QTableWidgetItem(str(inventory_amount))
+            inventory_item = QTableWidgetItem(format_number(inventory_amount))
             inventory_item.setFont(TABLE_CELL_FONT)
             self.mix_inventory_table.setItem(i, 1, inventory_item)
 
             # Bag size
             bag_size = self.inventory_manager.get_bag_size(ingredient)
-            bag_size_item = QTableWidgetItem(str(bag_size))
+            bag_size_item = QTableWidgetItem(format_number(bag_size))
             bag_size_item.setFont(TABLE_CELL_FONT)
             self.mix_inventory_table.setItem(i, 2, bag_size_item)
 
