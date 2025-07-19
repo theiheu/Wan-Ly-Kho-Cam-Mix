@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
                             QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
-                            QGroupBox, QDialog)
+                            QGroupBox, QDialog, QRadioButton, QDateEdit)
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor
 
@@ -283,6 +283,15 @@ class ChickenFarmApp(QMainWindow):
         date_label = QLabel(f"Ngày: {QDate.currentDate().toString('dd/MM/yyyy')}")
         date_label.setFont(DEFAULT_FONT)
         header_layout.addWidget(date_label)
+
+        # Thêm nút chọn ngày để điền bảng cám
+        fill_date_button = QPushButton("Điền Bảng Theo Ngày")
+        fill_date_button.setFont(BUTTON_FONT)
+        fill_date_button.setMinimumHeight(35)
+        fill_date_button.setStyleSheet("QPushButton { background-color: #3F51B5; color: white; border-radius: 5px; padding: 5px 15px; }")
+        fill_date_button.clicked.connect(self.fill_table_by_date)
+        header_layout.addWidget(fill_date_button)
+
         header_layout.addStretch()
 
         # Thêm phần chọn công thức cám mặc định
@@ -3564,7 +3573,6 @@ class ChickenFarmApp(QMainWindow):
             # Cập nhật combo box liên kết mix để hiển thị liên kết cho preset này
             self.update_mix_link_combo()
 
-    # Thêm phương thức auto_load_mix_preset để tự động tải công thức mix khi chọn
     def auto_load_mix_preset(self, index):
         """Tự động tải công thức mix khi chọn từ combo box"""
         if index < 0:
@@ -3579,6 +3587,125 @@ class ChickenFarmApp(QMainWindow):
             self.formula_manager.set_mix_formula(preset_formula)
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
+
+    def fill_table_from_report(self, date_text):
+        """Điền bảng cám từ báo cáo theo ngày đã chọn"""
+        try:
+            # Tải dữ liệu báo cáo
+            report_data = self.load_report_data(date_text)
+
+            if not report_data or "feed_usage" not in report_data:
+                QMessageBox.warning(self, "Cảnh báo", f"Không tìm thấy dữ liệu cho ngày {date_text}")
+                return
+
+            # Lấy dữ liệu sử dụng cám và công thức
+            feed_usage = report_data.get("feed_usage", {})
+            formula_usage = report_data.get("formula_usage", {})
+
+            # Xóa dữ liệu hiện tại trong bảng
+            for col in range(self.feed_table.columnCount()):
+                for row in range(2, 2 + len(SHIFTS)):
+                    cell_widget = self.feed_table.cellWidget(row, col)
+                    if cell_widget and hasattr(cell_widget, 'spin_box'):
+                        cell_widget.spin_box.setValue(0)
+                    if cell_widget and hasattr(cell_widget, 'formula_combo'):
+                        cell_widget.formula_combo.setCurrentText("")
+
+            # Điền dữ liệu từ báo cáo vào bảng
+            col_index = 0
+            for khu_idx, farms in FARMS.items():
+                khu_name = f"Khu {khu_idx + 1}"
+
+                for farm in farms:
+                    # Kiểm tra xem có dữ liệu cho khu và trại này không
+                    if khu_name in feed_usage and farm in feed_usage[khu_name]:
+                        farm_data = feed_usage[khu_name][farm]
+
+                        # Kiểm tra xem có dữ liệu công thức không
+                        has_formula_data = (formula_usage and
+                                          khu_name in formula_usage and
+                                          farm in formula_usage[khu_name])
+
+                        for shift_idx, shift in enumerate(SHIFTS):
+                            if shift in farm_data:
+                                # Lấy giá trị và công thức
+                                value = farm_data[shift]
+                                formula = ""
+
+                                if has_formula_data and shift in formula_usage[khu_name][farm]:
+                                    formula = formula_usage[khu_name][farm][shift]
+
+                                # Cập nhật giá trị vào bảng
+                                cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
+                                if cell_widget:
+                                    if hasattr(cell_widget, 'spin_box'):
+                                        cell_widget.spin_box.setValue(value)
+                                    if hasattr(cell_widget, 'formula_combo') and formula:
+                                        cell_widget.formula_combo.setCurrentText(formula)
+
+                    col_index += 1
+
+            QMessageBox.information(self, "Thành công", f"Đã điền bảng cám theo dữ liệu ngày {date_text}")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể điền bảng cám: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def fill_table_from_custom_date(self, date_text):
+        """Điền bảng cám với ngày tự chọn"""
+        try:
+            # Xóa dữ liệu hiện tại trong bảng
+            for col in range(self.feed_table.columnCount()):
+                for row in range(2, 2 + len(SHIFTS)):
+                    cell_widget = self.feed_table.cellWidget(row, col)
+                    if cell_widget and hasattr(cell_widget, 'spin_box'):
+                        cell_widget.spin_box.setValue(0)
+                    if cell_widget and hasattr(cell_widget, 'formula_combo'):
+                        cell_widget.formula_combo.setCurrentText("")
+
+            # Thử tìm báo cáo gần nhất để lấy công thức mặc định
+            default_formula = ""
+            try:
+                # Lấy báo cáo mới nhất nếu có
+                if self.history_date_combo.count() > 0 and self.history_date_combo.currentText() != "Không có dữ liệu":
+                    latest_date = self.history_date_combo.itemText(0)
+                    latest_report = self.load_report_data(latest_date)
+
+                    if latest_report and "formula_usage" in latest_report:
+                        # Tìm công thức được sử dụng nhiều nhất
+                        formula_counts = {}
+                        for khu_data in latest_report["formula_usage"].values():
+                            for farm_data in khu_data.values():
+                                for formula in farm_data.values():
+                                    if formula:
+                                        if formula in formula_counts:
+                                            formula_counts[formula] += 1
+                                        else:
+                                            formula_counts[formula] = 1
+
+                        # Lấy công thức được sử dụng nhiều nhất
+                        if formula_counts:
+                            default_formula = max(formula_counts.items(), key=lambda x: x[1])[0]
+            except Exception as e:
+                print(f"Không thể lấy công thức mặc định: {str(e)}")
+
+            # Áp dụng công thức mặc định nếu có
+            if default_formula:
+                self.default_formula_combo.setCurrentText(default_formula)
+
+            # Cập nhật nhãn ngày trên giao diện
+            for widget in self.findChildren(QLabel):
+                if widget.text().startswith("Ngày:"):
+                    widget.setText(f"Ngày: {date_text}")
+                    break
+
+            QMessageBox.information(self, "Thành công", f"Đã tạo bảng mới cho ngày {date_text}")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể tạo bảng mới: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def load_latest_report(self):
         """Tự động tải báo cáo mới nhất từ database khi khởi động"""
@@ -3667,6 +3794,147 @@ class ChickenFarmApp(QMainWindow):
             import traceback
             traceback.print_exc()
             return None
+
+    def fill_table_by_date(self):
+        """Điền bảng cám theo ngày đã chọn"""
+        # Hiển thị hộp thoại chọn ngày
+        date_dialog = QDialog(self)
+        date_dialog.setWindowTitle("Chọn Ngày")
+        date_dialog.setMinimumWidth(500)
+
+        dialog_layout = QVBoxLayout()
+
+        # Thêm lựa chọn giữa ngày bất kỳ và ngày từ database
+        date_source_group = QGroupBox("Nguồn dữ liệu")
+        date_source_layout = QVBoxLayout()
+
+        # Radio buttons để chọn nguồn
+        custom_date_radio = QRadioButton("Chọn ngày bất kỳ")
+        custom_date_radio.setFont(DEFAULT_FONT)
+        custom_date_radio.setChecked(True)
+
+        database_date_radio = QRadioButton("Chọn từ báo cáo đã lưu")
+        database_date_radio.setFont(DEFAULT_FONT)
+
+        date_source_layout.addWidget(custom_date_radio)
+        date_source_layout.addWidget(database_date_radio)
+        date_source_group.setLayout(date_source_layout)
+        dialog_layout.addWidget(date_source_group)
+
+        # Widget chọn ngày bất kỳ
+        custom_date_widget = QWidget()
+        custom_date_layout = QVBoxLayout()
+
+        date_label = QLabel("Chọn ngày:")
+        date_label.setFont(DEFAULT_FONT)
+        custom_date_layout.addWidget(date_label)
+
+        # Sử dụng QDateEdit để chọn ngày
+        date_edit = QDateEdit(QDate.currentDate())
+        date_edit.setFont(DEFAULT_FONT)
+        date_edit.setCalendarPopup(True)
+        date_edit.setDisplayFormat("dd/MM/yyyy")
+        date_edit.setMinimumHeight(35)
+        date_edit.setStyleSheet("""
+            QDateEdit {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+            }
+        """)
+        custom_date_layout.addWidget(date_edit)
+
+        custom_date_widget.setLayout(custom_date_layout)
+        dialog_layout.addWidget(custom_date_widget)
+
+        # Widget chọn từ database
+        database_date_widget = QWidget()
+        database_date_layout = QVBoxLayout()
+
+        database_label = QLabel("Chọn báo cáo:")
+        database_label.setFont(DEFAULT_FONT)
+        database_date_layout.addWidget(database_label)
+
+        # Tạo combo box chọn ngày từ các báo cáo đã lưu
+        date_combo = QComboBox()
+        date_combo.setFont(DEFAULT_FONT)
+        date_combo.setMinimumHeight(35)
+        date_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+            }
+        """)
+
+        # Cập nhật danh sách ngày từ các báo cáo đã lưu
+        self.update_history_dates(date_combo)
+        database_date_layout.addWidget(date_combo)
+
+        database_date_widget.setLayout(database_date_layout)
+        dialog_layout.addWidget(database_date_widget)
+
+        # Ban đầu ẩn widget chọn từ database
+        database_date_widget.setVisible(False)
+
+        # Kết nối sự kiện thay đổi radio button
+        def toggle_date_source():
+            custom_date_widget.setVisible(custom_date_radio.isChecked())
+            database_date_widget.setVisible(database_date_radio.isChecked())
+
+        custom_date_radio.toggled.connect(toggle_date_source)
+        database_date_radio.toggled.connect(toggle_date_source)
+
+        # Thêm nút xác nhận và hủy
+        button_layout = QHBoxLayout()
+
+        ok_button = QPushButton("Xác nhận")
+        ok_button.setFont(BUTTON_FONT)
+        ok_button.setMinimumHeight(35)
+        ok_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+        """)
+
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(BUTTON_FONT)
+        cancel_button.setMinimumHeight(35)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 15px;
+            }
+        """)
+
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        dialog_layout.addLayout(button_layout)
+
+        date_dialog.setLayout(dialog_layout)
+
+        # Kết nối sự kiện cho các nút
+        ok_button.clicked.connect(date_dialog.accept)
+        cancel_button.clicked.connect(date_dialog.reject)
+
+        # Hiển thị hộp thoại và xử lý kết quả
+        if date_dialog.exec_() == QDialog.Accepted:
+            if custom_date_radio.isChecked():
+                # Lấy ngày từ QDateEdit
+                selected_date = date_edit.date().toString("dd/MM/yyyy")
+                self.fill_table_from_custom_date(selected_date)
+            else:
+                # Lấy ngày từ combo box
+                selected_date = date_combo.currentText()
+                if selected_date and selected_date != "Không có dữ liệu":
+                    self.fill_table_from_report(selected_date)
 
 def main():
     app = QApplication(sys.argv)
