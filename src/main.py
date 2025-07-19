@@ -385,8 +385,8 @@ class ChickenFarmApp(QMainWindow):
                     container = QWidget()
                     container.setStyleSheet(f"background-color: {khu_color.name()};")
                     container_layout = QHBoxLayout(container)
-                    container_layout.setContentsMargins(2, 2, 2, 2)
-                    container_layout.setSpacing(4)
+                    container_layout.setContentsMargins(1, 1, 1, 1)
+                    container_layout.setSpacing(2)
 
                     # Tạo spinbox cho số lượng mẻ
                     spin_box = QDoubleSpinBox()
@@ -395,16 +395,13 @@ class ChickenFarmApp(QMainWindow):
                     spin_box.setSingleStep(0.5)
                     spin_box.setDecimals(1)
                     spin_box.setAlignment(Qt.AlignCenter)
-                    spin_box.setButtonSymbols(QDoubleSpinBox.UpDownArrows)
+                    spin_box.setButtonSymbols(QDoubleSpinBox.NoButtons)  # Bỏ mũi tên lên xuống
                     spin_box.setStyleSheet("""
                         QDoubleSpinBox {
                             border: 1px solid #bbb;
                             border-radius: 4px;
                             padding: 2px;
                             background-color: white;
-                        }
-                        QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                            width: 20px;
                         }
                     """)
 
@@ -420,9 +417,15 @@ class ChickenFarmApp(QMainWindow):
                             border-radius: 4px;
                             padding: 2px;
                             background-color: white;
+                            text-align: left;
                         }
                         QComboBox::drop-down {
-                            width: 20px;
+                            width: 16px;
+                            border: none;
+                            subcontrol-position: center right;
+                        }
+                        QComboBox QAbstractItemView {
+                            selection-background-color: #e0e0ff;
                         }
                     """)
 
@@ -436,8 +439,8 @@ class ChickenFarmApp(QMainWindow):
                         formula_combo.addItem(preset)
 
                     # Thêm các widget vào container
-                    container_layout.addWidget(spin_box, 1)  # Tỷ lệ 1
-                    container_layout.addWidget(formula_combo, 2)  # Tỷ lệ 2
+                    container_layout.addWidget(spin_box, 35)  # Tỷ lệ 35%
+                    container_layout.addWidget(formula_combo, 65)  # Tỷ lệ 65%
 
                     # Lưu reference đến các widget con để truy cập sau này
                     container.spin_box = spin_box
@@ -481,8 +484,10 @@ class ChickenFarmApp(QMainWindow):
         # Results section
         self.results_label = QLabel("Kết quả tính toán sẽ hiển thị ở đây")
         self.results_label.setFont(DEFAULT_FONT)
-        self.results_label.setAlignment(Qt.AlignCenter)
-        self.results_label.setStyleSheet("QLabel { padding: 10px; background-color: #f0f0f0; border-radius: 5px; }")
+        self.results_label.setAlignment(Qt.AlignLeft)
+        self.results_label.setWordWrap(True)
+        self.results_label.setTextFormat(Qt.RichText)
+        self.results_label.setStyleSheet("QLabel { padding: 15px; background-color: #f0f0f0; border-radius: 5px; line-height: 150%; }")
 
         # Results table
         self.results_table = QTableWidget()
@@ -1921,6 +1926,10 @@ class ChickenFarmApp(QMainWindow):
         formula_batches = {}  # Dictionary to store formula name and total batches
         farm_formula_batches = {}  # Dictionary to store formula name and batches for each farm
 
+        # Dictionary để lưu tổng số mẻ theo khu
+        total_batches_by_area = {}  # Khu -> số mẻ
+        total_batches = 0  # Tổng số mẻ
+
         # Dictionary để lưu thông tin công thức và thành phần
         formula_ingredients = {}
 
@@ -1959,20 +1968,34 @@ class ChickenFarmApp(QMainWindow):
                 if batch_value <= 0 or not formula_name:
                     continue
 
+                # Chuyển đổi batch_value: 0.5 = 1 mẻ, 1 = 2 mẻ, 1.5 = 3 mẻ, v.v.
+                actual_batches = batch_value
+                formula_batch_value = batch_value  # Giữ giá trị gốc để tính toán công thức
+
+                # Chuyển đổi số mẻ theo quy tắc: 0.5 = 1 mẻ, 1 = 2 mẻ
+                if batch_value > 0:
+                    actual_batches = batch_value * 2
+
+                # Cập nhật tổng số mẻ theo khu
+                if khu_name not in total_batches_by_area:
+                    total_batches_by_area[khu_name] = 0
+                total_batches_by_area[khu_name] += actual_batches
+                total_batches += actual_batches
+
                 # Cộng dồn số mẻ cho công thức này
                 if formula_name in formula_batches:
-                    formula_batches[formula_name] += batch_value
+                    formula_batches[formula_name] += formula_batch_value
                 else:
-                    formula_batches[formula_name] = batch_value
+                    formula_batches[formula_name] = formula_batch_value
 
                 # Lưu thông tin cho từng farm
                 if farm_key not in farm_formula_batches:
                     farm_formula_batches[farm_key] = {}
 
                 if formula_name in farm_formula_batches[farm_key]:
-                    farm_formula_batches[farm_key][formula_name] += batch_value
+                    farm_formula_batches[farm_key][formula_name] += formula_batch_value
                 else:
-                    farm_formula_batches[farm_key][formula_name] = batch_value
+                    farm_formula_batches[farm_key][formula_name] = formula_batch_value
 
         # Nếu không có dữ liệu, hiển thị thông báo và thoát
         if not formula_batches:
@@ -2234,14 +2257,34 @@ class ChickenFarmApp(QMainWindow):
                     row_data[header] = item.text()
             self.results_data.append(row_data)
 
-        # Hiển thị thông tin chi tiết về công thức sử dụng
-        formula_details = "Công thức sử dụng:\n"
+                # Hiển thị thông tin chi tiết về công thức sử dụng và tổng số mẻ
+        formula_details = f"Tổng số mẻ: {format_number(total_batches)}\n\n"
+
+        # Thêm thông tin tổng số mẻ theo khu
+        formula_details += "Tổng số mẻ theo khu:\n"
+        for khu_name, khu_batches in sorted(total_batches_by_area.items()):
+            formula_details += f"- {khu_name}: {format_number(khu_batches)} mẻ\n"
+
+        formula_details += "\nCông thức sử dụng:\n"
         for formula_name, batch_count in formula_batches.items():
             formula_details += f"- {formula_name}: {format_number(batch_count)} mẻ\n"
 
-        # Hiển thị thông báo
-        QMessageBox.information(self, "Kết quả tính toán",
-                               f"Đã tính toán thành công!\n\n{formula_details}")
+        # Cập nhật nhãn kết quả với thông tin chi tiết
+        result_text = f"<b>Tổng số mẻ: {format_number(total_batches)}</b><br><br>"
+        result_text += "<b>Tổng số mẻ theo khu:</b><br>"
+        for khu_name, khu_batches in sorted(total_batches_by_area.items()):
+            result_text += f"- {khu_name}: {format_number(khu_batches)} mẻ<br>"
+
+        result_text += "<br><b>Công thức sử dụng:</b><br>"
+        for formula_name, batch_count in formula_batches.items():
+            result_text += f"- {formula_name}: {format_number(batch_count)} mẻ<br>"
+
+        self.results_label.setText(result_text)
+        self.results_label.setTextFormat(Qt.RichText)
+
+        # Lưu tổng số mẻ để sử dụng khi lưu báo cáo
+        self.total_batches = total_batches
+        self.total_batches_by_area = total_batches_by_area
 
         # Update inventory after calculation
         all_ingredients = {**feed_ingredients, **mix_ingredients}
@@ -2476,7 +2519,11 @@ class ChickenFarmApp(QMainWindow):
                 "formula_usage": formula_usage,
                 "results": self.results_data,
                 "feed_ingredients": self.feed_ingredients,
-                "mix_ingredients": self.mix_ingredients
+                "mix_ingredients": self.mix_ingredients,
+                "total_batches": self.total_batches,
+                "total_batches_by_area": self.total_batches_by_area,
+                "linked_mix_formula": self.formula_manager.get_linked_mix_formula_name(),
+                "tong_hop_amount": self.total_tong_hop
             }
 
             # Lưu báo cáo
