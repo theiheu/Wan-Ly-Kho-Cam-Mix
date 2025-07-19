@@ -1974,7 +1974,7 @@ class ChickenFarmApp(QMainWindow):
 
                 # Chuyển đổi số mẻ theo quy tắc: 0.5 = 1 mẻ, 1 = 2 mẻ
                 if batch_value > 0:
-                    actual_batches = batch_value * 2
+                    actual_batches = batch_value * 2  # Số mẻ thực tế = giá trị hiển thị * 2
 
                 # Cập nhật tổng số mẻ theo khu
                 if khu_name not in total_batches_by_area:
@@ -2027,7 +2027,9 @@ class ChickenFarmApp(QMainWindow):
             # Tính toán thành phần cám (không bao gồm mix)
             for ingredient, amount_per_batch in feed_formula.items():
                 if ingredient != "Nguyên liệu tổ hợp":
-                    feed_amount = amount_per_batch * batch_count
+                    # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+                    # batch_count là số hiển thị trên giao diện, cần nhân 2 để tính đúng số mẻ thực tế
+                    feed_amount = amount_per_batch * batch_count * 2
 
                     # Cộng dồn vào tổng thành phần cám
                     if ingredient in feed_ingredients:
@@ -2036,7 +2038,8 @@ class ChickenFarmApp(QMainWindow):
                         feed_ingredients[ingredient] = feed_amount
                 else:
                     # Tính tổng lượng nguyên liệu tổ hợp
-                    tong_hop_amount = amount_per_batch * batch_count
+                    # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+                    tong_hop_amount = amount_per_batch * batch_count * 2
                     total_tong_hop += tong_hop_amount
 
                     # Lấy tên công thức mix được liên kết với preset cám hiện tại
@@ -2061,7 +2064,7 @@ class ChickenFarmApp(QMainWindow):
             formula_ingredients[formula_name] = {
                 "batches": batch_count,
                 "linked_mix_name": self.formula_manager.get_linked_mix_formula_name(formula_name),
-                "tong_hop_amount": feed_formula.get("Nguyên liệu tổ hợp", 0) * batch_count
+                "tong_hop_amount": feed_formula.get("Nguyên liệu tổ hợp", 0) * batch_count * 2  # Áp dụng quy tắc 0.5 = 1 mẻ
             }
 
         # Tính toán thành phần mix từ tất cả các công thức mix được sử dụng
@@ -2173,11 +2176,8 @@ class ChickenFarmApp(QMainWindow):
         self.results_table.setItem(row, 2, empty_item)
         row += 1
 
-        # Thêm tiêu đề kho mix
+        # Thêm tiêu đề kho mix - bỏ tên công thức khi tính tổng
         mix_title = "THÀNH PHẦN KHO MIX"
-        if mix_formulas_used:
-            mix_names = ", ".join(mix_formulas_used.keys())
-            mix_title += f" ({mix_names})"
 
         mix_header = QTableWidgetItem(mix_title)
         mix_header.setBackground(QColor(230, 250, 200))  # Light green background
@@ -2257,7 +2257,7 @@ class ChickenFarmApp(QMainWindow):
                     row_data[header] = item.text()
             self.results_data.append(row_data)
 
-                # Hiển thị thông tin chi tiết về công thức sử dụng và tổng số mẻ
+                        # Hiển thị thông tin chi tiết về công thức sử dụng và tổng số mẻ
         formula_details = f"Tổng số mẻ: {format_number(total_batches)}\n\n"
 
         # Thêm thông tin tổng số mẻ theo khu
@@ -2267,17 +2267,35 @@ class ChickenFarmApp(QMainWindow):
 
         formula_details += "\nCông thức sử dụng:\n"
         for formula_name, batch_count in formula_batches.items():
-            formula_details += f"- {formula_name}: {format_number(batch_count)} mẻ\n"
+            # Nhân 2 để áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+            actual_batch_count = batch_count * 2
+            formula_details += f"- {formula_name}: {format_number(actual_batch_count)} mẻ\n"
 
-        # Cập nhật nhãn kết quả với thông tin chi tiết
-        result_text = f"<b>Tổng số mẻ: {format_number(total_batches)}</b><br><br>"
-        result_text += "<b>Tổng số mẻ theo khu:</b><br>"
+                        # Cập nhật nhãn kết quả với tất cả thông tin nằm trên một hàng
+        result_parts = []
+
+        # Phần tổng số mẻ
+        result_parts.append(f"<b>Tổng số mẻ:</b> {format_number(total_batches)}")
+
+        # Phần tổng số mẻ theo khu
+        khu_texts = []
         for khu_name, khu_batches in sorted(total_batches_by_area.items()):
-            result_text += f"- {khu_name}: {format_number(khu_batches)} mẻ<br>"
+            if khu_batches > 0:  # Chỉ hiển thị khu có mẻ > 0
+                khu_texts.append(f"{khu_name}: {format_number(khu_batches)} mẻ")
+        if khu_texts:
+            result_parts.append("<b>Tổng số mẻ theo khu:</b> " + " | ".join(khu_texts))
 
-        result_text += "<br><b>Công thức sử dụng:</b><br>"
+        # Phần công thức sử dụng - áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+        formula_texts = []
         for formula_name, batch_count in formula_batches.items():
-            result_text += f"- {formula_name}: {format_number(batch_count)} mẻ<br>"
+            # Nhân 2 để áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+            actual_batch_count = batch_count * 2
+            formula_texts.append(f"{formula_name}: {format_number(actual_batch_count)} mẻ")
+        if formula_texts:
+            result_parts.append("<b>Công thức sử dụng:</b> " + " | ".join(formula_texts))
+
+        # Kết hợp tất cả thành một dòng
+        result_text = " | ".join(result_parts)
 
         self.results_label.setText(result_text)
         self.results_label.setTextFormat(Qt.RichText)
