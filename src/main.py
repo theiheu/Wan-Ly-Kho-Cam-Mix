@@ -3588,6 +3588,8 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
 
+
+
     def fill_table_from_report(self, date_text):
         """Điền bảng cám từ báo cáo theo ngày đã chọn"""
         try:
