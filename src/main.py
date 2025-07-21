@@ -93,6 +93,9 @@ class ChickenFarmApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Phần mềm Quản lý Cám - Trại Gà")
 
+        # Biến cờ để kiểm soát việc tải báo cáo
+        self.report_loaded = False
+
         # Lấy kích thước màn hình
         desktop = QApplication.desktop()
         screen_rect = desktop.availableGeometry()
@@ -182,6 +185,12 @@ class ChickenFarmApp(QMainWindow):
         # Initialize UI
         self.init_ui()
 
+        # Tải công thức mặc định
+        self.load_default_formula()
+
+        # Tự động tải báo cáo mới nhất khi khởi động
+        QTimer.singleShot(100, self.load_latest_report)
+
     def init_ui(self):
         """Initialize the main UI components"""
         # Create main tab widget
@@ -245,6 +254,9 @@ class ChickenFarmApp(QMainWindow):
         self.setup_inventory_tab()
         self.setup_formula_tab()
         self.setup_history_tab()  # Thiết lập tab lịch sử
+
+        # Tải công thức mặc định
+        self.load_default_formula()
 
         # Tự động tải báo cáo mới nhất khi khởi động
         QTimer.singleShot(500, self.load_latest_report)
@@ -352,15 +364,9 @@ class ChickenFarmApp(QMainWindow):
         self.default_formula_combo.addItem("")  # Thêm lựa chọn trống
         for preset in presets:
             self.default_formula_combo.addItem(preset)
+        # Kết nối sự kiện thay đổi công thức mặc định
+        self.default_formula_combo.currentTextChanged.connect(self.apply_default_formula)
         default_formula_layout.addWidget(self.default_formula_combo)
-
-        # Nút áp dụng công thức mặc định
-        apply_default_button = QPushButton("Áp dụng cho tất cả")
-        apply_default_button.setFont(BUTTON_FONT)
-        apply_default_button.setMinimumHeight(35)
-        apply_default_button.setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border-radius: 5px; padding: 5px 15px; }")
-        apply_default_button.clicked.connect(self.apply_default_formula)
-        default_formula_layout.addWidget(apply_default_button)
 
         default_formula_layout.addStretch()
 
@@ -368,6 +374,12 @@ class ChickenFarmApp(QMainWindow):
         self.feed_table = QTableWidget()
         self.feed_table.setFont(TABLE_CELL_FONT)
         self.feed_table.setStyleSheet("QTableWidget { gridline-color: #aaa; }")
+
+        # Biến để lưu trữ ô đang được chọn
+        self.selected_cell = None
+
+        # Kết nối sự kiện khi click vào ô trong bảng
+        self.feed_table.cellClicked.connect(self.on_feed_table_cell_clicked)
 
         # Set font for table headers
         self.feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
@@ -433,12 +445,10 @@ class ChickenFarmApp(QMainWindow):
 
                 # Create editable cells for feed usage for each shift
                 for shift_idx in range(len(SHIFTS)):
-                    # Tạo một widget container để chứa cả spinbox và combobox
+                    # Tạo một widget container để chứa spinbox và label
                     container = QWidget()
                     container.setStyleSheet(f"background-color: {khu_color.name()};")
-                    container_layout = QHBoxLayout(container)
-                    container_layout.setContentsMargins(1, 1, 1, 1)
-                    container_layout.setSpacing(0)  # Giảm khoảng cách giữa spinbox và combobox
+                    # Không tạo layout ở đây, sẽ tạo sau
 
                     # Tạo spinbox cho số lượng mẻ
                     spin_box = CustomDoubleSpinBox()
@@ -460,28 +470,25 @@ class ChickenFarmApp(QMainWindow):
                     # Tăng kích thước của spin box để dễ nhìn hơn
                     spin_box.setMinimumHeight(40)  # Tăng chiều cao
 
-                    # Tạo combobox cho công thức cám
-                    formula_combo = QComboBox()
-                    formula_combo.setFont(TABLE_CELL_FONT)
-                    formula_combo.setStyleSheet("""
-                        QComboBox {
-                            border: none;  /* Bỏ viền */
+                    # Tạo label để hiển thị tên công thức cám
+                    formula_label = QLabel("")
+                    formula_label.setFont(TABLE_CELL_FONT)
+                    formula_label.setAlignment(Qt.AlignCenter)
+                    formula_label.setStyleSheet("""
+                        QLabel {
+                            border: none;
                             padding: 2px;
                             background-color: white;
-                            text-align: left;
-                        }
-                        QComboBox::drop-down {
-                            width: 16px;
-                            border: none;
-                            subcontrol-position: center right;
-                        }
-                        QComboBox QAbstractItemView {
-                            selection-background-color: #e0e0ff;
+                            text-align: center;
+                            color: #1976D2;
+                            font-weight: bold;
                         }
                     """)
 
-                    # Tăng kích thước của combo box để dễ nhìn hơn
-                    formula_combo.setMinimumHeight(40)  # Tăng chiều cao
+                    # Tạo combobox cho công thức cám (ẩn đi)
+                    formula_combo = QComboBox()
+                    formula_combo.setFont(TABLE_CELL_FONT)
+                    formula_combo.setVisible(False)  # Ẩn combobox
 
                     # Lấy danh sách các công thức cám có sẵn
                     presets = self.formula_manager.get_feed_presets()
@@ -489,16 +496,29 @@ class ChickenFarmApp(QMainWindow):
                     for preset in presets:
                         formula_combo.addItem(preset)
 
-                    # Thêm các widget vào container
-                    container_layout.addWidget(spin_box, 30)  # Giảm tỷ lệ xuống 30% để gần hơn
-                    container_layout.addWidget(formula_combo, 70)  # Tăng tỷ lệ lên 70%
+                                        # Thiết lập layout cho container
+                    container_layout = QVBoxLayout()
+                    container_layout.setContentsMargins(1, 1, 1, 1)
+                    container_layout.setSpacing(0)  # Giảm khoảng cách giữa các widget
+
+                    container.setLayout(container_layout)
+
+                    container_layout.addWidget(spin_box)
+                    container_layout.addWidget(formula_label)
+                    container_layout.addWidget(formula_combo)  # Combobox ẩn
+
+                    # Thiết lập tỷ lệ không gian
+                    container_layout.setStretch(0, 60)  # 60% cho spin_box (trên)
+                    container_layout.setStretch(1, 40)  # 40% cho formula_label (dưới)
+                    container_layout.setStretch(2, 0)   # 0% cho formula_combo (ẩn)
 
                     # Lưu reference đến các widget con để truy cập sau này
                     container.spin_box = spin_box
                     container.formula_combo = formula_combo
+                    container.formula_label = formula_label
 
                     # Khi giá trị thay đổi, cập nhật hiển thị để ẩn số 0 và tự động chọn công thức mặc định
-                    def on_value_changed(value, spin=spin_box, combo=formula_combo):
+                    def on_value_changed(value, spin=spin_box, combo=formula_combo, label=formula_label):
                         # Tự động chọn công thức mặc định
                         self.auto_select_default_formula(value, combo)
 
@@ -509,7 +529,13 @@ class ChickenFarmApp(QMainWindow):
                             # Thiết lập lại prefix để hiển thị trống thay vì "0"
                             spin.setPrefix(" " if value == 0 else "")
                             # Kết nối lại sự kiện
-                            spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo))
+                            spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo, label))
+
+                            # Ẩn label công thức
+                            label.setVisible(False)
+                            # Mở rộng spinbox để chiếm toàn bộ không gian
+                            container.layout().setStretch(0, 100)
+                            container.layout().setStretch(1, 0)
                         else:
                             # Đảm bảo prefix là trống khi có giá trị
                             if spin.prefix() != "":
@@ -518,14 +544,34 @@ class ChickenFarmApp(QMainWindow):
                                 # Thiết lập lại prefix để hiển thị trống
                                 spin.setPrefix("")
                                 # Kết nối lại sự kiện
-                                spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo))
+                                spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo, label))
+
+                            # Hiển thị tên công thức
+                            formula_text = combo.currentText()
+                            default_formula = self.default_formula_combo.currentText()
+
+                            # Kiểm tra xem có phải công thức mặc định không
+                            if formula_text and formula_text != default_formula:
+                                # Nếu không phải công thức mặc định, hiển thị tên
+                                label.setText(formula_text)
+                                label.setVisible(True)
+                                # Khôi phục tỷ lệ ban đầu
+                                container.layout().setStretch(0, 60)
+                                container.layout().setStretch(1, 40)
+                            else:
+                                # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                                label.setText("")
+                                label.setVisible(False)
+                                # Mở rộng spinbox để chiếm toàn bộ không gian
+                                container.layout().setStretch(0, 100)
+                                container.layout().setStretch(1, 0)
 
                     # Thiết lập prefix ban đầu để ẩn số 0 nếu cần
                     if spin_box.value() == 0:
                         spin_box.setPrefix(" ")
 
                     # Kết nối sự kiện
-                    spin_box.valueChanged.connect(lambda value, spin=spin_box, combo=formula_combo: on_value_changed(value, spin, combo))
+                    spin_box.valueChanged.connect(lambda value, spin=spin_box, combo=formula_combo, label=formula_label: on_value_changed(value, spin, combo, label))
 
                     # Thêm container vào cell
                     self.feed_table.setCellWidget(shift_idx + 2, col_index, container)
@@ -587,10 +633,63 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
 
+        # Tạo layout cho các nút công thức cám
+        formula_buttons_layout = QHBoxLayout()
+        formula_buttons_layout.setSpacing(5)
+
+        # Lấy danh sách các công thức cám có sẵn
+        presets = self.formula_manager.get_feed_presets()
+
+        # Tạo nút cho mỗi công thức cám
+        for preset in presets:
+            formula_button = QPushButton(preset)
+            formula_button.setFont(BUTTON_FONT)
+            formula_button.setMinimumHeight(30)
+            formula_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border-radius: 4px;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                }
+            """)
+            # Kết nối sự kiện click với phương thức áp dụng công thức
+            formula_button.clicked.connect(lambda checked, f=preset: self.apply_formula_to_selected_cell(f))
+            formula_buttons_layout.addWidget(formula_button)
+
+        # Thêm nút xóa công thức
+        clear_button = QPushButton("Xóa")
+        clear_button.setFont(BUTTON_FONT)
+        clear_button.setMinimumHeight(30)
+        clear_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 4px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
+        clear_button.clicked.connect(lambda: self.apply_formula_to_selected_cell(""))
+        formula_buttons_layout.addWidget(clear_button)
+
+        # Thêm label hướng dẫn
+        formula_buttons_label = QLabel("Chọn ô cám rồi click nút công thức bên dưới:")
+        formula_buttons_label.setFont(DEFAULT_FONT)
+        formula_buttons_label.setAlignment(Qt.AlignCenter)
+        formula_buttons_label.setStyleSheet("QLabel { color: #555; margin: 5px 0; }")
+
         # Add widgets to layout
         layout.addLayout(header_layout)
         layout.addLayout(default_formula_layout)
         layout.addWidget(self.feed_table)
+        layout.addWidget(formula_buttons_label)
+        layout.addLayout(formula_buttons_layout)
 
         # Thêm nút xem báo cáo
         layout.addWidget(view_report_button)
@@ -606,10 +705,14 @@ class ChickenFarmApp(QMainWindow):
         self.feed_usage_tab.setLayout(layout)
 
     def apply_default_formula(self):
-        """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng"""
+        """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng khi thay đổi công thức mặc định"""
         default_formula = self.default_formula_combo.currentText()
+
+        # Lưu công thức mặc định để khi khởi động lại app không bị mất
+        self.formula_manager.save_default_feed_formula(default_formula)
+
+        # Nếu không có công thức mặc định, chỉ lưu và không áp dụng
         if not default_formula:
-            QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn một công thức cám mặc định!")
             return
 
         # Áp dụng cho tất cả các ô trong bảng
@@ -618,8 +721,6 @@ class ChickenFarmApp(QMainWindow):
                 cell_widget = self.feed_table.cellWidget(row, col)
                 if cell_widget and hasattr(cell_widget, 'formula_combo'):
                     cell_widget.formula_combo.setCurrentText(default_formula)
-
-        QMessageBox.information(self, "Thành công", f"Đã áp dụng công thức cám '{default_formula}' cho tất cả các ô!")
 
     def auto_select_default_formula(self, value, combo):
         """Tự động chọn công thức mặc định khi người dùng nhập số lượng mẻ"""
@@ -631,7 +732,18 @@ class ChickenFarmApp(QMainWindow):
         if value > 0:
             default_formula = self.default_formula_combo.currentText()
             if default_formula:
+                # Tạm ngắt kết nối sự kiện để tránh gọi lại nhiều lần
+                old_handlers = []
+                if combo.receivers(combo.currentTextChanged) > 0:
+                    old_handlers = [combo.currentTextChanged.disconnect() for _ in range(combo.receivers(combo.currentTextChanged))]
+
+                # Thiết lập công thức
                 combo.setCurrentText(default_formula)
+
+                # Kết nối lại các sự kiện nếu có
+                for handler in old_handlers:
+                    if handler:
+                        combo.currentTextChanged.connect(handler)
 
     def setup_inventory_tab(self):
         """Setup the inventory management tab"""
@@ -3691,8 +3803,6 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
 
-
-
     def fill_table_from_report(self, date_text):
         """Điền bảng cám từ báo cáo theo ngày đã chọn"""
         try:
@@ -3739,6 +3849,7 @@ class ChickenFarmApp(QMainWindow):
 
                                 if has_formula_data and shift in formula_usage[khu_name][farm]:
                                     formula = formula_usage[khu_name][farm][shift]
+                                    print(f"Đã tìm thấy công thức {formula} cho {khu_name}, {farm}, {shift}")
 
                                 # Cập nhật giá trị vào bảng
                                 cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
@@ -3747,8 +3858,23 @@ class ChickenFarmApp(QMainWindow):
                                         cell_widget.spin_box.setValue(value)
                                     if hasattr(cell_widget, 'formula_combo') and formula:
                                         cell_widget.formula_combo.setCurrentText(formula)
+                                        # Cập nhật hiển thị công thức
+                                        if hasattr(cell_widget, 'formula_label'):
+                                            default_formula = self.default_formula_combo.currentText()
+                                            if formula and formula != default_formula:
+                                                cell_widget.formula_label.setText(formula)
+                                                cell_widget.formula_label.setVisible(True)
+                                                cell_widget.layout().setStretch(0, 60)
+                                                cell_widget.layout().setStretch(1, 40)
+                                            else:
+                                                cell_widget.formula_label.setVisible(False)
+                                                cell_widget.layout().setStretch(0, 100)
+                                                cell_widget.layout().setStretch(1, 0)
 
                     col_index += 1
+
+            # Cập nhật hiển thị toàn bộ bảng sau khi điền dữ liệu
+            self.update_feed_table_display()
 
             QMessageBox.information(self, "Thành công", f"Đã điền bảng cám theo dữ liệu ngày {date_text}")
 
@@ -3813,43 +3939,54 @@ class ChickenFarmApp(QMainWindow):
             traceback.print_exc()
 
     def load_latest_report(self):
-        """Tự động tải báo cáo mới nhất từ database khi khởi động"""
+        """Tự động tải báo cáo của ngày hiện tại nếu có"""
+        # Nếu đã tải báo cáo rồi thì không tải lại nữa
+        if self.report_loaded:
+            return
+
         try:
+            # Đánh dấu đã tải báo cáo
+            self.report_loaded = True
+
+            # Lấy ngày hiện tại
+            today = QDate.currentDate().toString("dd/MM/yyyy")
+            print(f"Đang tìm báo cáo cho ngày hiện tại: {today}")
+
             # Cập nhật danh sách các ngày có báo cáo
             self.update_history_dates()
 
-            # Kiểm tra xem có báo cáo nào không
-            if self.history_date_combo.count() > 0 and self.history_date_combo.currentText() != "Không có dữ liệu":
-                # Chọn báo cáo mới nhất (index 0)
-                self.history_date_combo.setCurrentIndex(0)
-                selected_date = self.history_date_combo.currentText()
+            # Tìm xem có báo cáo cho ngày hiện tại không
+            today_report_exists = False
+            today_index = -1
 
-                # Kiểm tra xem có phải là ngày hợp lệ không
-                if selected_date and '/' in selected_date:
-                    # Tải dữ liệu báo cáo cho tab lịch sử mà không hiển thị cảnh báo
-                    try:
-                        self.load_history_data(show_warnings=False)
-                        print("Đã tự động tải báo cáo mới nhất")
+            for i in range(self.history_date_combo.count()):
+                if self.history_date_combo.itemText(i) == today:
+                    today_report_exists = True
+                    today_index = i
+                    break
 
-                        # Kiểm tra xem báo cáo có phải của ngày hôm nay không
-                        today = QDate.currentDate().toString("dd/MM/yyyy")
-                        if selected_date == today:
-                            # Nếu là báo cáo của ngày hôm nay, tự động điền vào bảng cám
-                            self.fill_table_from_report(selected_date)
-                            print(f"Đã tự động điền bảng cám với dữ liệu ngày {selected_date}")
-                    except Exception as e:
-                        print(f"Lỗi khi tải dữ liệu lịch sử: {str(e)}")
-                        # Không hiển thị thông báo lỗi cho người dùng
-                else:
-                    print(f"Không thể tải báo cáo: Định dạng ngày không hợp lệ '{selected_date}'")
+            if today_report_exists:
+                # Nếu có báo cáo cho ngày hiện tại, tải nó
+                self.history_date_combo.setCurrentIndex(today_index)
 
-                # Không tự động chuyển đến tab lịch sử khi khởi động
-                # self.tabs.setCurrentWidget(self.history_tab)
+                try:
+                    # Tải dữ liệu báo cáo cho tab lịch sử
+                    self.load_history_data(show_warnings=False)
+                    print(f"Đã tìm thấy và tải báo cáo cho ngày hiện tại: {today}")
+
+                    # Tự động điền vào bảng cám
+                    self.fill_table_from_report(today)
+                    print(f"Đã điền bảng cám với dữ liệu ngày {today}")
+                except Exception as e:
+                    print(f"Lỗi khi tải dữ liệu báo cáo ngày hiện tại: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"Không tìm thấy báo cáo cho ngày hiện tại: {today}")
         except Exception as e:
             print(f"Lỗi khi tự động tải báo cáo: {str(e)}")
             import traceback
             traceback.print_exc()
-            # Không hiển thị thông báo lỗi cho người dùng để tránh gây khó chịu khi khởi động
 
     def load_report_data(self, date_text):
         """Load report data for a specific date"""
@@ -4598,6 +4735,130 @@ class ChickenFarmApp(QMainWindow):
 
         # Hiển thị dialog
         report_dialog.exec_()
+
+    def load_default_formula(self):
+        """Tải công thức mặc định khi khởi động app"""
+        self.default_formula_combo.setCurrentText(self.formula_manager.get_default_feed_formula())
+
+    def on_feed_table_cell_clicked(self, row, column):
+        """Xử lý sự kiện khi người dùng click vào một ô trong bảng"""
+        # Chỉ xử lý các ô chứa dữ liệu cám (bỏ qua hàng khu và trại)
+        if row < 2:
+            return
+
+        # Lấy widget container trong ô
+        cell_widget = self.feed_table.cellWidget(row, column)
+        if not cell_widget:
+            return
+
+        # Lưu lại ô đang được chọn
+        self.selected_cell = (row, column)
+
+        # Đổi màu nền để hiển thị ô đang được chọn
+        for r in range(2, self.feed_table.rowCount()):
+            for c in range(self.feed_table.columnCount()):
+                widget = self.feed_table.cellWidget(r, c)
+                if widget:
+                    # Lấy màu nền gốc từ khu tương ứng
+                    original_c = c  # Lưu lại giá trị c ban đầu
+                    khu_idx = -1
+                    for idx, farms in FARMS.items():
+                        if original_c < len(farms):
+                            khu_idx = idx
+                            break
+                        original_c -= len(farms)
+
+                    khu_colors = [
+                        QColor(240, 248, 255),  # Khu 1: Alice Blue
+                        QColor(245, 245, 220),  # Khu 2: Beige
+                        QColor(240, 255, 240),  # Khu 3: Honeydew
+                        QColor(255, 240, 245),  # Khu 4: Lavender Blush
+                        QColor(255, 250, 240),  # Khu 5: Floral White
+                    ]
+
+                    if r == row and c == column:
+                        # Đổi màu nền cho ô được chọn - xanh nhạt đậm hơn
+                        widget.setStyleSheet(f"background-color: #b3e5fc;")
+                    else:
+                        # Khôi phục màu nền gốc cho các ô khác dựa trên khu
+                        if 0 <= khu_idx < len(khu_colors):
+                            widget.setStyleSheet(f"background-color: {khu_colors[khu_idx].name()};")
+                        else:
+                            widget.setStyleSheet("")
+
+    def apply_formula_to_selected_cell(self, formula):
+        """Áp dụng công thức cám cho ô đang được chọn"""
+        if not self.selected_cell:
+            return
+
+        row, column = self.selected_cell
+        cell_widget = self.feed_table.cellWidget(row, column)
+
+        if not cell_widget or not hasattr(cell_widget, 'spin_box') or not hasattr(cell_widget, 'formula_combo'):
+            return
+
+        # Chỉ áp dụng công thức nếu đã nhập số lượng mẻ > 0
+        if cell_widget.spin_box.value() > 0:
+            try:
+                # Thiết lập công thức
+                cell_widget.formula_combo.setCurrentText(formula)
+
+                # Cập nhật label công thức ngay lập tức
+                default_formula = self.default_formula_combo.currentText()
+                if formula and formula != default_formula:
+                    # Nếu không phải công thức mặc định, hiển thị tên
+                    cell_widget.formula_label.setText(formula)
+                    cell_widget.formula_label.setVisible(True)
+                    # Khôi phục tỷ lệ ban đầu
+                    cell_widget.layout().setStretch(0, 60)
+                    cell_widget.layout().setStretch(1, 40)
+                else:
+                    # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                    cell_widget.formula_label.setVisible(False)
+                    # Mở rộng spinbox để chiếm toàn bộ không gian
+                    cell_widget.layout().setStretch(0, 100)
+                    cell_widget.layout().setStretch(1, 0)
+
+                # Cập nhật hiển thị toàn bộ bảng
+                self.update_feed_table_display()
+            except Exception as e:
+                print(f"Lỗi khi áp dụng công thức: {str(e)}")
+
+    def update_feed_table_display(self):
+        """Cập nhật hiển thị bảng cám dựa trên giá trị và công thức đã chọn"""
+        for col in range(self.feed_table.columnCount()):
+            for row in range(2, 2 + len(SHIFTS)):
+                cell_widget = self.feed_table.cellWidget(row, col)
+                if not cell_widget or not hasattr(cell_widget, 'spin_box') or not hasattr(cell_widget, 'formula_combo'):
+                    continue
+
+                # Lấy giá trị và công thức
+                value = cell_widget.spin_box.value()
+                formula_text = cell_widget.formula_combo.currentText()
+                default_formula = self.default_formula_combo.currentText()
+
+                # Cập nhật hiển thị
+                if value == 0:
+                    # Ẩn label công thức
+                    cell_widget.formula_label.setVisible(False)
+                    # Mở rộng spinbox để chiếm toàn bộ không gian
+                    cell_widget.layout().setStretch(0, 100)
+                    cell_widget.layout().setStretch(1, 0)
+                else:
+                    # Kiểm tra xem có phải công thức mặc định không
+                    if formula_text and formula_text != default_formula:
+                        # Nếu không phải công thức mặc định, hiển thị tên
+                        cell_widget.formula_label.setText(formula_text)
+                        cell_widget.formula_label.setVisible(True)
+                        # Khôi phục tỷ lệ ban đầu
+                        cell_widget.layout().setStretch(0, 60)
+                        cell_widget.layout().setStretch(1, 40)
+                    else:
+                        # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                        cell_widget.formula_label.setVisible(False)
+                        # Mở rộng spinbox để chiếm toàn bộ không gian
+                        cell_widget.layout().setStretch(0, 100)
+                        cell_widget.layout().setStretch(1, 0)
 
 def main():
     app = QApplication(sys.argv)

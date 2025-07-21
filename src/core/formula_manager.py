@@ -11,6 +11,7 @@ class FormulaManager:
         self.mix_formula_file = "src/data/config/mix_formula.json"
         self.formula_links_file = "src/data/config/formula_links.json"
         self.formulas_dir = "src/data/presets"
+        self.default_formula_file = "src/data/config/default_formula.json"
 
         # Create formulas directory if it doesn't exist
         if not os.path.exists(self.formulas_dir):
@@ -41,6 +42,9 @@ class FormulaManager:
 
         # Save updated structure
         self.save_formula_links()
+
+        # Khởi tạo cấu trúc dữ liệu cho công thức mặc định
+        self.default_formula_settings = self.load_default_formula_settings()
 
     def load_formula(self, filename: str) -> Dict[str, float]:
         """Load a formula from a JSON file"""
@@ -268,3 +272,36 @@ class FormulaManager:
                         ingredients[ingredient] = mix_amount
 
         return ingredients
+
+    def load_default_formula_settings(self) -> Dict[str, str]:
+        """Tải cài đặt công thức mặc định từ file"""
+        try:
+            if os.path.exists(self.default_formula_file):
+                with open(self.default_formula_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            return {"default_feed_formula": ""}
+        except Exception as e:
+            print(f"Lỗi khi tải cài đặt công thức mặc định: {e}")
+            return {"default_feed_formula": ""}
+
+    def save_default_formula_settings(self) -> bool:
+        """Lưu cài đặt công thức mặc định vào file"""
+        try:
+            # Đảm bảo thư mục tồn tại
+            os.makedirs(os.path.dirname(self.default_formula_file), exist_ok=True)
+
+            with open(self.default_formula_file, 'w', encoding='utf-8') as f:
+                json.dump(self.default_formula_settings, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"Lỗi khi lưu cài đặt công thức mặc định: {e}")
+            return False
+
+    def get_default_feed_formula(self) -> str:
+        """Lấy tên công thức cám mặc định"""
+        return self.default_formula_settings.get("default_feed_formula", "")
+
+    def save_default_feed_formula(self, formula_name: str) -> bool:
+        """Lưu tên công thức cám mặc định"""
+        self.default_formula_settings["default_feed_formula"] = formula_name
+        return self.save_default_formula_settings()
