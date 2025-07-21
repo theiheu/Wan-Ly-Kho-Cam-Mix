@@ -1725,8 +1725,33 @@ class ChickenFarmApp(QMainWindow):
             feed_usage = report_data.get("feed_usage", {})
             formula_usage = report_data.get("formula_usage", {})
 
+            # Tìm công thức mặc định từ báo cáo
+            default_formula = ""
+            if "default_formula" in report_data:
+                default_formula = report_data.get("default_formula", "")
+
             # Đặt bảng chỉ đọc - không cho phép sửa đổi
             self.history_usage_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+            # Thêm thông tin về công thức mặc định
+            if default_formula:
+                # Tạo một layout để hiển thị thông tin công thức mặc định
+                default_formula_label = QLabel(f"Công thức mặc định: {default_formula}")
+                default_formula_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+                default_formula_label.setStyleSheet("color: #2196F3; margin-bottom: 10px;")
+
+                # Thêm label vào phía trên bảng
+                history_usage_layout = self.history_usage_tab.layout()
+                # Kiểm tra xem đã có label này chưa
+                for i in range(history_usage_layout.count()):
+                    item = history_usage_layout.itemAt(i)
+                    if isinstance(item.widget(), QLabel) and item.widget().text().startswith("Công thức mặc định:"):
+                        history_usage_layout.removeItem(item)
+                        item.widget().deleteLater()
+                        break
+
+                # Thêm label mới vào đầu layout
+                history_usage_layout.insertWidget(0, default_formula_label)
 
             # Màu nền cho các khu khác nhau
             khu_colors = [
@@ -1779,7 +1804,12 @@ class ChickenFarmApp(QMainWindow):
                                 # Tạo cell hiển thị số mẻ và công thức (không có dấu ngoặc)
                                 # Không hiển thị gì nếu giá trị là 0
                                 if value > 0:
-                                    cell_text = f"{format_number(value)} {formula}"
+                                    # Chỉ hiển thị tên công thức nếu khác với công thức mặc định
+                                    if formula and formula != default_formula:
+                                        cell_text = f"{format_number(value)} {formula}"
+                                    else:
+                                        cell_text = f"{format_number(value)}"
+
                                     cell_item = QTableWidgetItem(cell_text)
                                     cell_item.setFont(TABLE_CELL_FONT)
                                     cell_item.setTextAlignment(Qt.AlignCenter)
@@ -2814,7 +2844,8 @@ class ChickenFarmApp(QMainWindow):
                 "total_batches": self.total_batches,
                 "total_batches_by_area": self.total_batches_by_area,
                 "linked_mix_formula": self.formula_manager.get_linked_mix_formula_name(),
-                "tong_hop_amount": self.total_tong_hop
+                "tong_hop_amount": self.total_tong_hop,
+                "default_formula": self.default_formula_combo.currentText()
             }
 
             # Lưu báo cáo
