@@ -38,16 +38,20 @@ FARMS = {
 }
 
 # Thiết lập font mặc định cho toàn bộ ứng dụng
-DEFAULT_FONT_SIZE = 12
+DEFAULT_FONT_SIZE = 14  # Tăng kích thước font mặc định
 DEFAULT_FONT = QFont("Arial", DEFAULT_FONT_SIZE)
 HEADER_FONT = QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold)
 BUTTON_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
-TABLE_HEADER_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
+TABLE_HEADER_FONT = QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold)  # Tăng kích thước font header trong bảng
 TABLE_CELL_FONT = QFont("Arial", DEFAULT_FONT_SIZE)
 
 # Helper function to format numbers (display with thousands separator, max 2 decimal places, and remove trailing zeros)
 def format_number(value):
     """Format a number with thousands separator, max 2 decimal places, and remove trailing zeros"""
+    # Nếu giá trị là 0, trả về chuỗi rỗng
+    if value == 0:
+        return ""
+
     if value == int(value):
         # Nếu là số nguyên, hiển thị không có phần thập phân và thêm dấu phẩy ngăn cách hàng nghìn
         return f"{int(value):,}"
@@ -73,6 +77,9 @@ def format_number(value):
 class CustomDoubleSpinBox(QDoubleSpinBox):
     def textFromValue(self, value):
         """Định dạng số với dấu phẩy ngăn cách hàng nghìn, tối đa 2 chữ số thập phân và loại bỏ số 0 thừa ở cuối"""
+        # Nếu giá trị là 0, trả về chuỗi rỗng thay vì số 0
+        if value == 0:
+            return ""
         return format_number(value)
 
     def valueFromText(self, text):
@@ -160,6 +167,14 @@ class ChickenFarmApp(QMainWindow):
         self.feed_formula = self.formula_manager.get_feed_formula()
         self.mix_formula = self.formula_manager.get_mix_formula()
         self.inventory = self.inventory_manager.get_inventory()
+
+        # Thiết lập stylesheet chung cho spinbox
+        self.setStyleSheet(self.styleSheet() + """
+            QDoubleSpinBox {
+                border: none;  /* Bỏ viền */
+                background-color: white;
+            }
+        """)
 
         # Áp dụng font mặc định cho toàn bộ ứng dụng
         self.setFont(DEFAULT_FONT)
@@ -423,11 +438,11 @@ class ChickenFarmApp(QMainWindow):
                     container.setStyleSheet(f"background-color: {khu_color.name()};")
                     container_layout = QHBoxLayout(container)
                     container_layout.setContentsMargins(1, 1, 1, 1)
-                    container_layout.setSpacing(2)
+                    container_layout.setSpacing(0)  # Giảm khoảng cách giữa spinbox và combobox
 
                     # Tạo spinbox cho số lượng mẻ
                     spin_box = CustomDoubleSpinBox()
-                    spin_box.setFont(TABLE_CELL_FONT)
+                    spin_box.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
                     spin_box.setRange(0, 100)
                     spin_box.setSingleStep(0.5)
                     spin_box.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
@@ -435,23 +450,22 @@ class ChickenFarmApp(QMainWindow):
                     spin_box.setButtonSymbols(QDoubleSpinBox.NoButtons)  # Bỏ mũi tên lên xuống
                     spin_box.setStyleSheet("""
                         QDoubleSpinBox {
-                            border: 1px solid #bbb;
-                            border-radius: 4px;
+                            border: none;  /* Bỏ viền */
                             padding: 2px;
                             background-color: white;
+                            font-weight: bold;  /* Làm đậm số */
                         }
                     """)
 
                     # Tăng kích thước của spin box để dễ nhìn hơn
-                    spin_box.setMinimumHeight(35)
+                    spin_box.setMinimumHeight(40)  # Tăng chiều cao
 
                     # Tạo combobox cho công thức cám
                     formula_combo = QComboBox()
                     formula_combo.setFont(TABLE_CELL_FONT)
                     formula_combo.setStyleSheet("""
                         QComboBox {
-                            border: 1px solid #bbb;
-                            border-radius: 4px;
+                            border: none;  /* Bỏ viền */
                             padding: 2px;
                             background-color: white;
                             text-align: left;
@@ -467,7 +481,7 @@ class ChickenFarmApp(QMainWindow):
                     """)
 
                     # Tăng kích thước của combo box để dễ nhìn hơn
-                    formula_combo.setMinimumHeight(35)
+                    formula_combo.setMinimumHeight(40)  # Tăng chiều cao
 
                     # Lấy danh sách các công thức cám có sẵn
                     presets = self.formula_manager.get_feed_presets()
@@ -476,15 +490,42 @@ class ChickenFarmApp(QMainWindow):
                         formula_combo.addItem(preset)
 
                     # Thêm các widget vào container
-                    container_layout.addWidget(spin_box, 35)  # Tỷ lệ 35%
-                    container_layout.addWidget(formula_combo, 65)  # Tỷ lệ 65%
+                    container_layout.addWidget(spin_box, 30)  # Giảm tỷ lệ xuống 30% để gần hơn
+                    container_layout.addWidget(formula_combo, 70)  # Tăng tỷ lệ lên 70%
 
                     # Lưu reference đến các widget con để truy cập sau này
                     container.spin_box = spin_box
                     container.formula_combo = formula_combo
 
-                    # Kết nối sự kiện thay đổi giá trị spin_box để tự động chọn công thức mặc định
-                    spin_box.valueChanged.connect(lambda value, combo=formula_combo: self.auto_select_default_formula(value, combo))
+                    # Khi giá trị thay đổi, cập nhật hiển thị để ẩn số 0 và tự động chọn công thức mặc định
+                    def on_value_changed(value, spin=spin_box, combo=formula_combo):
+                        # Tự động chọn công thức mặc định
+                        self.auto_select_default_formula(value, combo)
+
+                        # Nếu giá trị là 0, hiển thị chuỗi rỗng thay vì số 0
+                        if value == 0:
+                            # Tạm ngắt kết nối sự kiện để tránh đệ quy
+                            spin.valueChanged.disconnect()
+                            # Thiết lập lại prefix để hiển thị trống thay vì "0"
+                            spin.setPrefix(" " if value == 0 else "")
+                            # Kết nối lại sự kiện
+                            spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo))
+                        else:
+                            # Đảm bảo prefix là trống khi có giá trị
+                            if spin.prefix() != "":
+                                # Tạm ngắt kết nối sự kiện để tránh đệ quy
+                                spin.valueChanged.disconnect()
+                                # Thiết lập lại prefix để hiển thị trống
+                                spin.setPrefix("")
+                                # Kết nối lại sự kiện
+                                spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo))
+
+                    # Thiết lập prefix ban đầu để ẩn số 0 nếu cần
+                    if spin_box.value() == 0:
+                        spin_box.setPrefix(" ")
+
+                    # Kết nối sự kiện
+                    spin_box.valueChanged.connect(lambda value, spin=spin_box, combo=formula_combo: on_value_changed(value, spin, combo))
 
                     # Thêm container vào cell
                     self.feed_table.setCellWidget(shift_idx + 2, col_index, container)
@@ -495,10 +536,10 @@ class ChickenFarmApp(QMainWindow):
         self.feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
-        self.feed_table.setRowHeight(0, 45)  # Hàng khu
-        self.feed_table.setRowHeight(1, 45)  # Hàng trại
+        self.feed_table.setRowHeight(0, 50)  # Tăng chiều cao hàng khu
+        self.feed_table.setRowHeight(1, 50)  # Tăng chiều cao hàng trại
         for row in range(2, self.feed_table.rowCount()):
-            self.feed_table.setRowHeight(row, 50)  # Hàng nhập liệu
+            self.feed_table.setRowHeight(row, 60)  # Tăng chiều cao hàng nhập liệu
 
                 # Xem báo cáo button (sẽ tự động tính toán)
         view_report_button = QPushButton("Xem Báo Cáo Trong Ngày")
@@ -1623,12 +1664,20 @@ class ChickenFarmApp(QMainWindow):
                                 if has_formula_data and shift in formula_usage[khu_name][farm]:
                                     formula = formula_usage[khu_name][farm][shift]
 
-                                # Tạo cell hiển thị số mẻ và công thức
-                                cell_item = QTableWidgetItem(f"{format_number(value)} ({formula})")
-                                cell_item.setFont(TABLE_CELL_FONT)
-                                cell_item.setTextAlignment(Qt.AlignCenter)
-                                cell_item.setBackground(khu_color)
-                                self.history_usage_table.setItem(shift_idx + 2, col_index, cell_item)
+                                # Tạo cell hiển thị số mẻ và công thức (không có dấu ngoặc)
+                                # Không hiển thị gì nếu giá trị là 0
+                                if value > 0:
+                                    cell_text = f"{format_number(value)} {formula}"
+                                    cell_item = QTableWidgetItem(cell_text)
+                                    cell_item.setFont(TABLE_CELL_FONT)
+                                    cell_item.setTextAlignment(Qt.AlignCenter)
+                                    cell_item.setBackground(khu_color)
+                                    self.history_usage_table.setItem(shift_idx + 2, col_index, cell_item)
+                                else:
+                                    # Tạo ô trống nếu giá trị là 0
+                                    cell_item = QTableWidgetItem("")
+                                    cell_item.setBackground(khu_color)
+                                    self.history_usage_table.setItem(shift_idx + 2, col_index, cell_item)
 
                     col_index += 1
 
@@ -4150,7 +4199,7 @@ class ChickenFarmApp(QMainWindow):
         # Thêm tiêu đề kho cám
         row = 0
         feed_header = QTableWidgetItem("THÀNH PHẦN KHO CÁM")
-        feed_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        feed_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold))  # Tăng kích thước font
         feed_header.setBackground(QColor(220, 240, 220))  # Light green background
         feed_table.setItem(row, 0, feed_header)
         feed_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
@@ -4159,14 +4208,14 @@ class ChickenFarmApp(QMainWindow):
 
         # Thêm thành phần cám
         for ingredient, amount in sorted_feed_ingredients.items():
-            # Ingredient name
+                        # Ingredient name
             ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(TABLE_CELL_FONT)
+            ingredient_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             feed_table.setItem(row, 0, ingredient_item)
 
             # Amount
             amount_item = QTableWidgetItem(format_number(amount))
-            amount_item.setFont(TABLE_CELL_FONT)
+            amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))  # Tăng kích thước và làm đậm số
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             feed_table.setItem(row, 1, amount_item)
 
@@ -4174,14 +4223,14 @@ class ChickenFarmApp(QMainWindow):
             bag_size = self.inventory_manager.get_bag_size(ingredient)
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
             bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(TABLE_CELL_FONT)
+            bags_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             feed_table.setItem(row, 2, bags_item)
 
             # Add inventory information
             inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
             inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(TABLE_CELL_FONT)
+            inventory_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             inventory_item.setBackground(QColor(240, 248, 255))  # Light blue background
             feed_table.setItem(row, 3, inventory_item)
@@ -4209,7 +4258,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(feed_table.rowCount()):
-            feed_table.setRowHeight(row, 40)
+            feed_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
 
                 # Thiết lập bảng cám để kéo dài đến cuối tab
         feed_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -4252,7 +4301,7 @@ class ChickenFarmApp(QMainWindow):
         # Thêm tiêu đề kho mix
         row = 0
         mix_header = QTableWidgetItem("THÀNH PHẦN KHO MIX")
-        mix_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        mix_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold))  # Tăng kích thước font
         mix_header.setBackground(QColor(240, 220, 220))  # Light red background
         mix_table.setItem(row, 0, mix_header)
         mix_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
@@ -4261,14 +4310,14 @@ class ChickenFarmApp(QMainWindow):
 
         # Thêm thành phần mix
         for ingredient, amount in self.mix_ingredients.items():
-            # Ingredient name
+                        # Ingredient name
             ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(TABLE_CELL_FONT)
+            ingredient_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             mix_table.setItem(row, 0, ingredient_item)
 
             # Amount
             amount_item = QTableWidgetItem(format_number(amount))
-            amount_item.setFont(TABLE_CELL_FONT)
+            amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))  # Tăng kích thước và làm đậm số
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             mix_table.setItem(row, 1, amount_item)
 
@@ -4276,14 +4325,14 @@ class ChickenFarmApp(QMainWindow):
             bag_size = self.inventory_manager.get_bag_size(ingredient)
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
             bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(TABLE_CELL_FONT)
+            bags_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             mix_table.setItem(row, 2, bags_item)
 
             # Add inventory information
             inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
             inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(TABLE_CELL_FONT)
+            inventory_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
             inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             inventory_item.setBackground(QColor(255, 245, 230))  # Light orange background
             mix_table.setItem(row, 3, inventory_item)
@@ -4311,7 +4360,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(mix_table.rowCount()):
-            mix_table.setRowHeight(row, 40)
+            mix_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
 
                 # Thiết lập bảng mix để kéo dài đến cuối tab
         mix_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -4376,7 +4425,7 @@ class ChickenFarmApp(QMainWindow):
         total_batches_table.setItem(0, 1, total_batches_item)
 
         # Đặt chiều cao hàng
-        total_batches_table.setRowHeight(0, 40)
+        total_batches_table.setRowHeight(0, 50)  # Tăng chiều cao hàng
 
         # Thêm bảng vào layout tab số mẻ
         batches_layout_scroll.addWidget(total_batches_table)
@@ -4416,7 +4465,7 @@ class ChickenFarmApp(QMainWindow):
             batches_item = QTableWidgetItem(format_number(batches))
             batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             khu_batches_table.setItem(row, 1, batches_item)
-            khu_batches_table.setRowHeight(row, 40)
+            khu_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
             row += 1
 
         # Thêm bảng vào layout tab số mẻ
@@ -4467,7 +4516,7 @@ class ChickenFarmApp(QMainWindow):
             actual_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             formula_batches_table.setItem(row, 2, actual_batches_item)
 
-            formula_batches_table.setRowHeight(row, 40)
+            formula_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
             row += 1
 
         # Thêm bảng vào layout tab số mẻ
