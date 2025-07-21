@@ -62,12 +62,12 @@ python visualize_app.py
 - Tính toán lượng cám và mix cần sử dụng
 - Lưu và tải các công thức đã lưu
 - Gắn công thức mix vào công thức cám
-- Trực quan hóa dữ liệu sử dụng cám
+- Trực quan hóa dữ liệu lượng cám
 - Xuất báo cáo ra Excel
 
 ## Hướng dẫn sử dụng
 
-### Tab Sử dụng Cám
+### Tab Tổng quan
 
 1. Nhập lượng cám sử dụng cho từng trại theo buổi (sáng/chiều)
 2. Nhấn "Tính Toán" để xem kết quả

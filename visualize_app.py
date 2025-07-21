@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Công cụ trực quan hóa dữ liệu sử dụng cám
+Công cụ trực quan hóa dữ liệu lượng cám
 =========================================
 
 Script khởi động công cụ trực quan hóa.
