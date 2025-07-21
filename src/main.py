@@ -959,8 +959,8 @@ class ChickenFarmApp(QMainWindow):
         # Feed formula table
         self.feed_formula_table = QTableWidget()
         self.feed_formula_table.setFont(TABLE_CELL_FONT)
-        self.feed_formula_table.setColumnCount(2)
-        self.feed_formula_table.setHorizontalHeaderLabels(["Thành phần", "Lượng (kg)"])
+        self.feed_formula_table.setColumnCount(3)
+        self.feed_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Lượng (kg)"])
         self.feed_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.feed_formula_table.setStyleSheet("""
@@ -1169,8 +1169,8 @@ class ChickenFarmApp(QMainWindow):
         # Mix formula table
         self.mix_formula_table = QTableWidget()
         self.mix_formula_table.setFont(TABLE_CELL_FONT)
-        self.mix_formula_table.setColumnCount(2)
-        self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Lượng (kg)"])
+        self.mix_formula_table.setColumnCount(3)
+        self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Lượng (kg)"])
         self.mix_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.mix_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.mix_formula_table.setStyleSheet("""
@@ -1810,8 +1810,8 @@ class ChickenFarmApp(QMainWindow):
 
             # Thiết lập số hàng và cột cho bảng
             self.history_feed_table.setRowCount(len(feed_ingredients))
-            self.history_feed_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
-            self.history_feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+            self.history_feed_table.setColumnCount(4)  # Thành phần, Tỷ lệ (%), Số lượng (kg), Số bao
+            self.history_feed_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Số lượng (kg)", "Số bao"])
 
             # Đặt bảng chỉ đọc - không cho phép sửa đổi
             self.history_feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -1830,6 +1830,9 @@ class ChickenFarmApp(QMainWindow):
                 if ingredient not in priority_ingredients:
                     sorted_feed_ingredients[ingredient] = amount
 
+            # Tính tổng lượng cám
+            total_feed = sum(sorted_feed_ingredients.values())
+
             # Đổ dữ liệu vào bảng
             for row, (ingredient, amount) in enumerate(sorted_feed_ingredients.items()):
                 # Thành phần
@@ -1839,16 +1842,24 @@ class ChickenFarmApp(QMainWindow):
                     ingredient_item.setBackground(QColor(255, 255, 200))  # Light yellow background for priority
                 self.history_feed_table.setItem(row, 0, ingredient_item)
 
+                # Tỷ lệ phần trăm
+                percentage = 0
+                if total_feed > 0:
+                    percentage = (amount / total_feed) * 100
+                percentage_item = QTableWidgetItem(format_number(percentage) + " %")
+                percentage_item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+                self.history_feed_table.setItem(row, 1, percentage_item)
+
                 # Số lượng
                 amount_item = QTableWidgetItem(format_number(amount))
                 amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.history_feed_table.setItem(row, 1, amount_item)
+                self.history_feed_table.setItem(row, 2, amount_item)
 
                 # Số bao (nếu có thông tin)
                 bags = self.inventory_manager.calculate_bags(ingredient, amount)
                 bags_item = QTableWidgetItem(format_number(bags))
                 bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.history_feed_table.setItem(row, 2, bags_item)
+                self.history_feed_table.setItem(row, 3, bags_item)
 
             # Điều chỉnh kích thước cột
             self.history_feed_table.resizeColumnsToContents()
@@ -1870,11 +1881,14 @@ class ChickenFarmApp(QMainWindow):
 
             # Thiết lập số hàng và cột cho bảng
             self.history_mix_table.setRowCount(len(mix_ingredients))
-            self.history_mix_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
-            self.history_mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+            self.history_mix_table.setColumnCount(4)  # Thành phần, Tỷ lệ (%), Số lượng (kg), Số bao
+            self.history_mix_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Số lượng (kg)", "Số bao"])
 
             # Đặt bảng chỉ đọc - không cho phép sửa đổi
             self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+            # Tính tổng lượng mix
+            total_mix = sum(mix_ingredients.values())
 
             # Đổ dữ liệu vào bảng
             for row, (ingredient, amount) in enumerate(mix_ingredients.items()):
@@ -1883,16 +1897,24 @@ class ChickenFarmApp(QMainWindow):
                 ingredient_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 self.history_mix_table.setItem(row, 0, ingredient_item)
 
+                # Tỷ lệ phần trăm
+                percentage = 0
+                if total_mix > 0:
+                    percentage = (amount / total_mix) * 100
+                percentage_item = QTableWidgetItem(format_number(percentage) + " %")
+                percentage_item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+                self.history_mix_table.setItem(row, 1, percentage_item)
+
                 # Số lượng
                 amount_item = QTableWidgetItem(format_number(amount))
                 amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.history_mix_table.setItem(row, 1, amount_item)
+                self.history_mix_table.setItem(row, 2, amount_item)
 
                 # Số bao (nếu có thông tin)
                 bags = self.inventory_manager.calculate_bags(ingredient, amount)
                 bags_item = QTableWidgetItem(format_number(bags))
                 bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.history_mix_table.setItem(row, 2, bags_item)
+                self.history_mix_table.setItem(row, 3, bags_item)
 
             # Điều chỉnh kích thước cột
             self.history_mix_table.resizeColumnsToContents()
@@ -1969,6 +1991,17 @@ class ChickenFarmApp(QMainWindow):
             ingredient_item.setFont(TABLE_CELL_FONT)
             self.feed_formula_table.setItem(row, 0, ingredient_item)
 
+            # Tính tỷ lệ phần trăm
+            percentage = 0
+            if total_feed > 0:
+                percentage = (amount / total_feed) * 100
+
+            # Hiển thị tỷ lệ phần trăm
+            percentage_item = QTableWidgetItem(format_number(percentage) + " %")
+            percentage_item.setFont(TABLE_CELL_FONT)
+            percentage_item.setTextAlignment(Qt.AlignCenter)
+            self.feed_formula_table.setItem(row, 1, percentage_item)
+
             # Amount input
             amount_spin = CustomDoubleSpinBox()
             amount_spin.setFont(TABLE_CELL_FONT)
@@ -1976,7 +2009,7 @@ class ChickenFarmApp(QMainWindow):
             amount_spin.setRange(0, 2000)
             amount_spin.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
             amount_spin.setValue(amount)
-            self.feed_formula_table.setCellWidget(row, 1, amount_spin)
+            self.feed_formula_table.setCellWidget(row, 2, amount_spin)
 
             row += 1
 
@@ -1985,10 +2018,17 @@ class ChickenFarmApp(QMainWindow):
         total_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         self.feed_formula_table.setItem(row, 0, total_item)
 
+        # Tổng tỷ lệ phần trăm (luôn là 100%)
+        total_percentage = QTableWidgetItem("100 %")
+        total_percentage.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_percentage.setBackground(QColor(200, 230, 250))  # Light blue background
+        total_percentage.setTextAlignment(Qt.AlignCenter)
+        self.feed_formula_table.setItem(row, 1, total_percentage)
+
         total_value = QTableWidgetItem(format_number(total_feed))
         total_value.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_value.setBackground(QColor(200, 230, 250))  # Light blue background
-        self.feed_formula_table.setItem(row, 1, total_value)
+        self.feed_formula_table.setItem(row, 2, total_value)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.feed_formula_table.rowCount()):
@@ -2010,6 +2050,17 @@ class ChickenFarmApp(QMainWindow):
             ingredient_item.setFont(TABLE_CELL_FONT)
             self.mix_formula_table.setItem(i, 0, ingredient_item)
 
+            # Tính tỷ lệ phần trăm
+            percentage = 0
+            if mix_total > 0:
+                percentage = (amount / mix_total) * 100
+
+            # Hiển thị tỷ lệ phần trăm
+            percentage_item = QTableWidgetItem(format_number(percentage) + " %")
+            percentage_item.setFont(TABLE_CELL_FONT)
+            percentage_item.setTextAlignment(Qt.AlignCenter)
+            self.mix_formula_table.setItem(i, 1, percentage_item)
+
             # Amount input
             amount_spin = CustomDoubleSpinBox()
             amount_spin.setFont(TABLE_CELL_FONT)
@@ -2017,7 +2068,7 @@ class ChickenFarmApp(QMainWindow):
             amount_spin.setRange(0, 2000)
             amount_spin.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
             amount_spin.setValue(amount)
-            self.mix_formula_table.setCellWidget(i, 1, amount_spin)
+            self.mix_formula_table.setCellWidget(i, 2, amount_spin)
 
         # Thêm hàng tổng lượng
         total_row = len(self.mix_formula)
@@ -2025,10 +2076,17 @@ class ChickenFarmApp(QMainWindow):
         total_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         self.mix_formula_table.setItem(total_row, 0, total_item)
 
+        # Tổng tỷ lệ phần trăm (luôn là 100%)
+        total_percentage = QTableWidgetItem("100 %")
+        total_percentage.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_percentage.setBackground(QColor(230, 250, 200))  # Light green background
+        total_percentage.setTextAlignment(Qt.AlignCenter)
+        self.mix_formula_table.setItem(total_row, 1, total_percentage)
+
         total_value = QTableWidgetItem(format_number(mix_total))
         total_value.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_value.setBackground(QColor(230, 250, 200))  # Light green background
-        self.mix_formula_table.setItem(total_row, 1, total_value)
+        self.mix_formula_table.setItem(total_row, 2, total_value)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.mix_formula_table.rowCount()):
