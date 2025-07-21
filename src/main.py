@@ -3728,6 +3728,13 @@ class ChickenFarmApp(QMainWindow):
                     try:
                         self.load_history_data(show_warnings=False)
                         print("Đã tự động tải báo cáo mới nhất")
+
+                        # Kiểm tra xem báo cáo có phải của ngày hôm nay không
+                        today = QDate.currentDate().toString("dd/MM/yyyy")
+                        if selected_date == today:
+                            # Nếu là báo cáo của ngày hôm nay, tự động điền vào bảng cám
+                            self.fill_table_from_report(selected_date)
+                            print(f"Đã tự động điền bảng cám với dữ liệu ngày {selected_date}")
                     except Exception as e:
                         print(f"Lỗi khi tải dữ liệu lịch sử: {str(e)}")
                         # Không hiển thị thông báo lỗi cho người dùng
@@ -3978,20 +3985,72 @@ class ChickenFarmApp(QMainWindow):
         title_label.setStyleSheet("QLabel { color: #2196F3; margin: 10px; }")
         main_layout.addWidget(title_label)
 
-        # Tạo widget scroll cho nội dung
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
+        # Tạo TabWidget để hiển thị các tab báo cáo
+        report_tabs = QTabWidget()
+        report_tabs.setFont(DEFAULT_FONT)
+        report_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+                border-radius: 5px;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 12px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
 
-        # Sao chép bảng kết quả
-        results_table = QTableWidget()
-        results_table.setFont(TABLE_CELL_FONT)
-        results_table.setColumnCount(3)  # Ingredient, Amount, Bags
-        results_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
-        results_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        results_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        results_table.setStyleSheet("""
+                # Tạo các tab
+        tab_feed = QWidget()        # Tab thành phần cám
+        tab_mix = QWidget()         # Tab thành phần mix
+        tab_batches = QWidget()     # Tab số mẻ theo khu và công thức
+
+        # Thêm các tab vào TabWidget
+        report_tabs.addTab(tab_feed, "Thành Phần Cám")
+        report_tabs.addTab(tab_mix, "Thành Phần Mix")
+        report_tabs.addTab(tab_batches, "Số Mẻ")
+
+                # Thiết lập tab thành phần cám
+        feed_layout = QVBoxLayout(tab_feed)
+
+        # Tạo widget scroll cho nội dung tab thành phần cám
+        feed_scroll = QScrollArea()
+        feed_scroll.setWidgetResizable(True)
+        feed_content = QWidget()
+        feed_layout_scroll = QVBoxLayout(feed_content)
+
+        # Thiết lập tab thành phần mix
+        mix_layout = QVBoxLayout(tab_mix)
+
+        # Tạo widget scroll cho nội dung tab thành phần mix
+        mix_scroll = QScrollArea()
+        mix_scroll.setWidgetResizable(True)
+        mix_content = QWidget()
+        mix_layout_scroll = QVBoxLayout(mix_content)
+
+                # Tạo bảng thành phần cám
+        feed_table = QTableWidget()
+        feed_table.setFont(TABLE_CELL_FONT)
+        feed_table.setColumnCount(3)  # Ingredient, Amount, Bags
+        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+        feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        feed_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
                 selection-background-color: #e0e0ff;
@@ -4018,17 +4077,17 @@ class ChickenFarmApp(QMainWindow):
             if ingredient not in priority_ingredients:
                 sorted_feed_ingredients[ingredient] = amount
 
-        # Tính tổng số hàng cần thiết
-        total_rows = len(sorted_feed_ingredients) + len(self.mix_ingredients) + 4  # +4 cho 2 tiêu đề và 2 tổng cộng
-        results_table.setRowCount(total_rows)
+        # Tính tổng số hàng cần thiết cho bảng cám
+        feed_rows = len(sorted_feed_ingredients) + 2  # +2 cho tiêu đề và tổng cộng
+        feed_table.setRowCount(feed_rows)
 
         # Thêm tiêu đề kho cám
         row = 0
         feed_header = QTableWidgetItem("THÀNH PHẦN KHO CÁM")
         feed_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         feed_header.setBackground(QColor(220, 240, 220))  # Light green background
-        results_table.setItem(row, 0, feed_header)
-        results_table.setSpan(row, 0, 1, 3)  # Merge cells for header
+        feed_table.setItem(row, 0, feed_header)
+        feed_table.setSpan(row, 0, 1, 3)  # Merge cells for header
 
         row += 1
 
@@ -4037,13 +4096,13 @@ class ChickenFarmApp(QMainWindow):
             # Ingredient name
             ingredient_item = QTableWidgetItem(ingredient)
             ingredient_item.setFont(TABLE_CELL_FONT)
-            results_table.setItem(row, 0, ingredient_item)
+            feed_table.setItem(row, 0, ingredient_item)
 
             # Amount
             amount_item = QTableWidgetItem(format_number(amount))
             amount_item.setFont(TABLE_CELL_FONT)
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            results_table.setItem(row, 1, amount_item)
+            feed_table.setItem(row, 1, amount_item)
 
             # Calculate bags
             bag_size = self.inventory_manager.get_bag_size(ingredient)
@@ -4051,7 +4110,7 @@ class ChickenFarmApp(QMainWindow):
             bags_item = QTableWidgetItem(format_number(bags))
             bags_item.setFont(TABLE_CELL_FONT)
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            results_table.setItem(row, 2, bags_item)
+            feed_table.setItem(row, 2, bags_item)
 
             row += 1
 
@@ -4060,25 +4119,60 @@ class ChickenFarmApp(QMainWindow):
 
         total_feed_item = QTableWidgetItem("Tổng Cám")
         total_feed_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        results_table.setItem(row, 0, total_feed_item)
+        feed_table.setItem(row, 0, total_feed_item)
 
         total_feed_amount_item = QTableWidgetItem(format_number(total_feed_amount))
         total_feed_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_feed_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_feed_amount_item.setBackground(QColor(220, 240, 220))  # Light green background
-        results_table.setItem(row, 1, total_feed_amount_item)
+        feed_table.setItem(row, 1, total_feed_amount_item)
 
         # Tổng số bao cám (để trống vì không có ý nghĩa)
-        results_table.setItem(row, 2, QTableWidgetItem(""))
+        feed_table.setItem(row, 2, QTableWidgetItem(""))
 
-        row += 1
+        # Tăng chiều cao của các hàng để dễ nhìn hơn
+        for row in range(feed_table.rowCount()):
+            feed_table.setRowHeight(row, 40)
+
+        # Thêm bảng vào layout tab thành phần cám
+        feed_layout_scroll.addWidget(feed_table)
+        feed_layout_scroll.addStretch()
+
+        # Hoàn thành scroll area cho tab thành phần cám
+        feed_scroll.setWidget(feed_content)
+        feed_layout.addWidget(feed_scroll)
+
+        # Tạo bảng thành phần mix
+        mix_table = QTableWidget()
+        mix_table.setFont(TABLE_CELL_FONT)
+        mix_table.setColumnCount(3)  # Ingredient, Amount, Bags
+        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+        mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        mix_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        mix_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+            }
+            QHeaderView::section {
+                background-color: #FF9800;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+        """)
+
+        # Tính tổng số hàng cần thiết cho bảng mix
+        mix_rows = len(self.mix_ingredients) + 2  # +2 cho tiêu đề và tổng cộng
+        mix_table.setRowCount(mix_rows)
 
         # Thêm tiêu đề kho mix
+        row = 0
         mix_header = QTableWidgetItem("THÀNH PHẦN KHO MIX")
         mix_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         mix_header.setBackground(QColor(240, 220, 220))  # Light red background
-        results_table.setItem(row, 0, mix_header)
-        results_table.setSpan(row, 0, 1, 3)  # Merge cells for header
+        mix_table.setItem(row, 0, mix_header)
+        mix_table.setSpan(row, 0, 1, 3)  # Merge cells for header
 
         row += 1
 
@@ -4087,13 +4181,13 @@ class ChickenFarmApp(QMainWindow):
             # Ingredient name
             ingredient_item = QTableWidgetItem(ingredient)
             ingredient_item.setFont(TABLE_CELL_FONT)
-            results_table.setItem(row, 0, ingredient_item)
+            mix_table.setItem(row, 0, ingredient_item)
 
             # Amount
             amount_item = QTableWidgetItem(format_number(amount))
             amount_item.setFont(TABLE_CELL_FONT)
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            results_table.setItem(row, 1, amount_item)
+            mix_table.setItem(row, 1, amount_item)
 
             # Calculate bags
             bag_size = self.inventory_manager.get_bag_size(ingredient)
@@ -4101,7 +4195,7 @@ class ChickenFarmApp(QMainWindow):
             bags_item = QTableWidgetItem(format_number(bags))
             bags_item.setFont(TABLE_CELL_FONT)
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            results_table.setItem(row, 2, bags_item)
+            mix_table.setItem(row, 2, bags_item)
 
             row += 1
 
@@ -4110,28 +4204,42 @@ class ChickenFarmApp(QMainWindow):
 
         total_mix_item = QTableWidgetItem("Tổng Mix")
         total_mix_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        results_table.setItem(row, 0, total_mix_item)
+        mix_table.setItem(row, 0, total_mix_item)
 
         total_mix_amount_item = QTableWidgetItem(format_number(total_mix_amount))
         total_mix_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_mix_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_mix_amount_item.setBackground(QColor(240, 220, 220))  # Light red background
-        results_table.setItem(row, 1, total_mix_amount_item)
+        mix_table.setItem(row, 1, total_mix_amount_item)
 
         # Tổng số bao mix (để trống vì không có ý nghĩa)
-        results_table.setItem(row, 2, QTableWidgetItem(""))
+        mix_table.setItem(row, 2, QTableWidgetItem(""))
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
-        for row in range(results_table.rowCount()):
-            results_table.setRowHeight(row, 40)
+        for row in range(mix_table.rowCount()):
+            mix_table.setRowHeight(row, 40)
 
-        # Thêm bảng vào layout
-        scroll_layout.addWidget(results_table)
+        # Thêm bảng vào layout tab thành phần mix
+        mix_layout_scroll.addWidget(mix_table)
+        mix_layout_scroll.addStretch()
 
-                # Thêm bảng tổng số mẻ
+        # Hoàn thành scroll area cho tab thành phần mix
+        mix_scroll.setWidget(mix_content)
+        mix_layout.addWidget(mix_scroll)
+
+        # Thiết lập tab số mẻ
+        batches_layout = QVBoxLayout(tab_batches)
+
+        # Tạo widget scroll cho nội dung tab số mẻ
+        batches_scroll = QScrollArea()
+        batches_scroll.setWidgetResizable(True)
+        batches_content = QWidget()
+        batches_layout_scroll = QVBoxLayout(batches_content)
+
+        # Thêm bảng tổng số mẻ
         batches_summary_label = QLabel("<b>Tổng số mẻ:</b>")
         batches_summary_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        scroll_layout.addWidget(batches_summary_label)
+        batches_layout_scroll.addWidget(batches_summary_label)
 
         # Tạo bảng tổng số mẻ trong ngày
         total_batches_table = QTableWidget()
@@ -4170,13 +4278,13 @@ class ChickenFarmApp(QMainWindow):
         # Đặt chiều cao hàng
         total_batches_table.setRowHeight(0, 40)
 
-        # Thêm bảng vào layout
-        scroll_layout.addWidget(total_batches_table)
+        # Thêm bảng vào layout tab số mẻ
+        batches_layout_scroll.addWidget(total_batches_table)
 
         # Tạo bảng tổng số mẻ theo khu
         khu_batches_label = QLabel("<b>Tổng số mẻ theo khu:</b>")
         khu_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        scroll_layout.addWidget(khu_batches_label)
+        batches_layout_scroll.addWidget(khu_batches_label)
 
         khu_batches_table = QTableWidget()
         khu_batches_table.setFont(TABLE_CELL_FONT)
@@ -4208,13 +4316,13 @@ class ChickenFarmApp(QMainWindow):
             khu_batches_table.setRowHeight(row, 40)
             row += 1
 
-        # Thêm bảng vào layout
-        scroll_layout.addWidget(khu_batches_table)
+        # Thêm bảng vào layout tab số mẻ
+        batches_layout_scroll.addWidget(khu_batches_table)
 
         # Tạo bảng tổng số mẻ theo công thức
         formula_batches_label = QLabel("<b>Tổng số mẻ theo công thức:</b>")
         formula_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        scroll_layout.addWidget(formula_batches_label)
+        batches_layout_scroll.addWidget(formula_batches_label)
 
         formula_batches_table = QTableWidget()
         formula_batches_table.setFont(TABLE_CELL_FONT)
@@ -4256,15 +4364,16 @@ class ChickenFarmApp(QMainWindow):
             formula_batches_table.setRowHeight(row, 40)
             row += 1
 
-        # Thêm bảng vào layout
-        scroll_layout.addWidget(formula_batches_table)
+        # Thêm bảng vào layout tab số mẻ
+        batches_layout_scroll.addWidget(formula_batches_table)
+        batches_layout_scroll.addStretch()
 
-        # Thêm khoảng trống
-        scroll_layout.addStretch()
+        # Hoàn thành scroll area cho tab số mẻ
+        batches_scroll.setWidget(batches_content)
+        batches_layout.addWidget(batches_scroll)
 
-        # Hoàn thành scroll area
-        scroll_area.setWidget(scroll_content)
-        main_layout.addWidget(scroll_area)
+        # Thêm TabWidget vào layout chính
+        main_layout.addWidget(report_tabs)
 
         # Thêm các nút lưu và xuất Excel
         button_layout = QHBoxLayout()
