@@ -4109,10 +4109,13 @@ class ChickenFarmApp(QMainWindow):
                 # Tạo bảng thành phần cám
         feed_table = QTableWidget()
         feed_table.setFont(TABLE_CELL_FONT)
-        feed_table.setColumnCount(3)  # Ingredient, Amount, Bags
-        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+        feed_table.setColumnCount(4)  # Ingredient, Amount, Bags, Inventory
+        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)"])
         feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
+        feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
         feed_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -4150,7 +4153,7 @@ class ChickenFarmApp(QMainWindow):
         feed_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         feed_header.setBackground(QColor(220, 240, 220))  # Light green background
         feed_table.setItem(row, 0, feed_header)
-        feed_table.setSpan(row, 0, 1, 3)  # Merge cells for header
+        feed_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
 
         row += 1
 
@@ -4175,6 +4178,14 @@ class ChickenFarmApp(QMainWindow):
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             feed_table.setItem(row, 2, bags_item)
 
+            # Add inventory information
+            inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
+            inventory_item = QTableWidgetItem(format_number(inventory_amount))
+            inventory_item.setFont(TABLE_CELL_FONT)
+            inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            inventory_item.setBackground(QColor(240, 248, 255))  # Light blue background
+            feed_table.setItem(row, 3, inventory_item)
+
             row += 1
 
         # Thêm tổng cộng cho cám
@@ -4192,6 +4203,9 @@ class ChickenFarmApp(QMainWindow):
 
         # Tổng số bao cám (để trống vì không có ý nghĩa)
         feed_table.setItem(row, 2, QTableWidgetItem(""))
+
+        # Tổng tồn kho cám (để trống vì không có ý nghĩa cho tổng)
+        feed_table.setItem(row, 3, QTableWidgetItem(""))
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(feed_table.rowCount()):
@@ -4211,10 +4225,13 @@ class ChickenFarmApp(QMainWindow):
         # Tạo bảng thành phần mix
         mix_table = QTableWidget()
         mix_table.setFont(TABLE_CELL_FONT)
-        mix_table.setColumnCount(3)  # Ingredient, Amount, Bags
-        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+        mix_table.setColumnCount(4)  # Ingredient, Amount, Bags, Inventory
+        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)"])
         mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         mix_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
+        mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
         mix_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -4238,7 +4255,7 @@ class ChickenFarmApp(QMainWindow):
         mix_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         mix_header.setBackground(QColor(240, 220, 220))  # Light red background
         mix_table.setItem(row, 0, mix_header)
-        mix_table.setSpan(row, 0, 1, 3)  # Merge cells for header
+        mix_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
 
         row += 1
 
@@ -4263,6 +4280,14 @@ class ChickenFarmApp(QMainWindow):
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             mix_table.setItem(row, 2, bags_item)
 
+            # Add inventory information
+            inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
+            inventory_item = QTableWidgetItem(format_number(inventory_amount))
+            inventory_item.setFont(TABLE_CELL_FONT)
+            inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            inventory_item.setBackground(QColor(255, 245, 230))  # Light orange background
+            mix_table.setItem(row, 3, inventory_item)
+
             row += 1
 
         # Thêm tổng cộng cho mix
@@ -4280,6 +4305,9 @@ class ChickenFarmApp(QMainWindow):
 
         # Tổng số bao mix (để trống vì không có ý nghĩa)
         mix_table.setItem(row, 2, QTableWidgetItem(""))
+
+        # Tổng tồn kho mix (để trống vì không có ý nghĩa cho tổng)
+        mix_table.setItem(row, 3, QTableWidgetItem(""))
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(mix_table.rowCount()):
@@ -4317,6 +4345,9 @@ class ChickenFarmApp(QMainWindow):
         total_batches_table.setHorizontalHeaderLabels(["Mô tả", "Số mẻ"])
         total_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         total_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
+        total_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
         total_batches_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -4361,6 +4392,9 @@ class ChickenFarmApp(QMainWindow):
         khu_batches_table.setHorizontalHeaderLabels(["Khu", "Số mẻ"])
         khu_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         khu_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
+        khu_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
         khu_batches_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -4399,6 +4433,9 @@ class ChickenFarmApp(QMainWindow):
         formula_batches_table.setHorizontalHeaderLabels(["Công thức", "Số lượng", "Số mẻ"])
         formula_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         formula_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
+        formula_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
         formula_batches_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -4440,6 +4477,15 @@ class ChickenFarmApp(QMainWindow):
         # Hoàn thành scroll area cho tab số mẻ
         batches_scroll.setWidget(batches_content)
         batches_layout.addWidget(batches_scroll)
+
+        # Thêm tiêu đề "Chỉ xem" cho TabWidget
+        readonly_label = QLabel("(Chỉ xem - Không thể chỉnh sửa)")
+        italic_font = QFont("Arial", DEFAULT_FONT_SIZE)
+        italic_font.setItalic(True)
+        readonly_label.setFont(italic_font)
+        readonly_label.setAlignment(Qt.AlignCenter)
+        readonly_label.setStyleSheet("QLabel { color: #777; margin-bottom: 5px; }")
+        main_layout.addWidget(readonly_label)
 
         # Thêm TabWidget vào layout chính
         main_layout.addWidget(report_tabs)
