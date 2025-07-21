@@ -1174,7 +1174,7 @@ class ChickenFarmApp(QMainWindow):
         layout = QVBoxLayout()
 
         # Thêm tiêu đề
-        history_header = QLabel("Lịch Sử Cám")
+        history_header = QLabel("Lịch Sử Cám (Chỉ Xem)")
         history_header.setFont(HEADER_FONT)
         history_header.setAlignment(Qt.AlignCenter)
         history_header.setStyleSheet("QLabel { padding: 10px; background-color: #e8eaf6; border-radius: 5px; margin-bottom: 10px; }")
@@ -1344,6 +1344,9 @@ class ChickenFarmApp(QMainWindow):
         self.history_usage_table = QTableWidget()
         self.history_usage_table.setFont(TABLE_CELL_FONT)
 
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_usage_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
         # Calculate total number of farms
         total_farms = sum(len(farms) for farms in FARMS.values())
 
@@ -1410,6 +1413,9 @@ class ChickenFarmApp(QMainWindow):
         self.history_feed_table.setFont(TABLE_CELL_FONT)
         self.history_feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.history_feed_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.history_feed_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -1440,6 +1446,9 @@ class ChickenFarmApp(QMainWindow):
         self.history_mix_table.setFont(TABLE_CELL_FONT)
         self.history_mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.history_mix_table.verticalHeader().setFont(TABLE_HEADER_FONT)
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.history_mix_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -1563,6 +1572,9 @@ class ChickenFarmApp(QMainWindow):
             feed_usage = report_data.get("feed_usage", {})
             formula_usage = report_data.get("formula_usage", {})
 
+            # Đặt bảng chỉ đọc - không cho phép sửa đổi
+            self.history_usage_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
             # Màu nền cho các khu khác nhau
             khu_colors = [
                 QColor(240, 248, 255),  # Khu 1: Alice Blue
@@ -1640,6 +1652,9 @@ class ChickenFarmApp(QMainWindow):
             self.history_feed_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
             self.history_feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
 
+            # Đặt bảng chỉ đọc - không cho phép sửa đổi
+            self.history_feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
             # Sắp xếp các thành phần để đưa bắp và nành lên đầu
             priority_ingredients = ["Bắp", "Nành"]
             sorted_feed_ingredients = {}
@@ -1696,6 +1711,9 @@ class ChickenFarmApp(QMainWindow):
             self.history_mix_table.setRowCount(len(mix_ingredients))
             self.history_mix_table.setColumnCount(3)  # Thành phần, Số lượng (kg), Số bao
             self.history_mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao"])
+
+            # Đặt bảng chỉ đọc - không cho phép sửa đổi
+            self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
             # Đổ dữ liệu vào bảng
             for row, (ingredient, amount) in enumerate(mix_ingredients.items()):
@@ -2937,6 +2955,9 @@ class ChickenFarmApp(QMainWindow):
         if "feed_usage" not in current_data or "feed_usage" not in compare_data:
             return
 
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_usage_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
         # Populate table with farms and khu information
         col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
         for khu_idx, farms in FARMS.items():
@@ -2990,6 +3011,9 @@ class ChickenFarmApp(QMainWindow):
         """Update the history feed ingredients table with comparison data"""
         if "feed_ingredients" not in current_data or "feed_ingredients" not in compare_data:
             return
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
         # Chuẩn bị dữ liệu cho bảng so sánh
         table_data = []
@@ -3121,6 +3145,9 @@ class ChickenFarmApp(QMainWindow):
         """Update the history mix ingredients table with comparison data"""
         if "mix_ingredients" not in current_data or "mix_ingredients" not in compare_data:
             return
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
         # Get linked mix formula names if available
         current_linked_mix = current_data.get("linked_mix_formula", "")
