@@ -2007,7 +2007,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Nếu không có dữ liệu, hiển thị thông báo và thoát
         if not formula_batches:
-            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu để tính toán!")
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu để báo cáo!")
             return
 
         # Dictionary để lưu tổng thành phần cám
@@ -2105,6 +2105,8 @@ class ChickenFarmApp(QMainWindow):
         self.mix_ingredients = mix_ingredients
         self.mix_formulas_used = mix_formulas_used
         self.total_tong_hop = total_tong_hop
+        self.total_batches = total_batches
+        self.total_batches_by_area = total_batches_by_area
 
         # Cập nhật bảng kết quả
         # Sắp xếp các thành phần để đưa bắp và nành lên đầu
@@ -4126,25 +4128,136 @@ class ChickenFarmApp(QMainWindow):
         # Thêm bảng vào layout
         scroll_layout.addWidget(results_table)
 
-        # Thêm thông tin chi tiết công thức sử dụng
-        formula_details = QLabel("<b>Chi tiết công thức sử dụng:</b>")
-        formula_details.setFont(DEFAULT_FONT)
-        scroll_layout.addWidget(formula_details)
+                # Thêm bảng tổng số mẻ
+        batches_summary_label = QLabel("<b>Tổng số mẻ:</b>")
+        batches_summary_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        scroll_layout.addWidget(batches_summary_label)
 
-        formula_text = ""
+        # Tạo bảng tổng số mẻ trong ngày
+        total_batches_table = QTableWidget()
+        total_batches_table.setFont(TABLE_CELL_FONT)
+        total_batches_table.setColumnCount(2)
+        total_batches_table.setHorizontalHeaderLabels(["Mô tả", "Số mẻ"])
+        total_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        total_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        total_batches_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+            }
+            QHeaderView::section {
+                background-color: #3F51B5;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+        """)
+
+        # Tính tổng số mẻ trong ngày
+        total_day_batches = 0
+        for khu, batches in self.total_batches_by_area.items():
+            total_day_batches += batches
+
+        # Thêm hàng tổng số mẻ trong ngày
+        total_batches_table.setRowCount(1)
+        total_batches_table.setItem(0, 0, QTableWidgetItem("Tổng số mẻ trong ngày"))
+        total_batches_item = QTableWidgetItem(format_number(total_day_batches))
+        total_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        total_batches_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        total_batches_item.setBackground(QColor(230, 240, 250))
+        total_batches_table.setItem(0, 1, total_batches_item)
+
+        # Đặt chiều cao hàng
+        total_batches_table.setRowHeight(0, 40)
+
+        # Thêm bảng vào layout
+        scroll_layout.addWidget(total_batches_table)
+
+        # Tạo bảng tổng số mẻ theo khu
+        khu_batches_label = QLabel("<b>Tổng số mẻ theo khu:</b>")
+        khu_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        scroll_layout.addWidget(khu_batches_label)
+
+        khu_batches_table = QTableWidget()
+        khu_batches_table.setFont(TABLE_CELL_FONT)
+        khu_batches_table.setColumnCount(2)
+        khu_batches_table.setHorizontalHeaderLabels(["Khu", "Số mẻ"])
+        khu_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        khu_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        khu_batches_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+            }
+            QHeaderView::section {
+                background-color: #3F51B5;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+        """)
+
+        # Thêm dữ liệu tổng số mẻ theo khu
+        khu_batches_table.setRowCount(len(self.total_batches_by_area))
+        row = 0
+        for khu, batches in sorted(self.total_batches_by_area.items()):
+            khu_batches_table.setItem(row, 0, QTableWidgetItem(khu))
+            batches_item = QTableWidgetItem(format_number(batches))
+            batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            khu_batches_table.setItem(row, 1, batches_item)
+            khu_batches_table.setRowHeight(row, 40)
+            row += 1
+
+        # Thêm bảng vào layout
+        scroll_layout.addWidget(khu_batches_table)
+
+        # Tạo bảng tổng số mẻ theo công thức
+        formula_batches_label = QLabel("<b>Tổng số mẻ theo công thức:</b>")
+        formula_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        scroll_layout.addWidget(formula_batches_label)
+
+        formula_batches_table = QTableWidget()
+        formula_batches_table.setFont(TABLE_CELL_FONT)
+        formula_batches_table.setColumnCount(3)
+        formula_batches_table.setHorizontalHeaderLabels(["Công thức", "Số lượng", "Số mẻ"])
+        formula_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        formula_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        formula_batches_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+            }
+            QHeaderView::section {
+                background-color: #3F51B5;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+        """)
+
+        # Thêm dữ liệu tổng số mẻ theo công thức
+        formula_batches_table.setRowCount(len(self.formula_ingredients))
+        row = 0
         for formula_name, data in sorted(self.formula_ingredients.items(), key=lambda x: x[0]):
             batches = data["batches"]
-            linked_mix = data.get("linked_mix_name", "Không có")
-            formula_text += f"<p><b>{formula_name}</b>: {format_number(batches)} ({format_number(batches*2)} mẻ) "
-            if linked_mix != "Không có":
-                formula_text += f"- Gắn với mix: <b>{linked_mix}</b>"
-            formula_text += "</p>"
+            actual_batches = batches * 2  # Số mẻ thực tế = giá trị hiển thị * 2
 
-        formula_details_content = QLabel(formula_text)
-        formula_details_content.setFont(DEFAULT_FONT)
-        formula_details_content.setWordWrap(True)
-        formula_details_content.setStyleSheet("QLabel { background-color: #f0f0f0; padding: 10px; border-radius: 5px; }")
-        scroll_layout.addWidget(formula_details_content)
+            formula_item = QTableWidgetItem(formula_name)
+            formula_batches_table.setItem(row, 0, formula_item)
+
+            batches_value_item = QTableWidgetItem(format_number(batches))
+            batches_value_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            formula_batches_table.setItem(row, 1, batches_value_item)
+
+            actual_batches_item = QTableWidgetItem(format_number(actual_batches))
+            actual_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            formula_batches_table.setItem(row, 2, actual_batches_item)
+
+            formula_batches_table.setRowHeight(row, 40)
+            row += 1
+
+        # Thêm bảng vào layout
+        scroll_layout.addWidget(formula_batches_table)
 
         # Thêm khoảng trống
         scroll_layout.addStretch()
