@@ -45,16 +45,19 @@ BUTTON_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
 TABLE_HEADER_FONT = QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold)
 TABLE_CELL_FONT = QFont("Arial", DEFAULT_FONT_SIZE)
 
-# Helper function to format numbers (display with thousands separator and remove trailing zeros)
+# Helper function to format numbers (display with thousands separator, max 2 decimal places, and remove trailing zeros)
 def format_number(value):
-    """Format a number with thousands separator and remove trailing zeros"""
+    """Format a number with thousands separator, max 2 decimal places, and remove trailing zeros"""
     if value == int(value):
         # Nếu là số nguyên, hiển thị không có phần thập phân và thêm dấu phẩy ngăn cách hàng nghìn
         return f"{int(value):,}"
     else:
-        # Hiển thị số thập phân với dấu phẩy ngăn cách hàng nghìn và loại bỏ số 0 thừa ở cuối
-        # Đầu tiên định dạng với dấu phẩy ngăn cách hàng nghìn
-        formatted = f"{value:,}"
+        # Làm tròn đến 2 chữ số thập phân
+        rounded_value = round(value, 2)
+
+        # Định dạng với dấu phẩy ngăn cách hàng nghìn
+        formatted = f"{rounded_value:,.2f}"
+
         # Tách phần nguyên và phần thập phân
         parts = formatted.split('.')
         if len(parts) == 2:
@@ -69,7 +72,7 @@ def format_number(value):
 # Custom QDoubleSpinBox để định dạng số theo yêu cầu
 class CustomDoubleSpinBox(QDoubleSpinBox):
     def textFromValue(self, value):
-        """Định dạng số với dấu phẩy ngăn cách hàng nghìn và loại bỏ số 0 thừa ở cuối"""
+        """Định dạng số với dấu phẩy ngăn cách hàng nghìn, tối đa 2 chữ số thập phân và loại bỏ số 0 thừa ở cuối"""
         return format_number(value)
 
     def valueFromText(self, text):
@@ -427,7 +430,7 @@ class ChickenFarmApp(QMainWindow):
                     spin_box.setFont(TABLE_CELL_FONT)
                     spin_box.setRange(0, 100)
                     spin_box.setSingleStep(0.5)
-                    spin_box.setDecimals(10)  # Cho phép nhiều chữ số thập phân để hiển thị chính xác
+                    spin_box.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
                     spin_box.setAlignment(Qt.AlignCenter)
                     spin_box.setButtonSymbols(QDoubleSpinBox.NoButtons)  # Bỏ mũi tên lên xuống
                     spin_box.setStyleSheet("""
@@ -1792,7 +1795,7 @@ class ChickenFarmApp(QMainWindow):
             amount_spin.setFont(TABLE_CELL_FONT)
             amount_spin.setMinimumHeight(30)
             amount_spin.setRange(0, 2000)
-            amount_spin.setDecimals(10)  # Cho phép nhiều chữ số thập phân để hiển thị chính xác
+            amount_spin.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
             amount_spin.setValue(amount)
             self.feed_formula_table.setCellWidget(row, 1, amount_spin)
 
@@ -1833,7 +1836,7 @@ class ChickenFarmApp(QMainWindow):
             amount_spin.setFont(TABLE_CELL_FONT)
             amount_spin.setMinimumHeight(30)
             amount_spin.setRange(0, 2000)
-            amount_spin.setDecimals(10)  # Cho phép nhiều chữ số thập phân để hiển thị chính xác
+            amount_spin.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
             amount_spin.setValue(amount)
             self.mix_formula_table.setCellWidget(i, 1, amount_spin)
 
