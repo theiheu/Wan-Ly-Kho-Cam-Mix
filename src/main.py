@@ -2510,8 +2510,26 @@ class ChickenFarmApp(QMainWindow):
             if not os.path.exists(reports_dir):
                 os.makedirs(reports_dir)
 
-            # Tạo tên file báo cáo với ngày hiện tại
-            date_str = QDate.currentDate().toString("yyyyMMdd")
+            # Kiểm tra xem có đang sử dụng ngày tùy chỉnh không
+            custom_date = None
+            for widget in self.findChildren(QLabel):
+                if widget.text().startswith("Ngày:"):
+                    date_text = widget.text().replace("Ngày:", "").strip()
+                    if date_text != QDate.currentDate().toString("dd/MM/yyyy"):
+                        try:
+                            # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyyMMdd
+                            day, month, year = date_text.split('/')
+                            custom_date = f"{year}{month.zfill(2)}{day.zfill(2)}"
+                        except:
+                            pass
+                    break
+
+            # Sử dụng ngày tùy chỉnh nếu có, nếu không thì sử dụng ngày hiện tại
+            if custom_date:
+                date_str = custom_date
+            else:
+                date_str = QDate.currentDate().toString("yyyyMMdd")
+
             report_file = os.path.join(reports_dir, f"report_{date_str}.json")
 
             # Thu thập dữ liệu lượng cám
@@ -2540,9 +2558,17 @@ class ChickenFarmApp(QMainWindow):
 
                     col_index += 1
 
+            # Lấy ngày hiển thị từ UI để lưu vào báo cáo
+            display_date = ""
+            for widget in self.findChildren(QLabel):
+                if widget.text().startswith("Ngày:"):
+                    display_date = widget.text().replace("Ngày:", "").strip()
+                    break
+
             # Tạo dữ liệu báo cáo
             report_data = {
                 "date": date_str,
+                "display_date": display_date,
                 "feed_usage": feed_usage,
                 "formula_usage": formula_usage,
                 "results": self.results_data,
@@ -3955,9 +3981,16 @@ class ChickenFarmApp(QMainWindow):
         if not hasattr(self, 'feed_ingredients') or not self.feed_ingredients:
             return  # Đã có thông báo lỗi từ hàm calculate_feed_usage
 
+        # Lấy ngày từ nhãn trong tab tổng quan
+        report_date = QDate.currentDate().toString('dd/MM/yyyy')
+        for widget in self.findChildren(QLabel):
+            if widget.text().startswith("Ngày:"):
+                report_date = widget.text().replace("Ngày:", "").strip()
+                break
+
         # Tạo dialog
         report_dialog = QDialog(self)
-        report_dialog.setWindowTitle(f"Báo Cáo Ngày {QDate.currentDate().toString('dd/MM/yyyy')}")
+        report_dialog.setWindowTitle(f"Báo Cáo Ngày {report_date}")
 
         # Lấy kích thước màn hình desktop
         desktop = QApplication.desktop()
@@ -3979,7 +4012,7 @@ class ChickenFarmApp(QMainWindow):
         main_layout = QVBoxLayout(report_dialog)
 
         # Tiêu đề
-        title_label = QLabel(f"BÁO CÁO LƯỢNG CÁM NGÀY {QDate.currentDate().toString('dd/MM/yyyy')}")
+        title_label = QLabel(f"BÁO CÁO LƯỢNG CÁM NGÀY {report_date}")
         title_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 4, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("QLabel { color: #2196F3; margin: 10px; }")
