@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
                             QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
-                            QGroupBox, QDialog, QRadioButton, QDateEdit, QScrollArea)
+                            QGroupBox, QDialog, QRadioButton, QDateEdit, QScrollArea, QSizePolicy)
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor
 
@@ -3988,6 +3988,7 @@ class ChickenFarmApp(QMainWindow):
         # Tạo TabWidget để hiển thị các tab báo cáo
         report_tabs = QTabWidget()
         report_tabs.setFont(DEFAULT_FONT)
+        report_tabs.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         report_tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #cccccc;
@@ -4005,6 +4006,8 @@ class ChickenFarmApp(QMainWindow):
                 border-top-right-radius: 4px;
                 padding: 8px 12px;
                 margin-right: 2px;
+                min-width: 150px;
+                font-weight: bold;
             }
             QTabBar::tab:selected {
                 background: #4CAF50;
@@ -4134,9 +4137,12 @@ class ChickenFarmApp(QMainWindow):
         for row in range(feed_table.rowCount()):
             feed_table.setRowHeight(row, 40)
 
+                # Thiết lập bảng cám để kéo dài đến cuối tab
+        feed_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        feed_table.setMinimumHeight(int(dialog_height * 0.7))  # Chiều cao tối thiểu 70% của dialog
+
         # Thêm bảng vào layout tab thành phần cám
         feed_layout_scroll.addWidget(feed_table)
-        feed_layout_scroll.addStretch()
 
         # Hoàn thành scroll area cho tab thành phần cám
         feed_scroll.setWidget(feed_content)
@@ -4219,9 +4225,12 @@ class ChickenFarmApp(QMainWindow):
         for row in range(mix_table.rowCount()):
             mix_table.setRowHeight(row, 40)
 
+                # Thiết lập bảng mix để kéo dài đến cuối tab
+        mix_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        mix_table.setMinimumHeight(int(dialog_height * 0.7))  # Chiều cao tối thiểu 70% của dialog
+
         # Thêm bảng vào layout tab thành phần mix
         mix_layout_scroll.addWidget(mix_table)
-        mix_layout_scroll.addStretch()
 
         # Hoàn thành scroll area cho tab thành phần mix
         mix_scroll.setWidget(mix_content)
