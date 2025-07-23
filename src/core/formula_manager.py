@@ -12,10 +12,14 @@ class FormulaManager:
         self.formula_links_file = "src/data/config/formula_links.json"
         self.formulas_dir = "src/data/presets"
         self.default_formula_file = "src/data/config/default_formula.json"
+        self.column_mix_formulas_file = "src/data/config/column_mix_formulas.json"
 
         # Create formulas directory if it doesn't exist
         if not os.path.exists(self.formulas_dir):
             os.makedirs(self.formulas_dir)
+
+        # Đảm bảo thư mục config tồn tại
+        os.makedirs(os.path.dirname(self.feed_formula_file), exist_ok=True)
 
         # Load current formulas
         self.feed_formula = self.load_formula(self.feed_formula_file)
@@ -45,6 +49,9 @@ class FormulaManager:
 
         # Khởi tạo cấu trúc dữ liệu cho công thức mặc định
         self.default_formula_settings = self.load_default_formula_settings()
+
+        # Khởi tạo cấu trúc dữ liệu cho công thức mix theo cột
+        self.column_mix_formulas = self.load_column_mix_formulas()
 
     def load_formula(self, filename: str) -> Dict[str, float]:
         """Load a formula from a JSON file"""
@@ -305,3 +312,35 @@ class FormulaManager:
         """Lưu tên công thức cám mặc định"""
         self.default_formula_settings["default_feed_formula"] = formula_name
         return self.save_default_formula_settings()
+
+    def load_column_mix_formulas(self) -> Dict[str, str]:
+        """Tải cài đặt công thức mix theo cột từ file"""
+        try:
+            if os.path.exists(self.column_mix_formulas_file):
+                with open(self.column_mix_formulas_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            return {}
+        except Exception as e:
+            print(f"Lỗi khi tải cài đặt công thức mix theo cột: {e}")
+            return {}
+
+    def save_column_mix_formulas(self, column_mix_formulas: Dict[str, str]) -> bool:
+        """Lưu cài đặt công thức mix theo cột vào file"""
+        try:
+            # Đảm bảo thư mục tồn tại
+            os.makedirs(os.path.dirname(self.column_mix_formulas_file), exist_ok=True)
+
+            # Cập nhật dữ liệu nội bộ
+            self.column_mix_formulas = column_mix_formulas
+
+            # Lưu vào file
+            with open(self.column_mix_formulas_file, 'w', encoding='utf-8') as f:
+                json.dump(column_mix_formulas, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"Lỗi khi lưu cài đặt công thức mix theo cột: {e}")
+            return False
+
+    def get_column_mix_formula(self, column_index: str) -> str:
+        """Lấy tên công thức mix cho cột cụ thể"""
+        return self.column_mix_formulas.get(column_index, "")

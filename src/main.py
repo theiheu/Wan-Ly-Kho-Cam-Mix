@@ -35,7 +35,7 @@ FARMS = {
     1: ["T1", "T2", "T4", "T6"],          # Khu 2
     2: ["1D", "2D", "4D", "2N"],          # Khu 3
     3: ["T2", "T4", "T6", "T8", "Trại 1 khu 4"],  # Khu 4
-    4: ["Trống"]                           # Khu 5
+    4: [""]                           # Khu 5
 }
 
 # Thiết lập font mặc định cho toàn bộ ứng dụng
@@ -97,6 +97,8 @@ class ChickenFarmApp(QMainWindow):
         # Biến cờ để kiểm soát việc tải báo cáo
         self.report_loaded = False
         self.default_formula_loaded = False
+
+
 
         # Lấy kích thước màn hình
         desktop = QApplication.desktop()
@@ -173,6 +175,9 @@ class ChickenFarmApp(QMainWindow):
         self.mix_formula = self.formula_manager.get_mix_formula()
         self.inventory = self.inventory_manager.get_inventory()
 
+        # Tải công thức mix theo cột từ file cấu hình
+        self.column_mix_formulas = self.formula_manager.column_mix_formulas
+
         # Thiết lập stylesheet chung cho spinbox
         self.setStyleSheet(self.styleSheet() + """
             QDoubleSpinBox {
@@ -242,8 +247,6 @@ class ChickenFarmApp(QMainWindow):
         self.feed_preset_combo.setFont(DEFAULT_FONT)
         self.mix_preset_combo = QComboBox()
         self.mix_preset_combo.setFont(DEFAULT_FONT)
-        self.mix_link_combo = QComboBox()
-        self.mix_link_combo.setFont(DEFAULT_FONT)
 
         # Create menu bar
         self.create_menu_bar()
@@ -981,54 +984,7 @@ class ChickenFarmApp(QMainWindow):
 
         preset_layout.addLayout(preset_combo_layout)
 
-        # Mix formula link
-        link_layout = QHBoxLayout()
-
-        link_label = QLabel("Liên kết công thức Mix:")
-        link_label.setFont(DEFAULT_FONT)
-        link_layout.addWidget(link_label)
-
-        # Sử dụng mix_link_combo đã được khởi tạo trước đó
-        self.mix_link_combo.setStyleSheet("""
-            QComboBox {
-                border: 1px solid #bbb;
-                border-radius: 4px;
-                padding: 5px;
-                background-color: white;
-                min-width: 200px;
-            }
-            QComboBox::drop-down {
-                width: 20px;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #bbb;
-                selection-background-color: #e0e0ff;
-            }
-        """)
-        self.mix_link_combo.setMinimumHeight(35)
-        self.update_mix_link_combo()
-        link_layout.addWidget(self.mix_link_combo)
-
-        link_button = QPushButton("Liên kết")
-        link_button.setFont(BUTTON_FONT)
-        link_button.setMinimumHeight(35)
-        link_button.setStyleSheet("""
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                border-radius: 5px;
-                padding: 5px 15px;
-            }
-            QPushButton:hover {
-                background-color: #0b7dda;
-            }
-        """)
-        link_button.clicked.connect(self.set_mix_formula_link)
-        link_layout.addWidget(link_button)
-
-        link_layout.addStretch()
-
-        preset_layout.addLayout(link_layout)
+        # Bỏ phần liên kết công thức Mix vì không còn sử dụng
         preset_section.setLayout(preset_layout)
         feed_layout.addWidget(preset_section)
 
@@ -1916,30 +1872,6 @@ class ChickenFarmApp(QMainWindow):
             if ingredient != "Nguyên liệu tổ hợp":
                 total_feed += amount
 
-        # Get linked mix formula name for display
-        current_preset = self.feed_preset_combo.currentText()
-        linked_mix_name = ""
-
-        if current_preset:
-            # Nếu đang xem một preset, lấy liên kết cho preset đó
-            linked_mix_name = self.formula_manager.get_linked_mix_formula_name(current_preset)
-        else:
-            # Nếu đang xem công thức hiện tại, lấy liên kết hiện tại
-            linked_mix_name = self.formula_manager.get_linked_mix_formula_name()
-
-        # Lấy công thức mix đã được liên kết
-        mix_formula = None
-        if linked_mix_name:
-            if current_preset:
-                mix_formula = self.formula_manager.get_linked_mix_formula(current_preset)
-            else:
-                mix_formula = self.formula_manager.get_linked_mix_formula()
-
-        # Tính tổng lượng mix nếu có
-        mix_total = 0
-        if mix_formula:
-            mix_total = self.formula_manager.calculate_mix_total(mix_formula)
-
         # Thêm hàng tổng cộng cho cám (không thêm hàng tổng mix)
         total_rows = len(self.feed_formula) + 1  # +1 cho hàng tổng cám
         self.feed_formula_table.setRowCount(total_rows)
@@ -1948,9 +1880,6 @@ class ChickenFarmApp(QMainWindow):
         for ingredient, amount in self.feed_formula.items():
             # Ingredient name
             ingredient_name = ingredient
-            if ingredient == "Nguyên liệu tổ hợp" and linked_mix_name:
-                ingredient_name = f"{ingredient} (Gắn với: {linked_mix_name})"
-
             ingredient_item = QTableWidgetItem(ingredient_name)
             ingredient_item.setFont(TABLE_CELL_FONT)
             self.feed_formula_table.setItem(row, 0, ingredient_item)
@@ -2240,9 +2169,21 @@ class ChickenFarmApp(QMainWindow):
         # Kiểm tra xem có báo cáo đang được tải lại không
         is_loading_report = hasattr(self, 'loading_report') and self.loading_report
 
-        # Nếu đang tải lại báo cáo và có thông tin về công thức mix cho từng khu
-        if is_loading_report and hasattr(self, 'current_report_data') and self.current_report_data and "area_mix_formulas" in self.current_report_data:
-            self.area_mix_formulas = self.current_report_data["area_mix_formulas"]
+        # Nếu đang tải lại báo cáo và có thông tin về công thức mix
+        if is_loading_report and hasattr(self, 'current_report_data') and self.current_report_data:
+            # Kiểm tra công thức mix theo cột
+            if "column_mix_formulas" in self.current_report_data:
+                self.column_mix_formulas = self.current_report_data["column_mix_formulas"]
+            # Tương thích ngược với phiên bản cũ
+            elif "area_mix_formulas" in self.current_report_data:
+                self.area_mix_formulas = self.current_report_data["area_mix_formulas"]
+
+            # Đảm bảo self.cell_mix_formulas được tải lại từ báo cáo
+            if "cell_mix_formulas" in self.current_report_data:
+                self.cell_mix_formulas = self.current_report_data["cell_mix_formulas"]
+        # Nếu không phải đang tải báo cáo, đảm bảo đã tải công thức mix theo cột từ file cấu hình
+        elif not hasattr(self, 'column_mix_formulas') or not self.column_mix_formulas:
+            self.column_mix_formulas = self.formula_manager.column_mix_formulas
 
         # Không tự động hiển thị dialog chọn công thức mix - để người dùng chọn thủ công
 
@@ -2277,12 +2218,14 @@ class ChickenFarmApp(QMainWindow):
             # Lưu thông tin công thức và thành phần cho hiển thị chi tiết nếu cần
             self.formula_ingredients[formula_name] = {
                 "batches": batch_count,
-                "linked_mix_name": self.formula_manager.get_linked_mix_formula_name(formula_name),
                 "tong_hop_amount": feed_formula.get("Nguyên liệu tổ hợp", 0) * batch_count * 2  # Áp dụng quy tắc 0.5 = 1 mẻ
             }
 
-        # Tính toán thành phần mix cho từng khu và từng ô có công thức mix riêng
-        # Đầu tiên xử lý các ô có công thức mix riêng
+        # Tính toán thành phần mix cho từng ô, cột và khu
+        # Đánh dấu các ô đã xử lý
+        processed_cells = {}
+
+        # 1. Đầu tiên xử lý các ô có công thức mix riêng
         if hasattr(self, 'cell_mix_formulas') and self.cell_mix_formulas:
             for cell_key, mix_formula_name in self.cell_mix_formulas.items():
                 if not mix_formula_name:
@@ -2327,10 +2270,75 @@ class ChickenFarmApp(QMainWindow):
                 # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
                 mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
 
-                # Đánh dấu ô này đã được xử lý để không xử lý lại theo khu
-                cell_data["processed"] = True
+                # Đánh dấu ô này đã được xử lý
+                processed_cells[cell_key] = True
 
-        # Sau đó xử lý các khu theo công thức mix của khu
+        # 2. Sau đó xử lý các cột theo công thức mix của cột
+        if hasattr(self, 'column_mix_formulas') and self.column_mix_formulas:
+            # Duyệt qua từng ô đã nhập
+            for cell_key, cell_data in self.cell_formula_data.items():
+                # Bỏ qua các ô đã được xử lý riêng
+                if cell_key in processed_cells:
+                    continue
+
+                # Phân tích cell_key để lấy thông tin và tìm chỉ số cột
+                parts = cell_key.split('_')
+                if len(parts) < 3:
+                    continue
+
+                khu_name, farm_name, shift = parts[0], parts[1], parts[2]
+
+                # Tìm chỉ số cột từ thông tin khu và farm
+                col_index = -1
+                current_col = 0
+                for k_idx, farms in FARMS.items():
+                    k_name = f"Khu {k_idx + 1}"
+                    for farm in farms:
+                        if k_name == khu_name and farm == farm_name:
+                            col_index = current_col
+                            break
+                        current_col += 1
+                    if col_index >= 0:
+                        break
+
+                if col_index < 0:
+                    continue
+
+                # Kiểm tra xem cột này có công thức mix không
+                col_key = f"{col_index}"
+                if col_key not in self.column_mix_formulas:
+                    continue
+
+                mix_formula_name = self.column_mix_formulas[col_key]
+                if not mix_formula_name:
+                    continue
+
+                # Lấy công thức mix và kiểm tra
+                mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
+                if not mix_formula:
+                    continue
+
+                # Lấy công thức cám và tính lượng nguyên liệu tổ hợp
+                feed_formula = self.formula_manager.load_feed_preset(cell_data["feed_formula"])
+                if not feed_formula or "Nguyên liệu tổ hợp" not in feed_formula:
+                    continue
+
+                tong_hop_amount = feed_formula["Nguyên liệu tổ hợp"] * cell_data["batch_value"] * 2
+
+                # Lưu thông tin công thức mix được sử dụng
+                if mix_formula_name not in mix_formulas_used:
+                    mix_formulas_used[mix_formula_name] = {
+                        "formula": mix_formula,
+                        "tong_hop_amount": 0
+                    }
+
+                # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
+                mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
+
+                # Đánh dấu ô này đã được xử lý
+                processed_cells[cell_key] = True
+
+        # 3. Cuối cùng xử lý các khu theo công thức mix của khu (tương thích ngược)
         if hasattr(self, 'area_mix_formulas') and self.area_mix_formulas:
             for khu_name, mix_formula_name in self.area_mix_formulas.items():
                 if not mix_formula_name or khu_name not in total_batches_by_area:
@@ -2347,7 +2355,7 @@ class ChickenFarmApp(QMainWindow):
                 # Tính tổng lượng nguyên liệu tổ hợp cho khu này
                 for cell_key, cell_data in self.cell_formula_data.items():
                     # Bỏ qua các ô đã được xử lý riêng
-                    if cell_data.get("processed", False):
+                    if cell_key in processed_cells:
                         continue
 
                     if cell_data["khu"] == khu_name:
@@ -2422,68 +2430,102 @@ class ChickenFarmApp(QMainWindow):
         feed_header = QTableWidgetItem("THÀNH PHẦN KHO CÁM")
 
     def assign_mix_formulas_to_areas(self):
-        """Hiển thị dialog cho người dùng chọn công thức mix cho từng khu"""
+        """Hiển thị dialog cho người dùng chọn công thức mix cho từng cột"""
         # Tạo dialog
         dialog = QDialog(self)
-        dialog.setWindowTitle("Chọn công thức Mix cho từng khu")
-        dialog.setMinimumWidth(400)
+        dialog.setWindowTitle("Chọn công thức Mix mặc định theo cột")
+        dialog.setMinimumWidth(700)
+        dialog.setMinimumHeight(600)
 
         # Tạo layout
-        layout = QVBoxLayout()
+        main_layout = QVBoxLayout()
 
         # Thêm label hướng dẫn
-        label = QLabel("Chọn công thức Mix cho từng khu:")
-        label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
-        layout.addWidget(label)
+        header_label = QLabel("Chọn công thức Mix mặc định cho từng cột:")
+        header_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        main_layout.addWidget(header_label)
+
+        # Tạo scroll area để có thể cuộn khi có nhiều cột
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
 
         # Tạo dictionary để lưu các combo box
         combo_boxes = {}
 
-        # Lấy danh sách các khu đã nhập dữ liệu
-        active_areas = set()
-        for col in range(self.feed_table.columnCount()):
-            khu_item = self.feed_table.item(0, col)
-            if khu_item:
-                active_areas.add(khu_item.text())
-
         # Lấy danh sách các công thức mix
         mix_presets = self.formula_manager.get_mix_presets()
 
-        # Tạo combo box cho mỗi khu
-        for khu_name in sorted(active_areas):
-            # Tạo layout ngang cho mỗi khu
-            khu_layout = QHBoxLayout()
+        # Tạo các phần chọn công thức theo khu
+        khu_sections = {}
 
-            # Thêm label khu
-            khu_label = QLabel(f"{khu_name}:")
-            khu_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
-            khu_label.setMinimumWidth(100)
-            khu_layout.addWidget(khu_label)
+        # Duyệt qua tất cả các cột trong bảng
+        col_index = 0
+        for khu_idx, farms in FARMS.items():
+            khu_name = f"Khu {khu_idx + 1}"
 
-            # Tạo combo box
-            combo = QComboBox()
-            combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+            # Tạo section cho khu
+            khu_group = QGroupBox(khu_name)
+            khu_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+            khu_layout = QVBoxLayout(khu_group)
 
-            # Thêm tùy chọn "Không có công thức"
-            combo.addItem("Không có công thức", "")
+            for farm_idx, farm_name in enumerate(farms):
+                # Tạo layout ngang cho mỗi cột (farm)
+                farm_layout = QHBoxLayout()
 
-            # Thêm các công thức mix
-            for preset in mix_presets:
-                combo.addItem(preset, preset)
+                # Tạo label cho farm
+                farm_label = QLabel(f"{farm_name}:")
+                farm_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1))
+                farm_label.setMinimumWidth(150)
+                farm_layout.addWidget(farm_label)
 
-            # Thêm vào layout
-            khu_layout.addWidget(combo)
+                # Tạo combo box cho farm
+                combo = QComboBox()
+                combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1))
 
-            # Lưu combo box
-            combo_boxes[khu_name] = combo
+                # Thêm tùy chọn "Không có công thức"
+                combo.addItem("Không có công thức", "")
 
-            # Thêm layout khu vào layout chính
-            layout.addLayout(khu_layout)
+                # Thêm các công thức mix
+                for preset in mix_presets:
+                    combo.addItem(preset, preset)
+
+                # Thêm vào layout
+                farm_layout.addWidget(combo)
+
+                # Không cần nút áp dụng cho tất cả các cột nữa
+
+                # Lưu combo box
+                col_key = f"{col_index}"
+                combo_boxes[col_key] = combo
+
+                # Cài đặt giá trị mặc định nếu đã có
+                if hasattr(self, 'column_mix_formulas') and col_key in self.column_mix_formulas:
+                    preset = self.column_mix_formulas[col_key]
+                    index = combo.findText(preset)
+                    if index >= 0:
+                        combo.setCurrentIndex(index)
+
+                # Thêm layout farm vào layout khu
+                khu_layout.addLayout(farm_layout)
+
+                col_index += 1
+
+            # Thêm section khu vào scroll area
+            scroll_layout.addWidget(khu_group)
+
+        scroll_content.setLayout(scroll_layout)
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
 
         # Thêm các nút
         button_layout = QHBoxLayout()
 
-        ok_button = QPushButton("Xác nhận")
+
+
+        # Các nút xác nhận và hủy
+        ok_button = QPushButton("Lưu & Đóng")
         ok_button.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
         ok_button.setMinimumHeight(40)
         ok_button.setStyleSheet("""
@@ -2516,13 +2558,10 @@ class ChickenFarmApp(QMainWindow):
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
 
-        layout.addLayout(button_layout)
+        main_layout.addLayout(button_layout)
 
         # Thiết lập layout cho dialog
-        dialog.setLayout(layout)
-
-        # Tạo dictionary để lưu kết quả
-        self.area_mix_formulas = {}
+        dialog.setLayout(main_layout)
 
         # Kết nối sự kiện
         ok_button.clicked.connect(lambda: self.save_mix_formula_selections(combo_boxes, dialog))
@@ -2532,22 +2571,74 @@ class ChickenFarmApp(QMainWindow):
         dialog.exec_()
 
     def save_mix_formula_selections(self, combo_boxes, dialog):
-        """Lưu các lựa chọn công thức mix cho từng khu"""
+        """Lưu các lựa chọn công thức mix cho từng cột"""
+        if not hasattr(self, 'column_mix_formulas'):
+            self.column_mix_formulas = {}
+
+        # Lưu công thức mix cho từng cột
+        for col_key, combo in combo_boxes.items():
+            mix_formula_name = combo.currentData()
+            if mix_formula_name:
+                self.column_mix_formulas[col_key] = mix_formula_name
+            elif col_key in self.column_mix_formulas:
+                # Nếu chọn "Không có công thức", xóa cài đặt cũ
+                del self.column_mix_formulas[col_key]
+
+        # Giữ tương thích ngược với code cũ
         self.area_mix_formulas = {}
 
-        for khu_name, combo in combo_boxes.items():
-            mix_formula_name = combo.currentData()
-            if mix_formula_name:  # Chỉ lưu nếu đã chọn công thức
-                self.area_mix_formulas[khu_name] = mix_formula_name
+        # Lưu cài đặt công thức mix theo cột vào file cấu hình
+        self.formula_manager.save_column_mix_formulas(self.column_mix_formulas)
 
         dialog.accept()
 
         # Hiển thị thông tin về công thức mix đã chọn
-        if self.area_mix_formulas:
-            mix_info = "Đã chọn công thức Mix cho các khu:\n"
-            for khu, formula in self.area_mix_formulas.items():
-                mix_info += f"- {khu}: {formula}\n"
+        if hasattr(self, 'column_mix_formulas') and self.column_mix_formulas:
+            mix_info = "Đã lưu công thức Mix cho các cột:\n"
+            count = 0
+            for col, formula in self.column_mix_formulas.items():
+                col_index = int(col)
+                # Lấy thông tin khu và farm
+                khu_item = self.feed_table.item(0, col_index)
+                farm_item = self.feed_table.item(1, col_index)
+                if khu_item and farm_item:
+                    khu_name = khu_item.text()
+                    farm_name = farm_item.text()
+                    mix_info += f"- {khu_name}, {farm_name}: {formula}\n"
+                    count += 1
+                    if count >= 10:
+                        mix_info += f"... và {len(self.column_mix_formulas) - 10} cột khác\n"
+                        break
             QMessageBox.information(self, "Thông tin công thức Mix", mix_info)
+
+    def apply_mix_formula_to_all(self, mix_formula):
+        """Áp dụng một công thức mix cho tất cả các cột"""
+        if not mix_formula or mix_formula == "Chọn công thức...":
+            return
+
+        # Kiểm tra xác nhận
+        dialog = QMessageBox()
+        dialog.setWindowTitle("Xác nhận")
+        dialog.setText(f"Bạn có chắc chắn muốn áp dụng công thức mix '{mix_formula}' cho TẤT CẢ các cột không?")
+        dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        dialog.setDefaultButton(QMessageBox.No)
+
+        if dialog.exec_() == QMessageBox.Yes:
+            # Xóa tất cả cài đặt cũ và tạo mới
+            if not hasattr(self, 'column_mix_formulas'):
+                self.column_mix_formulas = {}
+
+            # Lưu công thức cho mỗi cột
+            col_count = self.feed_table.columnCount()
+            for col in range(col_count):
+                col_key = f"{col}"
+                self.column_mix_formulas[col_key] = mix_formula
+
+            # Lưu cài đặt công thức mix theo cột vào file cấu hình
+            self.formula_manager.save_column_mix_formulas(self.column_mix_formulas)
+
+            # Thông báo
+            QMessageBox.information(self, "Thông tin", f"Đã áp dụng công thức mix '{mix_formula}' cho tất cả các cột!")
 
     def update_inventory_after_usage(self, ingredients_used):
         """Update inventory after feed usage"""
@@ -2812,7 +2903,11 @@ class ChickenFarmApp(QMainWindow):
                 "default_formula": self.default_formula_combo.currentText()
             }
 
-            # Lưu thông tin về công thức mix cho từng khu
+            # Lưu thông tin về công thức mix cho từng cột
+            if hasattr(self, 'column_mix_formulas') and self.column_mix_formulas:
+                report_data["column_mix_formulas"] = self.column_mix_formulas
+
+            # Lưu thông tin về công thức mix cho từng khu (tương thích ngược)
             if hasattr(self, 'area_mix_formulas') and self.area_mix_formulas:
                 report_data["area_mix_formulas"] = self.area_mix_formulas
 
@@ -3638,62 +3733,7 @@ class ChickenFarmApp(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Lỗi", f"Không thể xuất dữ liệu lịch sử: {str(e)}")
 
-    def update_mix_link_combo(self):
-        """Update the combo box to show available mix formulas."""
-        self.mix_link_combo.clear()
-
-        # Add "Không có công thức" option
-        self.mix_link_combo.addItem("Không có công thức", "")
-
-        # Get all mix formulas
-        all_mix_formulas = self.formula_manager.get_mix_presets()
-        for formula_name in all_mix_formulas:
-            self.mix_link_combo.addItem(formula_name, formula_name)
-
-        # Set current linked formula if any
-        current_preset = self.feed_preset_combo.currentText()
-        linked_formula = ""
-
-        if current_preset:
-            # Nếu đang xem một preset, lấy liên kết cho preset đó
-            linked_formula = self.formula_manager.get_linked_mix_formula_name(current_preset)
-        else:
-            # Nếu đang xem công thức hiện tại, lấy liên kết hiện tại
-            linked_formula = self.formula_manager.get_linked_mix_formula_name()
-
-        if linked_formula:
-            index = self.mix_link_combo.findData(linked_formula)
-            if index >= 0:
-                self.mix_link_combo.setCurrentIndex(index)
-
-    def set_mix_formula_link(self):
-        """Set the selected mix formula as the link for the 'Nguyên liệu tổ hợp' in the feed formula."""
-        selected_mix_formula_name = self.mix_link_combo.currentData()
-        current_preset = self.feed_preset_combo.currentText()
-
-        if current_preset:
-            # Nếu đang xem một preset, lưu liên kết cho preset đó
-            if not selected_mix_formula_name:
-                # Clear link
-                self.formula_manager.set_linked_mix_formula("", current_preset)
-                QMessageBox.information(self, "Thành công", f"Đã xóa liên kết công thức Mix cho Nguyên liệu tổ hợp trong công thức '{current_preset}'.")
-            else:
-                # Set the link to the selected mix formula
-                self.formula_manager.set_linked_mix_formula(selected_mix_formula_name, current_preset)
-                QMessageBox.information(self, "Thành công", f"Đã gắn công thức Mix '{selected_mix_formula_name}' cho Nguyên liệu tổ hợp trong công thức '{current_preset}'.")
-        else:
-            # Nếu đang xem công thức hiện tại, lưu liên kết hiện tại
-            if not selected_mix_formula_name:
-                # Clear link
-                self.formula_manager.set_linked_mix_formula("")
-                QMessageBox.information(self, "Thành công", "Đã xóa liên kết công thức Mix cho Nguyên liệu tổ hợp.")
-            else:
-                # Set the link to the selected mix formula
-                self.formula_manager.set_linked_mix_formula(selected_mix_formula_name)
-                QMessageBox.information(self, "Thành công", f"Đã gắn công thức Mix '{selected_mix_formula_name}' cho Nguyên liệu tổ hợp.")
-
-        # Update the feed formula table to show the linked mix formula
-        self.update_feed_formula_table()
+    # Bỏ hàm update_mix_link_combo và set_mix_formula_link vì không còn sử dụng liên kết
 
     def update_feed_preset(self):
         """Cập nhật công thức cám đã lưu"""
@@ -4835,8 +4875,8 @@ class ChickenFarmApp(QMainWindow):
         # Chỉ thiết lập khi có công thức mặc định
         if default_formula:
             self.default_formula_combo.setCurrentText(default_formula)
-            # Áp dụng công thức mặc định cho tất cả các ô
-            self.apply_default_formula()
+            # KHÔNG áp dụng công thức mặc định cho tất cả các ô khi khởi động
+            # Chỉ lưu thông tin công thức mặc định để sử dụng khi người dùng nhập mẻ mới
 
         self.default_formula_loaded = True
 
@@ -4954,12 +4994,25 @@ class ChickenFarmApp(QMainWindow):
         if hasattr(self, 'cell_mix_formulas') and cell_key in self.cell_mix_formulas:
             current_mix_formula = self.cell_mix_formulas[cell_key]
 
-        # Thêm tùy chọn "Không chọn" (sử dụng công thức mix của khu)
-        no_mix_action = QAction("Không chọn (sử dụng công thức mix của khu)", self)
+        # Tìm công thức mix theo cột
+        column_mix_formula = ""
+        col_key = f"{column}"
+        if hasattr(self, 'column_mix_formulas') and col_key in self.column_mix_formulas:
+            column_mix_formula = self.column_mix_formulas[col_key]
+
+        # Thêm tùy chọn "Không chọn" (sử dụng công thức mix của cột)
+        no_mix_action = QAction("Không chọn (sử dụng công thức mix của cột)", self)
         no_mix_action.setCheckable(True)
         no_mix_action.setChecked(current_mix_formula == "")
         no_mix_action.triggered.connect(lambda checked: self.apply_mix_formula_to_cell(cell_key, ""))
         mix_menu.addAction(no_mix_action)
+
+        # Hiển thị công thức mix của cột nếu có
+        if column_mix_formula:
+            column_mix_info = QAction(f"Công thức mix của cột: {column_mix_formula}", self)
+            column_mix_info.setEnabled(False)
+            mix_menu.addAction(column_mix_info)
+
         mix_menu.addSeparator()
 
         # Thêm các công thức mix vào menu
@@ -4998,7 +5051,21 @@ class ChickenFarmApp(QMainWindow):
             parts = cell_key.split('_')
             if len(parts) >= 3:
                 khu, farm, shift = parts[0], parts[1], parts[2]
-                QMessageBox.information(self, "Thông tin", f"Đã xóa công thức Mix riêng cho {khu} - {farm} - {shift} (sẽ sử dụng công thức Mix của khu)")
+                QMessageBox.information(self, "Thông tin", f"Đã xóa công thức Mix riêng cho {khu} - {farm} - {shift} (sẽ sử dụng công thức Mix của cột)")
+
+        # Lưu cài đặt công thức mix cho từng ô vào báo cáo hiện tại
+        if hasattr(self, 'current_report_data') and self.current_report_data:
+            self.current_report_data["cell_mix_formulas"] = self.cell_mix_formulas
+
+            # Lưu báo cáo hiện tại
+            if "date" in self.current_report_data:
+                date_str = self.current_report_data["date"]
+                report_file = f"src/data/reports/report_{date_str}.json"
+                try:
+                    with open(report_file, 'w', encoding='utf-8') as f:
+                        json.dump(self.current_report_data, f, ensure_ascii=False, indent=4)
+                except Exception as e:
+                    print(f"Lỗi khi lưu công thức mix cho từng ô: {e}")
 
         # Cập nhật hiển thị bảng để hiện dấu hiệu có công thức mix riêng
         self.update_feed_table_display()
@@ -5036,33 +5103,21 @@ class ChickenFarmApp(QMainWindow):
                         cell_key = f"{khu_name}_{farm_name}_{shift}"
                         has_custom_mix = hasattr(self, 'cell_mix_formulas') and cell_key in self.cell_mix_formulas
 
-                        # Kiểm tra xem có phải công thức mặc định không và có công thức mix riêng không
+                        # Kiểm tra xem có phải công thức mặc định không
                         if formula_text and formula_text != default_formula:
                             # Nếu không phải công thức mặc định, hiển thị tên
                             display_text = formula_text
-                            if has_custom_mix:
-                                display_text += " ★"  # Thêm dấu sao để chỉ ra có công thức mix riêng
-
                             cell_widget.formula_label.setText(display_text)
                             cell_widget.formula_label.setVisible(True)
                             # Khôi phục tỷ lệ ban đầu
                             cell_widget.layout().setStretch(0, 60)
                             cell_widget.layout().setStretch(1, 40)
                         else:
-                            # Nếu là công thức mặc định hoặc không có công thức
-                            if has_custom_mix:
-                                # Nếu có công thức mix riêng, hiển thị dấu sao
-                                cell_widget.formula_label.setText("★")
-                                cell_widget.formula_label.setVisible(True)
-                                # Điều chỉnh tỷ lệ để hiển thị dấu sao
-                                cell_widget.layout().setStretch(0, 85)
-                                cell_widget.layout().setStretch(1, 15)
-                            else:
-                                # Nếu không có gì đặc biệt, ẩn label
-                                cell_widget.formula_label.setVisible(False)
-                                # Mở rộng spinbox để chiếm toàn bộ không gian
-                                cell_widget.layout().setStretch(0, 100)
-                                cell_widget.layout().setStretch(1, 0)
+                            # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                            cell_widget.formula_label.setVisible(False)
+                            # Mở rộng spinbox để chiếm toàn bộ không gian
+                            cell_widget.layout().setStretch(0, 100)
+                            cell_widget.layout().setStretch(1, 0)
 
     def apply_formula_to_selected_cell(self, formula):
         """Áp dụng công thức cám cho ô đang được chọn"""

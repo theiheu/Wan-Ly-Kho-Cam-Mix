@@ -1,126 +1,126 @@
 {
-    "date": "2025-07-19",
-    "feed_usage": {
-        "Khu 1": {
-            "T1": {
-                "Sáng": 1.0,
-                "Chiều": 0.0
-            },
-            "T2": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T4": {
-                "Sáng": 0.0,
-                "Chiều": 1.0
-            },
-            "T6": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            }
-        },
-        "Khu 2": {
-            "T1": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T2": {
-                "Sáng": 1.0,
-                "Chiều": 0.0
-            },
-            "T4": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T6": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            }
-        },
-        "Khu 3": {
-            "1D": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "2D": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "4D": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "2N": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            }
-        },
-        "Khu 4": {
-            "T2": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T4": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T6": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "T8": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            },
-            "Trại 1 khu 4": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            }
-        },
-        "Khu 5": {
-            "Trống": {
-                "Sáng": 0.0,
-                "Chiều": 0.0
-            }
-        }
+  "date": "2025-07-19",
+  "feed_usage": {
+    "Khu 1": {
+      "T1": {
+        "Sáng": 1.0,
+        "Chiều": 0.0
+      },
+      "T2": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T4": {
+        "Sáng": 0.0,
+        "Chiều": 1.0
+      },
+      "T6": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      }
     },
-    "feed_ingredients": {
-        "Nành": 1530.0,
-        "Dầu": 30.0,
-        "DCP": 72.0,
-        "Đá hạt": 180.0,
-        "Đá bột mịn": 90.0,
-        "Cám gạo": 450.0,
-        "Bắp": 3561.0
+    "Khu 2": {
+      "T1": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T2": {
+        "Sáng": 1.0,
+        "Chiều": 0.0
+      },
+      "T4": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T6": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      }
     },
-    "mix_ingredients": {
-        "L-Lysine": 0.0,
-        "DL-Methionine": 0.0,
-        "Bio-Choline": 0.0,
-        "Phytast": 0.0,
-        "Performix 0.25% layer": 0.0,
-        "Miamix": 0.0,
-        "Premix 0.25% layer": 0.0,
-        "Compound Enzyme FE808E": 0.0,
-        "Carophy Red": 0.0,
-        "P-Zym": 0.0,
-        "Oxytetracylin": 0.0,
-        "Tiamulin": 0.0,
-        "Amox": 0.0,
-        "Immunewall": 0.0,
-        "Lysoforte Dry": 0.0,
-        "Nutriprotect": 0.0,
-        "Defitox L1": 0.0,
-        "Men Ecobiol": 0.0,
-        "Lactic LD": 0.0,
-        "Sodium bicarbonate": 0.0,
-        "Bột đá mịn": 0.0,
-        "Muối": 0.0,
-        "DCP": 0.0
+    "Khu 3": {
+      "1D": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "2D": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "4D": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "2N": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      }
     },
-    "total_batches": 3.0,
-    "linked_mix_formula": "gà_đẻ",
-    "tong_hop_amount": 0.0,
-    "mix_total": 436.0,
-    "total_mix_amount": 0.0
+    "Khu 4": {
+      "T2": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T4": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T6": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "T8": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      },
+      "Trại 1 khu 4": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      }
+    },
+    "Khu 5": {
+      "": {
+        "Sáng": 0.0,
+        "Chiều": 0.0
+      }
+    }
+  },
+  "feed_ingredients": {
+    "Nành": 1530.0,
+    "Dầu": 30.0,
+    "DCP": 72.0,
+    "Đá hạt": 180.0,
+    "Đá bột mịn": 90.0,
+    "Cám gạo": 450.0,
+    "Bắp": 3561.0
+  },
+  "mix_ingredients": {
+    "L-Lysine": 0.0,
+    "DL-Methionine": 0.0,
+    "Bio-Choline": 0.0,
+    "Phytast": 0.0,
+    "Performix 0.25% layer": 0.0,
+    "Miamix": 0.0,
+    "Premix 0.25% layer": 0.0,
+    "Compound Enzyme FE808E": 0.0,
+    "Carophy Red": 0.0,
+    "P-Zym": 0.0,
+    "Oxytetracylin": 0.0,
+    "Tiamulin": 0.0,
+    "Amox": 0.0,
+    "Immunewall": 0.0,
+    "Lysoforte Dry": 0.0,
+    "Nutriprotect": 0.0,
+    "Defitox L1": 0.0,
+    "Men Ecobiol": 0.0,
+    "Lactic LD": 0.0,
+    "Sodium bicarbonate": 0.0,
+    "Bột đá mịn": 0.0,
+    "Muối": 0.0,
+    "DCP": 0.0
+  },
+  "total_batches": 3.0,
+  "linked_mix_formula": "gà_đẻ",
+  "tong_hop_amount": 0.0,
+  "mix_total": 436.0,
+  "total_mix_amount": 0.0
 }
