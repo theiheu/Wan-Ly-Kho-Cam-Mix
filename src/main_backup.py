@@ -1804,7 +1804,7 @@ class ChickenFarmApp(QMainWindow):
             print(f"Lỗi khi cập nhật bảng lịch sử thành phần cám: {str(e)}")
             QMessageBox.warning(self, "Lỗi", f"Không thể hiển thị dữ liệu lịch sử thành phần cám: {str(e)}")
 
-    def update_history_mix_table(self, report_data):
+        def update_history_mix_table(self, report_data):
         """Update the history mix table with data from a report"""
         try:
             # Kiểm tra dữ liệu báo cáo
@@ -1815,14 +1815,74 @@ class ChickenFarmApp(QMainWindow):
             # Đặt bảng chỉ đọc - không cho phép sửa đổi
             self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
-            # Lấy dữ liệu thành phần mix từ báo cáo
+            # Tạo dictionary mix_ingredients mới
             mix_ingredients = {}
-            if "mix_ingredients" in report_data:
-                mix_ingredients = report_data.get("mix_ingredients", {})
+
+            # Kiểm tra xem có dữ liệu cần thiết không
+            if "feed_usage" not in report_data or "formula_usage" not in report_data:
+                print("Không tìm thấy dữ liệu cần thiết để tính toán mix")
+                # Thử dùng dữ liệu mix_ingredients có sẵn nếu có
+                if "mix_ingredients" in report_data:
+                    mix_ingredients = report_data.get("mix_ingredients", {})
             else:
-                # Nếu không có dữ liệu mix_ingredients trong báo cáo, thử tính toán lại từ dữ liệu
-                # Nhưng không tính toán theo cách cũ sử dụng "Nguyên liệu tổ hợp"
-                print("Báo cáo không chứa dữ liệu mix_ingredients, không thể hiển thị thành phần mix")
+                print("Đang tính toán lại thành phần mix từ dữ liệu báo cáo...")
+                # Tạo dictionary để lưu thông tin về số mẻ và công thức
+                formula_batches = {}
+                cell_formula_data = {}
+                mix_formulas_used = {}
+
+                # Tải thông tin công thức mix từ báo cáo
+                column_mix_formulas = report_data.get("column_mix_formulas", {})
+                area_mix_formulas = report_data.get("area_mix_formulas", {})
+                cell_mix_formulas = report_data.get("cell_mix_formulas", {})
+
+                # Lấy dữ liệu lượng cám và công thức từ báo cáo
+                feed_usage = report_data.get("feed_usage", {})
+                formula_usage = report_data.get("formula_usage", {})
+
+                # Xử lý từng ô trong bảng feed_usage
+                for khu_name, farms_data in feed_usage.items():
+                    for farm_name, shifts_data in farms_data.items():
+                        for shift, batch_value in shifts_data.items():
+                            # Bỏ qua nếu không có giá trị hoặc không có công thức
+                            if batch_value <= 0 or khu_name not in formula_usage or farm_name not in formula_usage[khu_name] or shift not in formula_usage[khu_name][farm_name]:
+                                continue
+
+                            formula_name = formula_usage[khu_name][farm_name][shift]
+                            if not formula_name:
+                                continue
+
+                            # Tạo cell key và lưu thông tin
+                            cell_key = f"{khu_name}_{farm_name}_{shift}"
+
+                            # Lấy công thức cám
+                            feed_formula = self.formula_manager.load_feed_preset(formula_name)
+                            if not feed_formula:
+                                continue
+
+                            # Kiểm tra có nguyên liệu tổ hợp không
+                            if "Nguyên liệu tổ hợp" not in feed_formula:
+                                continue
+
+                            # Tính lượng nguyên liệu tổ hợp cho ô này
+                            tong_hop_amount = feed_formula["Nguyên liệu tổ hợp"] * batch_value * 2  # 0.5 = 1 mẻ
+
+                            # Lưu thông tin ô
+                            cell_formula_data[cell_key] = {
+                                "feed_formula": formula_name,
+                                "batch_value": batch_value,
+                                "actual_batches": batch_value * 2,
+                                "khu": khu_name,
+                                "farm": farm_name,
+                                "shift": shift,
+                                "tong_hop_amount": tong_hop_amount
+                            }
+
+                            # Cộng dồn số mẻ cho công thức này
+                            if formula_name in formula_batches:
+                                formula_batches[formula_name] += batch_value
+                            else:
+                                formula_batches[formula_name] = batch_value
 
                 # Đánh dấu các ô đã xử lý
                 processed_cells = {}
@@ -2179,7 +2239,7 @@ class ChickenFarmApp(QMainWindow):
     def update_feed_inventory_table(self):
         """Update the feed inventory table"""
         # Get relevant ingredients from feed formula
-        feed_ingredients = list(self.feed_formula.keys())
+        feed_ingredients = [k for k in self.feed_formula.keys() if k != "Nguyên liệu tổ hợp"]
         self.feed_inventory_table.setRowCount(len(feed_ingredients))
 
         # Update inventory from manager
@@ -2254,9 +2314,6 @@ class ChickenFarmApp(QMainWindow):
         # Collect data from table
         formula_batches = {}  # Dictionary to store formula name and total batches
         farm_formula_batches = {}  # Dictionary to store formula name and batches for each farm
-
-        # Dictionary để lưu thông tin công thức mix cho từng cell
-        cell_mix_data = {}
 
         # Dictionary để lưu tổng số mẻ theo khu
         total_batches_by_area = {}  # Khu -> số mẻ
@@ -2334,36 +2391,14 @@ class ChickenFarmApp(QMainWindow):
                 if not hasattr(self, 'cell_formula_data'):
                     self.cell_formula_data = {}
 
-                # Xác định công thức mix cho cell này
-                mix_formula_name = None
-
-                # 1. Kiểm tra xem ô này có công thức mix riêng không
-                if hasattr(self, 'cell_mix_formulas') and self.cell_mix_formulas and cell_key in self.cell_mix_formulas:
-                    mix_formula_name = self.cell_mix_formulas[cell_key]
-
-                # 2. Nếu không, kiểm tra xem cột này có công thức mix không
-                if not mix_formula_name and hasattr(self, 'column_mix_formulas') and self.column_mix_formulas:
-                    col_str = f"{col}"
-                    if col_str in self.column_mix_formulas:
-                        mix_formula_name = self.column_mix_formulas[col_str]
-
-                # 3. Nếu không, kiểm tra xem khu này có công thức mix không
-                if not mix_formula_name and hasattr(self, 'area_mix_formulas') and self.area_mix_formulas and khu_name in self.area_mix_formulas:
-                    mix_formula_name = self.area_mix_formulas[khu_name]
-
                 self.cell_formula_data[cell_key] = {
                     "feed_formula": formula_name,
                     "batch_value": batch_value,
                     "actual_batches": actual_batches,
                     "khu": khu_name,
                     "farm": farm_name,
-                    "shift": shift,
-                    "mix_formula": mix_formula_name
+                    "shift": shift
                 }
-
-                # Lưu thông tin mix formula cho cell này
-                if mix_formula_name:
-                    cell_mix_data[cell_key] = mix_formula_name
 
         # Nếu không có dữ liệu, hiển thị thông báo và thoát
         if not formula_batches:
@@ -2379,7 +2414,8 @@ class ChickenFarmApp(QMainWindow):
         # Dictionary để lưu thông tin về công thức mix được sử dụng
         mix_formulas_used = {}
 
-        # Không sử dụng nguyên liệu tổ hợp nữa
+        # Lưu thông tin tổng lượng nguyên liệu tổ hợp
+        total_tong_hop = 0
 
         # Kiểm tra xem có báo cáo đang được tải lại không
         is_loading_report = hasattr(self, 'loading_report') and self.loading_report
@@ -2417,85 +2453,220 @@ class ChickenFarmApp(QMainWindow):
             if not feed_formula:
                 continue
 
-            # Tính toán thành phần cám
+            # Tính toán thành phần cám (không bao gồm mix)
             for ingredient, amount_per_batch in feed_formula.items():
-                # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
-                # batch_count là số hiển thị trên giao diện, cần nhân 2 để tính đúng số mẻ thực tế
-                feed_amount = amount_per_batch * batch_count * 2
+                if ingredient != "Nguyên liệu tổ hợp":
+                    # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+                    # batch_count là số hiển thị trên giao diện, cần nhân 2 để tính đúng số mẻ thực tế
+                    feed_amount = amount_per_batch * batch_count * 2
 
-                # Cộng dồn vào tổng thành phần cám
-                if ingredient in feed_ingredients:
-                    feed_ingredients[ingredient] += feed_amount
+                    # Cộng dồn vào tổng thành phần cám
+                    if ingredient in feed_ingredients:
+                        feed_ingredients[ingredient] += feed_amount
+                    else:
+                        feed_ingredients[ingredient] = feed_amount
                 else:
-                    feed_ingredients[ingredient] = feed_amount
+                    # Tính tổng lượng nguyên liệu tổ hợp
+                    # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
+                    tong_hop_amount = amount_per_batch * batch_count * 2
+                    total_tong_hop += tong_hop_amount
 
             # Lưu thông tin công thức và thành phần cho hiển thị chi tiết nếu cần
             self.formula_ingredients[formula_name] = {
-                "batches": batch_count
+                "batches": batch_count,
+                "tong_hop_amount": feed_formula.get("Nguyên liệu tổ hợp", 0) * batch_count * 2  # Áp dụng quy tắc 0.5 = 1 mẻ
             }
 
-        # Tính toán thành phần mix dựa trên số mẻ thực tế
-        print(f"Tính toán mix từ các công thức đã chọn cho từng ô")
+        # Tính toán thành phần mix cho từng ô, cột và khu
+        # Đánh dấu các ô đã xử lý
+        processed_cells = {}
 
-        # Duyệt qua từng ô đã có dữ liệu
-        for cell_key, cell_data in self.cell_formula_data.items():
-            batch_value = cell_data["batch_value"]
-            actual_batches = cell_data["actual_batches"]
-            mix_formula_name = cell_data.get("mix_formula")
+        # 1. Đầu tiên xử lý các ô có công thức mix riêng
+        if hasattr(self, 'cell_mix_formulas') and self.cell_mix_formulas:
+            for cell_key, mix_formula_name in self.cell_mix_formulas.items():
+                if not mix_formula_name:
+                    continue
 
-            if not mix_formula_name:
-                continue
+                # Phân tích cell_key để lấy thông tin khu, trại và ca
+                parts = cell_key.split('_')
+                if len(parts) < 3:
+                    continue
 
-            # Lấy công thức mix
-            mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
-            if not mix_formula:
-                continue
+                khu_name, farm_name, shift = parts[0], parts[1], parts[2]
 
-            # Lưu thông tin công thức mix được sử dụng
-            if mix_formula_name not in mix_formulas_used:
-                mix_formulas_used[mix_formula_name] = {
-                    "formula": mix_formula,
-                    "batch_value": 0
-                }
+                # Kiểm tra xem ô này có dữ liệu không
+                cell_data = None
+                for key, data in self.cell_formula_data.items():
+                    if key == cell_key:
+                        cell_data = data
+                        break
 
-            # Cộng dồn số mẻ
-            mix_formulas_used[mix_formula_name]["batch_value"] += batch_value
+                if not cell_data:
+                    continue
 
-        # Tính toán thành phần mix từ các công thức mix đã sử dụng
-        print(f"Tính toán từ {len(mix_formulas_used)} công thức mix")
+                # Lấy công thức cám và tính lượng nguyên liệu tổ hợp
+                feed_formula = self.formula_manager.load_feed_preset(cell_data["feed_formula"])
+                if not feed_formula or "Nguyên liệu tổ hợp" not in feed_formula:
+                    continue
 
+                tong_hop_amount = feed_formula["Nguyên liệu tổ hợp"] * cell_data["batch_value"] * 2
+
+                # Lấy công thức mix
+                mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
+                if not mix_formula:
+                    continue
+
+                # Lưu thông tin công thức mix được sử dụng
+                if mix_formula_name not in mix_formulas_used:
+                    mix_formulas_used[mix_formula_name] = {
+                        "formula": mix_formula,
+                        "tong_hop_amount": 0
+                    }
+
+                # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
+                mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
+
+                # Đánh dấu ô này đã được xử lý
+                processed_cells[cell_key] = True
+
+        # 2. Sau đó xử lý các cột theo công thức mix của cột
+        if hasattr(self, 'column_mix_formulas') and self.column_mix_formulas:
+            # Duyệt qua từng ô đã nhập
+            for cell_key, cell_data in self.cell_formula_data.items():
+                # Bỏ qua các ô đã được xử lý riêng
+                if cell_key in processed_cells:
+                    continue
+
+                # Phân tích cell_key để lấy thông tin và tìm chỉ số cột
+                parts = cell_key.split('_')
+                if len(parts) < 3:
+                    continue
+
+                khu_name, farm_name, shift = parts[0], parts[1], parts[2]
+
+                # Tìm chỉ số cột từ thông tin khu và farm
+                col_index = -1
+                current_col = 0
+                for k_idx, farms in FARMS.items():
+                    k_name = f"Khu {k_idx + 1}"
+                    for farm in farms:
+                        if k_name == khu_name and farm == farm_name:
+                            col_index = current_col
+                            break
+                        current_col += 1
+                    if col_index >= 0:
+                        break
+
+                if col_index < 0:
+                    continue
+
+                # Kiểm tra xem cột này có công thức mix không
+                col_key = f"{col_index}"
+                if col_key not in self.column_mix_formulas:
+                    continue
+
+                mix_formula_name = self.column_mix_formulas[col_key]
+                if not mix_formula_name:
+                    continue
+
+                # Lấy công thức mix và kiểm tra
+                mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
+                if not mix_formula:
+                    continue
+
+                # Lấy công thức cám và tính lượng nguyên liệu tổ hợp
+                feed_formula = self.formula_manager.load_feed_preset(cell_data["feed_formula"])
+                if not feed_formula or "Nguyên liệu tổ hợp" not in feed_formula:
+                    continue
+
+                tong_hop_amount = feed_formula["Nguyên liệu tổ hợp"] * cell_data["batch_value"] * 2
+
+                # Lưu thông tin công thức mix được sử dụng
+                if mix_formula_name not in mix_formulas_used:
+                    mix_formulas_used[mix_formula_name] = {
+                        "formula": mix_formula,
+                        "tong_hop_amount": 0
+                    }
+
+                # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
+                mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
+
+                # Đánh dấu ô này đã được xử lý
+                processed_cells[cell_key] = True
+
+        # 3. Cuối cùng xử lý các khu theo công thức mix của khu (tương thích ngược)
+        if hasattr(self, 'area_mix_formulas') and self.area_mix_formulas:
+            for khu_name, mix_formula_name in self.area_mix_formulas.items():
+                if not mix_formula_name or khu_name not in total_batches_by_area:
+                    continue
+
+                # Lấy công thức mix
+                mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
+                if not mix_formula:
+                    continue
+
+                # Tính tổng lượng nguyên liệu tổ hợp cho khu này (chỉ tính các ô chưa được xử lý)
+                khu_tong_hop_amount = 0
+
+                # Tính tổng lượng nguyên liệu tổ hợp cho khu này
+                for cell_key, cell_data in self.cell_formula_data.items():
+                    # Bỏ qua các ô đã được xử lý riêng
+                    if cell_key in processed_cells:
+                        continue
+
+                    if cell_data["khu"] == khu_name:
+                        feed_formula = self.formula_manager.load_feed_preset(cell_data["feed_formula"])
+                        if feed_formula and "Nguyên liệu tổ hợp" in feed_formula:
+                            khu_tong_hop_amount += feed_formula["Nguyên liệu tổ hợp"] * cell_data["batch_value"] * 2
+
+                # Lưu thông tin công thức mix được sử dụng
+                if mix_formula_name not in mix_formulas_used:
+                    mix_formulas_used[mix_formula_name] = {
+                        "formula": mix_formula,
+                        "tong_hop_amount": 0
+                    }
+
+                # Cộng dồn lượng nguyên liệu tổ hợp cho công thức mix này
+                mix_formulas_used[mix_formula_name]["tong_hop_amount"] += khu_tong_hop_amount
+
+                        # Tính toán thành phần mix từ tất cả các công thức mix được sử dụng
+        print(f"Tính toán mix từ {len(mix_formulas_used)} công thức mix")
         for mix_name, mix_data in mix_formulas_used.items():
             mix_formula = mix_data["formula"]
-            batch_value = mix_data["batch_value"]
+            tong_hop_amount = mix_data["tong_hop_amount"]
 
-            # Áp dụng quy tắc 0.5 = 1 mẻ, 1 = 2 mẻ
-            actual_batches = batch_value * 2
+            print(f"Công thức mix '{mix_name}' - lượng nguyên liệu tổ hợp: {tong_hop_amount} kg")
 
-            print(f"Công thức mix '{mix_name}': {batch_value} mẻ (thực tế {actual_batches} mẻ)")
+            # Tính tổng lượng mix
+            mix_total = self.formula_manager.calculate_mix_total(mix_formula)
+            print(f"Tổng tỷ lệ mix: {mix_total}%")
 
-            # Tính lượng từng thành phần mix
-            for ingredient, amount_per_batch in mix_formula.items():
-                # Tính lượng thành phần theo số mẻ
-                mix_amount = amount_per_batch * actual_batches
+            if mix_total > 0:
+                # Tính tỷ lệ từng thành phần trong mix
+                for ingredient, amount in mix_formula.items():
+                    # Tính lượng thành phần theo tỷ lệ với tổng lượng nguyên liệu tổ hợp
+                    ratio = amount / mix_total
+                    mix_amount = ratio * tong_hop_amount
 
-                print(f"  {ingredient}: {amount_per_batch} × {actual_batches} = {mix_amount:.2f} kg")
+                    print(f"  {ingredient}: {amount}% → {ratio:.4f} × {tong_hop_amount} = {mix_amount:.2f} kg")
 
-                # Cộng dồn vào kết quả
-                if ingredient in mix_ingredients:
-                    mix_ingredients[ingredient] += mix_amount
-                    print(f"    Cộng dồn: {ingredient} = {mix_ingredients[ingredient]:.2f} kg")
-                else:
-                    mix_ingredients[ingredient] = mix_amount
-                    print(f"    Thêm mới: {ingredient} = {mix_amount:.2f} kg")
+                    # Cộng dồn vào tổng thành phần mix
+                    if ingredient in mix_ingredients:
+                        mix_ingredients[ingredient] += mix_amount
+                        print(f"    Cộng dồn: {ingredient} = {mix_ingredients[ingredient]:.2f} kg")
+                    else:
+                        mix_ingredients[ingredient] = mix_amount
+                        print(f"    Thêm mới: {ingredient} = {mix_amount:.2f} kg")
 
         # Tính tổng lượng cám và mix
-        total_feed = sum(feed_ingredients.values()) if feed_ingredients else 0
-        total_mix = sum(mix_ingredients.values()) if mix_ingredients else 0
+        total_feed_amount = sum(feed_ingredients.values()) if feed_ingredients else 0
+        total_mix_amount = sum(mix_ingredients.values()) if mix_ingredients else 0
 
         # Lưu kết quả tính toán vào biến thành viên để sử dụng khi lưu báo cáo
         self.feed_ingredients = feed_ingredients
         self.mix_ingredients = mix_ingredients
         self.mix_formulas_used = mix_formulas_used
+        self.total_tong_hop = total_tong_hop
         self.total_batches = total_batches
         self.total_batches_by_area = total_batches_by_area
 
@@ -2792,20 +2963,33 @@ class ChickenFarmApp(QMainWindow):
 
                 # Lấy giá trị
                 try:
-                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
-                    amount_spin = self.feed_formula_table.cellWidget(row, 2)
+                    # Thử lấy giá trị từ spin box
+                    amount_spin = self.feed_formula_table.cellWidget(row, 1)
                     if amount_spin is not None:
                         amount = amount_spin.value()
                     else:
-                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
-                        item = self.feed_formula_table.item(row, 2)
+                        # Nếu không có spin box, thử lấy giá trị từ item
+                        item = self.feed_formula_table.item(row, 1)
                         if item is not None:
                             amount = float(item.text().replace(',', '.'))
                         else:
                             # Nếu không có item, sử dụng giá trị từ công thức hiện tại
                             amount = self.feed_formula.get(ingredient, 0)
 
-                    # Đã bỏ "Nguyên liệu tổ hợp" nên không cần đoạn code xử lý riêng cho nó
+                    # Đối với Nguyên liệu tổ hợp, lưu giá trị gốc nếu có công thức mix được gắn
+                    if ingredient == "Nguyên liệu tổ hợp":
+                        # Kiểm tra xem có công thức mix được gắn không
+                        current_preset = self.feed_preset_combo.currentText()
+                        linked_mix_name = ""
+
+                        if current_preset:
+                            linked_mix_name = self.formula_manager.get_linked_mix_formula_name(current_preset)
+                        else:
+                            linked_mix_name = self.formula_manager.get_linked_mix_formula_name()
+
+                        if linked_mix_name:
+                            # Nếu có công thức mix được gắn, lưu giá trị gốc từ feed_formula
+                            amount = self.feed_formula.get(ingredient, 0)
 
                     updated_formula[ingredient] = amount
 
@@ -2858,13 +3042,13 @@ class ChickenFarmApp(QMainWindow):
 
                 # Lấy giá trị
                 try:
-                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
-                    amount_spin = self.mix_formula_table.cellWidget(row, 2)
+                    # Thử lấy giá trị từ spin box
+                    amount_spin = self.mix_formula_table.cellWidget(row, 1)
                     if amount_spin is not None:
                         amount = amount_spin.value()
                     else:
-                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
-                        item = self.mix_formula_table.item(row, 2)
+                        # Nếu không có spin box, thử lấy giá trị từ item
+                        item = self.mix_formula_table.item(row, 1)
                         if item is not None:
                             amount = float(item.text().replace(',', '.'))
                         else:
@@ -2973,10 +3157,13 @@ class ChickenFarmApp(QMainWindow):
                 "display_date": display_date,
                 "feed_usage": feed_usage,
                 "formula_usage": formula_usage,
+                "results": self.results_data,
                 "feed_ingredients": self.feed_ingredients,
                 "mix_ingredients": self.mix_ingredients,
                 "total_batches": self.total_batches,
                 "total_batches_by_area": self.total_batches_by_area,
+                "linked_mix_formula": self.formula_manager.get_linked_mix_formula_name(),
+                "tong_hop_amount": self.total_tong_hop,
                 "default_formula": self.default_formula_combo.currentText()
             }
 
@@ -3144,7 +3331,7 @@ class ChickenFarmApp(QMainWindow):
             self.update_feed_formula_table()
 
             # Cập nhật combo box liên kết mix để hiển thị liên kết cho preset này
-            self.update_mix_preset_combo()
+            self.update_mix_link_combo()
 
             QMessageBox.information(self, "Thành công", f"Đã tải công thức cám '{preset_name}'")
 
@@ -3842,20 +4029,27 @@ class ChickenFarmApp(QMainWindow):
 
                 # Lấy giá trị
                 try:
-                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
-                    amount_spin = self.feed_formula_table.cellWidget(row, 2)
+                    # Thử lấy giá trị từ spin box
+                    amount_spin = self.feed_formula_table.cellWidget(row, 1)
                     if amount_spin is not None:
                         amount = amount_spin.value()
                     else:
-                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
-                        item = self.feed_formula_table.item(row, 2)
+                        # Nếu không có spin box, thử lấy giá trị từ item
+                        item = self.feed_formula_table.item(row, 1)
                         if item is not None:
                             amount = float(item.text().replace(',', '.'))
                         else:
                             # Nếu không có item, sử dụng giá trị từ công thức hiện tại
                             amount = self.feed_formula.get(ingredient, 0)
 
-                    # Đã bỏ "Nguyên liệu tổ hợp" nên không cần đoạn code xử lý riêng cho nó
+                    # Đối với Nguyên liệu tổ hợp, lưu giá trị gốc nếu có công thức mix được gắn
+                    if ingredient == "Nguyên liệu tổ hợp":
+                        linked_mix_name = self.formula_manager.get_linked_mix_formula_name(preset_name)
+                        if linked_mix_name:
+                            # Nếu có công thức mix được gắn, lưu giá trị gốc
+                            preset_formula = self.formula_manager.load_feed_preset(preset_name)
+                            if "Nguyên liệu tổ hợp" in preset_formula:
+                                amount = preset_formula["Nguyên liệu tổ hợp"]
 
                     updated_formula[ingredient] = amount
                 except Exception as e:
@@ -3905,13 +4099,13 @@ class ChickenFarmApp(QMainWindow):
 
                 # Lấy giá trị
                 try:
-                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
-                    amount_spin = self.mix_formula_table.cellWidget(row, 2)
+                    # Thử lấy giá trị từ spin box
+                    amount_spin = self.mix_formula_table.cellWidget(row, 1)
                     if amount_spin is not None:
                         amount = amount_spin.value()
                     else:
-                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
-                        item = self.mix_formula_table.item(row, 2)
+                        # Nếu không có spin box, thử lấy giá trị từ item
+                        item = self.mix_formula_table.item(row, 1)
                         if item is not None:
                             amount = float(item.text().replace(',', '.'))
                         else:
@@ -3957,7 +4151,7 @@ class ChickenFarmApp(QMainWindow):
             self.update_feed_formula_table()
 
             # Cập nhật combo box liên kết mix để hiển thị liên kết cho preset này
-            self.update_mix_preset_combo()
+            self.update_mix_link_combo()
 
     def auto_load_mix_preset(self, index):
         """Tự động tải công thức mix khi chọn từ combo box"""
@@ -5448,4 +5642,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

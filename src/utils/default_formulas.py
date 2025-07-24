@@ -6,7 +6,6 @@ Predefined formulas for different types of feed and mix
 LAYER_FEED_FORMULA = {
     "Nành": 540,
     "Dầu": 4,
-    "Nguyên liệu tổ hợp": 0,  # Will be calculated separately
     "DCP": 29,
     "Đá hạt": 108,
     "Đá bột mịn": 50,
@@ -45,7 +44,6 @@ LAYER_MIX_FORMULA = {
 BROILER_FEED_FORMULA = {
     "Nành": 600,
     "Dầu": 10,
-    "Nguyên liệu tổ hợp": 0,  # Will be calculated separately
     "DCP": 35,
     "Đá hạt": 100,
     "Đá bột mịn": 45,
