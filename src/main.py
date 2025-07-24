@@ -2167,7 +2167,7 @@ class ChickenFarmApp(QMainWindow):
             one_batch_amount = amount / 10  # 1 mẻ bằng 1/10 của giá trị 10 mẻ
             one_batch_item = QTableWidgetItem(format_number(one_batch_amount))
             one_batch_item.setFont(TABLE_CELL_FONT)
-            one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            one_batch_item.setTextAlignment(Qt.AlignCenter)  # Căn giữa số
             one_batch_item.setBackground(QColor(240, 248, 255))  # Light blue background
             self.mix_formula_table.setItem(i, 2, one_batch_item)
 
@@ -2184,7 +2184,7 @@ class ChickenFarmApp(QMainWindow):
                 one_batch_value = value / 10
                 one_batch_item = QTableWidgetItem(format_number(one_batch_value))
                 one_batch_item.setFont(TABLE_CELL_FONT)
-                one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                one_batch_item.setTextAlignment(Qt.AlignCenter)  # Căn giữa số
                 one_batch_item.setBackground(QColor(240, 248, 255))  # Light blue background
                 self.mix_formula_table.setItem(row, 2, one_batch_item)
 
@@ -2209,7 +2209,7 @@ class ChickenFarmApp(QMainWindow):
         total_one_batch_item = QTableWidgetItem(format_number(total_one_batch))
         total_one_batch_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_one_batch_item.setBackground(QColor(230, 250, 200))  # Light green background
-        total_one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        total_one_batch_item.setTextAlignment(Qt.AlignCenter)  # Căn giữa số
         self.mix_formula_table.setItem(total_row, 2, total_one_batch_item)
 
         # Tổng lượng cho 10 mẻ
