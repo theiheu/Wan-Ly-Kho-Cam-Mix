@@ -4,13 +4,13 @@ Predefined formulas for different types of feed and mix
 
 # Default feed formula for laying hens (2 tons per batch)
 LAYER_FEED_FORMULA = {
+    "Bắp": 1156,
     "Nành": 540,
-    "Dầu": 4,
-    "DCP": 29,
     "Đá hạt": 108,
     "Đá bột mịn": 50,
+    "Dầu": 4,
+    "DCP": 29,
     "Cám gạo": 80,
-    "Bắp": 1156
 }
 
 # Default mix formula for laying hens (2 tons per batch)
@@ -42,13 +42,13 @@ LAYER_MIX_FORMULA = {
 
 # Example feed formula for broilers (2 tons per batch)
 BROILER_FEED_FORMULA = {
+    "Bắp": 1150,
     "Nành": 600,
-    "Dầu": 10,
-    "DCP": 35,
     "Đá hạt": 100,
     "Đá bột mịn": 45,
+    "Dầu": 10,
+    "DCP": 35,
     "Cám gạo": 60,
-    "Bắp": 1150
 }
 
 # Example mix formula for broilers (2 tons per batch)
@@ -109,13 +109,13 @@ PACKAGING_INFO = {
 # Initial inventory data (example values)
 INITIAL_INVENTORY = {
     # Feed ingredients
+    "Bắp": 10000,
     "Nành": 5000,
-    "Dầu": 200,
-    "DCP": 500,
     "Đá hạt": 1000,
     "Đá bột mịn": 500,
+    "Dầu": 200,
+    "DCP": 500,
     "Cám gạo": 800,
-    "Bắp": 10000,
 
     # Mix ingredients
     "L-Lysine": 100,

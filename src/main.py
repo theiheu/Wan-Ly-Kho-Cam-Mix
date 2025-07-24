@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import pandas as pd
+from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout,
                             QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
@@ -166,6 +167,14 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
 
+        # Các thư mục dữ liệu
+        os.makedirs("src/data/reports", exist_ok=True)
+        os.makedirs("src/data/imports", exist_ok=True)  # Thư mục chứa lịch sử nhập hàng
+
+        # Các thư mục dữ liệu
+        os.makedirs("src/data/reports", exist_ok=True)
+        os.makedirs("src/data/imports", exist_ok=True)  # Thư mục chứa lịch sử nhập hàng
+
         # Initialize managers
         self.formula_manager = FormulaManager()
         self.inventory_manager = InventoryManager()
@@ -233,12 +242,14 @@ class ChickenFarmApp(QMainWindow):
         # Create tabs
         self.feed_usage_tab = QWidget()
         self.inventory_tab = QWidget()
+        self.import_tab = QWidget()  # Tab mới cho nhập hàng
         self.formula_tab = QWidget()
         self.history_tab = QWidget()  # Tab mới cho lịch sử
 
         # Add tabs to widget
         self.tabs.addTab(self.feed_usage_tab, "Tổng quan")
         self.tabs.addTab(self.inventory_tab, "Tồn Kho")
+        self.tabs.addTab(self.import_tab, "Nhập Hàng")  # Tab nhập hàng
         self.tabs.addTab(self.formula_tab, "Công Thức")
         self.tabs.addTab(self.history_tab, "Lịch Sử")  # Thêm tab lịch sử
 
@@ -254,6 +265,7 @@ class ChickenFarmApp(QMainWindow):
         # Setup each tab
         self.setup_feed_usage_tab()
         self.setup_inventory_tab()
+        self.setup_import_tab()  # Thiết lập tab nhập hàng
         self.setup_formula_tab()
         self.setup_history_tab()  # Thiết lập tab lịch sử
 
@@ -861,6 +873,553 @@ class ChickenFarmApp(QMainWindow):
         layout.addWidget(inventory_tabs)
 
         self.inventory_tab.setLayout(layout)
+
+    def setup_import_tab(self):
+        """Setup the import goods tab"""
+        layout = QVBoxLayout()
+
+        # Add a header for the tab
+        header = QLabel("Nhập Hàng Vào Kho")
+        header.setFont(HEADER_FONT)
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("QLabel { padding: 10px; background-color: #e0f2f1; border-radius: 5px; }")
+        layout.addWidget(header)
+
+        # Create tabs for Feed and Mix imports
+        import_tabs = QTabWidget()
+        import_tabs.setFont(DEFAULT_FONT)
+        import_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-bottom-color: #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 8px 12px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #4CAF50;
+                color: white;
+            }
+            QTabBar::tab:!selected {
+                margin-top: 2px;
+            }
+        """)
+
+        # Create tabs for importing feed and mix ingredients
+        feed_import_tab = QWidget()
+        mix_import_tab = QWidget()
+        import_history_tab = QWidget()
+
+        import_tabs.addTab(feed_import_tab, "Nhập kho cám")
+        import_tabs.addTab(mix_import_tab, "Nhập kho mix")
+        import_tabs.addTab(import_history_tab, "Lịch Sử Nhập Hàng")
+
+        # Setup Feed Import tab
+        feed_import_layout = QVBoxLayout()
+
+        # Form layout for feed import
+        feed_form_group = QGroupBox("Thông Tin Nhập kho cám")
+        feed_form_group.setFont(DEFAULT_FONT)
+        feed_form_layout = QGridLayout()
+
+        # Add form fields
+        feed_form_layout.addWidget(QLabel("Thành phần:"), 0, 0)
+        self.feed_import_combo = QComboBox()
+        self.feed_import_combo.setFont(DEFAULT_FONT)
+
+        # Lấy danh sách các thành phần từ công thức cám
+        feed_ingredients = self.formula_manager.get_feed_formula().keys()
+        for ingredient in feed_ingredients:
+            self.feed_import_combo.addItem(ingredient)
+        feed_form_layout.addWidget(self.feed_import_combo, 0, 1)
+
+        feed_form_layout.addWidget(QLabel("Số lượng (kg):"), 1, 0)
+        self.feed_import_amount = CustomDoubleSpinBox()
+        self.feed_import_amount.setRange(0, 1000000)
+        self.feed_import_amount.setDecimals(2)
+        self.feed_import_amount.setSingleStep(10)
+        self.feed_import_amount.setFont(DEFAULT_FONT)
+        feed_form_layout.addWidget(self.feed_import_amount, 1, 1)
+
+        feed_form_layout.addWidget(QLabel("Ngày nhập:"), 2, 0)
+        self.feed_import_date = QDateEdit()
+        self.feed_import_date.setDate(QDate.currentDate())
+        self.feed_import_date.setCalendarPopup(True)
+        self.feed_import_date.setFont(DEFAULT_FONT)
+        feed_form_layout.addWidget(self.feed_import_date, 2, 1)
+
+        feed_form_layout.addWidget(QLabel("Ghi chú:"), 3, 0)
+        self.feed_import_note = QLineEdit()
+        self.feed_import_note.setFont(DEFAULT_FONT)
+        feed_form_layout.addWidget(self.feed_import_note, 3, 1)
+
+        feed_form_group.setLayout(feed_form_layout)
+        feed_import_layout.addWidget(feed_form_group)
+
+        # Add submit button
+        feed_import_btn = QPushButton("Nhập kho cám")
+        feed_import_btn.setFont(BUTTON_FONT)
+        feed_import_btn.setMinimumHeight(40)
+        feed_import_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        feed_import_btn.clicked.connect(lambda: self.import_feed())
+        feed_import_layout.addWidget(feed_import_btn)
+
+        # Thêm bảng lịch sử Nhập kho cám
+        feed_history_group = QGroupBox("Lịch Sử Nhập kho cám")
+        feed_history_group.setFont(DEFAULT_FONT)
+        feed_history_layout = QVBoxLayout()
+
+        self.feed_import_history_table = QTableWidget()
+        self.feed_import_history_table.setFont(TABLE_CELL_FONT)
+        self.feed_import_history_table.setColumnCount(5)
+        self.feed_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Số bao", "Ghi chú"])
+        self.feed_import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.feed_import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.feed_import_history_table.setAlternatingRowColors(True)
+        self.feed_import_history_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f9f9f9;
+            }
+            QHeaderView::section {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.feed_import_history_table.setMinimumHeight(200)
+        feed_history_layout.addWidget(self.feed_import_history_table)
+        feed_history_group.setLayout(feed_history_layout)
+        feed_import_layout.addWidget(feed_history_group)
+
+        # Cập nhật lịch sử Nhập kho cám lần đầu
+        self.update_feed_import_history()
+
+        feed_import_tab.setLayout(feed_import_layout)
+
+        # Setup Mix Import tab (similar to feed import)
+        mix_import_layout = QVBoxLayout()
+
+        # Form layout for mix import
+        mix_form_group = QGroupBox("Thông Tin Nhập kho mix")
+        mix_form_group.setFont(DEFAULT_FONT)
+        mix_form_layout = QGridLayout()
+
+        # Add form fields
+        mix_form_layout.addWidget(QLabel("Thành phần:"), 0, 0)
+        self.mix_import_combo = QComboBox()
+        self.mix_import_combo.setFont(DEFAULT_FONT)
+
+        # Lấy danh sách các thành phần từ công thức mix
+        mix_ingredients = self.formula_manager.get_mix_formula().keys()
+        for ingredient in mix_ingredients:
+            self.mix_import_combo.addItem(ingredient)
+        mix_form_layout.addWidget(self.mix_import_combo, 0, 1)
+
+        mix_form_layout.addWidget(QLabel("Số lượng (kg):"), 1, 0)
+        self.mix_import_amount = CustomDoubleSpinBox()
+        self.mix_import_amount.setRange(0, 1000000)
+        self.mix_import_amount.setDecimals(2)
+        self.mix_import_amount.setSingleStep(10)
+        self.mix_import_amount.setFont(DEFAULT_FONT)
+        mix_form_layout.addWidget(self.mix_import_amount, 1, 1)
+
+        mix_form_layout.addWidget(QLabel("Ngày nhập:"), 2, 0)
+        self.mix_import_date = QDateEdit()
+        self.mix_import_date.setDate(QDate.currentDate())
+        self.mix_import_date.setCalendarPopup(True)
+        self.mix_import_date.setFont(DEFAULT_FONT)
+        mix_form_layout.addWidget(self.mix_import_date, 2, 1)
+
+        mix_form_layout.addWidget(QLabel("Ghi chú:"), 3, 0)
+        self.mix_import_note = QLineEdit()
+        self.mix_import_note.setFont(DEFAULT_FONT)
+        mix_form_layout.addWidget(self.mix_import_note, 3, 1)
+
+        mix_form_group.setLayout(mix_form_layout)
+        mix_import_layout.addWidget(mix_form_group)
+
+        # Add submit button
+        mix_import_btn = QPushButton("Nhập kho mix")
+        mix_import_btn.setFont(BUTTON_FONT)
+        mix_import_btn.setMinimumHeight(40)
+        mix_import_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        mix_import_btn.clicked.connect(lambda: self.import_mix())
+        mix_import_layout.addWidget(mix_import_btn)
+
+        # Thêm bảng lịch sử Nhập kho mix
+        mix_history_group = QGroupBox("Lịch Sử Nhập kho mix")
+        mix_history_group.setFont(DEFAULT_FONT)
+        mix_history_layout = QVBoxLayout()
+
+        self.mix_import_history_table = QTableWidget()
+        self.mix_import_history_table.setFont(TABLE_CELL_FONT)
+        self.mix_import_history_table.setColumnCount(5)
+        self.mix_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Số bao", "Ghi chú"])
+        self.mix_import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.mix_import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.mix_import_history_table.setAlternatingRowColors(True)
+        self.mix_import_history_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f9f9f9;
+            }
+            QHeaderView::section {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        self.mix_import_history_table.setMinimumHeight(200)
+        mix_history_layout.addWidget(self.mix_import_history_table)
+        mix_history_group.setLayout(mix_history_layout)
+        mix_import_layout.addWidget(mix_history_group)
+
+        # Cập nhật lịch sử Nhập kho mix lần đầu
+        self.update_mix_import_history()
+
+        mix_import_tab.setLayout(mix_import_layout)
+
+        # Setup Import History tab
+        history_layout = QVBoxLayout()
+
+        # Date selector for import history
+        history_date_layout = QHBoxLayout()
+        history_date_layout.addWidget(QLabel("Chọn ngày:"))
+
+        self.import_history_date = QDateEdit()
+        self.import_history_date.setDate(QDate.currentDate())
+        self.import_history_date.setCalendarPopup(True)
+        self.import_history_date.setFont(DEFAULT_FONT)
+        history_date_layout.addWidget(self.import_history_date)
+
+        import_history_load_btn = QPushButton("Xem lịch sử")
+        import_history_load_btn.setFont(DEFAULT_FONT)
+        import_history_load_btn.clicked.connect(self.load_import_history)
+        history_date_layout.addWidget(import_history_load_btn)
+
+        history_date_layout.addStretch()
+        history_layout.addLayout(history_date_layout)
+
+        # Import history table
+        self.import_history_table = QTableWidget()
+        self.import_history_table.setFont(TABLE_CELL_FONT)
+        self.import_history_table.setColumnCount(5)
+        self.import_history_table.setHorizontalHeaderLabels(["Thời gian", "Loại", "Thành phần", "Số lượng (kg)", "Ghi chú"])
+        self.import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.import_history_table.setAlternatingRowColors(True)
+        self.import_history_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f9f9f9;
+            }
+            QHeaderView::section {
+                background-color: #4CAF50;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+        """)
+        history_layout.addWidget(self.import_history_table)
+
+        import_history_tab.setLayout(history_layout)
+
+        # Add the tabs to the main layout
+        layout.addWidget(import_tabs)
+
+        self.import_tab.setLayout(layout)
+
+    def import_feed(self):
+        """Import feed into inventory"""
+        ingredient = self.feed_import_combo.currentText()
+        amount = self.feed_import_amount.value()
+        date = self.feed_import_date.date().toString("yyyy-MM-dd")
+        note = self.feed_import_note.text()
+
+        if amount <= 0:
+            QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
+            return
+
+        # Update inventory
+        inventory = self.inventory_manager.get_inventory()
+        current_amount = inventory.get(ingredient, 0)
+        inventory[ingredient] = current_amount + amount
+        self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+
+                # Save import history
+        self.save_import_history("feed", ingredient, amount, date, note)
+
+        # Update tables
+        self.update_feed_inventory_table()
+
+        # Update import history
+        self.update_feed_import_history()
+
+        # Clear form
+        self.feed_import_amount.setValue(0)
+        self.feed_import_note.clear()
+
+        QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho cám!")
+
+    def import_mix(self):
+        """Import mix into inventory"""
+        ingredient = self.mix_import_combo.currentText()
+        amount = self.mix_import_amount.value()
+        date = self.mix_import_date.date().toString("yyyy-MM-dd")
+        note = self.mix_import_note.text()
+
+        if amount <= 0:
+            QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
+            return
+
+        # Update inventory
+        inventory = self.inventory_manager.get_inventory()
+        current_amount = inventory.get(ingredient, 0)
+        inventory[ingredient] = current_amount + amount
+        self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+
+                # Save import history
+        self.save_import_history("mix", ingredient, amount, date, note)
+
+        # Update tables
+        self.update_mix_inventory_table()
+
+        # Update import history
+        self.update_mix_import_history()
+
+        # Clear form
+        self.mix_import_amount.setValue(0)
+        self.mix_import_note.clear()
+
+        QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho mix!")
+
+    def save_import_history(self, import_type, ingredient, amount, date, note):
+        """Save import history to file"""
+        # Create filename based on date
+        filename = f"src/data/imports/import_{date}.json"
+
+        # Load existing data if file exists
+        if os.path.exists(filename):
+            with open(filename, "r", encoding="utf-8") as f:
+                imports = json.load(f)
+        else:
+            imports = []
+
+        # Add new import record
+        import_data = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "type": import_type,
+            "ingredient": ingredient,
+            "amount": amount,
+            "note": note
+        }
+
+        imports.append(import_data)
+
+        # Save updated data
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(imports, f, ensure_ascii=False, indent=2)
+
+    def load_import_history(self):
+        """Load and display import history for selected date"""
+        selected_date = self.import_history_date.date().toString("yyyy-MM-dd")
+        filename = f"src/data/imports/import_{selected_date}.json"
+
+        # Clear the table
+        self.import_history_table.setRowCount(0)
+
+        # Check if file exists
+        if not os.path.exists(filename):
+            QMessageBox.information(self, "Thông báo", f"Không có dữ liệu nhập hàng cho ngày {selected_date}!")
+            return
+
+        # Load data
+        with open(filename, "r", encoding="utf-8") as f:
+            imports = json.load(f)
+
+        # Populate table
+        self.import_history_table.setRowCount(len(imports))
+
+        for row, import_data in enumerate(imports):
+            # Timestamp
+            time_item = QTableWidgetItem(import_data["timestamp"])
+            self.import_history_table.setItem(row, 0, time_item)
+
+            # Type (feed or mix)
+            type_text = "Cám" if import_data["type"] == "feed" else "Mix"
+            type_item = QTableWidgetItem(type_text)
+            self.import_history_table.setItem(row, 1, type_item)
+
+            # Ingredient
+            ingredient_item = QTableWidgetItem(import_data["ingredient"])
+            self.import_history_table.setItem(row, 2, ingredient_item)
+
+            # Amount
+            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
+            amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.import_history_table.setItem(row, 3, amount_item)
+
+            # Note
+            note_item = QTableWidgetItem(import_data["note"])
+            self.import_history_table.setItem(row, 4, note_item)
+
+    def update_feed_import_history(self):
+        """Cập nhật bảng lịch sử Nhập kho cám"""
+        # Lấy ngày hiện tại
+        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+        filename = f"src/data/imports/import_{current_date}.json"
+
+        # Xóa dữ liệu hiện tại
+        self.feed_import_history_table.setRowCount(0)
+
+        # Kiểm tra xem file có tồn tại không
+        if not os.path.exists(filename):
+            return
+
+        # Đọc dữ liệu
+        with open(filename, "r", encoding="utf-8") as f:
+            imports = json.load(f)
+
+                # Lọc chỉ lấy dữ liệu cám
+        feed_imports = [import_data for import_data in imports if import_data["type"] == "feed"]
+
+        # Sắp xếp theo thời gian, mới nhất lên đầu
+        feed_imports.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        # Điền vào bảng
+        self.feed_import_history_table.setRowCount(len(feed_imports))
+
+        for row, import_data in enumerate(feed_imports):
+            # Thời gian
+            time_item = QTableWidgetItem(import_data["timestamp"])
+            self.feed_import_history_table.setItem(row, 0, time_item)
+
+            # Thành phần
+            ingredient_item = QTableWidgetItem(import_data["ingredient"])
+            self.feed_import_history_table.setItem(row, 1, ingredient_item)
+
+            # Số lượng
+            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
+            amount_item.setTextAlignment(Qt.AlignCenter)
+            self.feed_import_history_table.setItem(row, 2, amount_item)
+
+            # Số bao
+            ingredient_name = import_data["ingredient"]
+            amount = import_data["amount"]
+            # Lấy kích thước bao từ packaging_info
+            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
+            if bag_size > 0:
+                bags = amount / bag_size
+                bags_item = QTableWidgetItem(format_number(bags))
+            else:
+                bags_item = QTableWidgetItem("")
+            bags_item.setTextAlignment(Qt.AlignCenter)
+            self.feed_import_history_table.setItem(row, 3, bags_item)
+
+            # Ghi chú
+            note_item = QTableWidgetItem(import_data["note"])
+            self.feed_import_history_table.setItem(row, 4, note_item)
+
+    def update_mix_import_history(self):
+        """Cập nhật bảng lịch sử Nhập kho mix"""
+        # Lấy ngày hiện tại
+        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+        filename = f"src/data/imports/import_{current_date}.json"
+
+        # Xóa dữ liệu hiện tại
+        self.mix_import_history_table.setRowCount(0)
+
+        # Kiểm tra xem file có tồn tại không
+        if not os.path.exists(filename):
+            return
+
+        # Đọc dữ liệu
+        with open(filename, "r", encoding="utf-8") as f:
+            imports = json.load(f)
+
+                # Lọc chỉ lấy dữ liệu mix
+        mix_imports = [import_data for import_data in imports if import_data["type"] == "mix"]
+
+        # Sắp xếp theo thời gian, mới nhất lên đầu
+        mix_imports.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        # Điền vào bảng
+        self.mix_import_history_table.setRowCount(len(mix_imports))
+
+        for row, import_data in enumerate(mix_imports):
+            # Thời gian
+            time_item = QTableWidgetItem(import_data["timestamp"])
+            self.mix_import_history_table.setItem(row, 0, time_item)
+
+            # Thành phần
+            ingredient_item = QTableWidgetItem(import_data["ingredient"])
+            self.mix_import_history_table.setItem(row, 1, ingredient_item)
+
+            # Số lượng
+            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
+            amount_item.setTextAlignment(Qt.AlignCenter)
+            self.mix_import_history_table.setItem(row, 2, amount_item)
+
+            # Số bao
+            ingredient_name = import_data["ingredient"]
+            amount = import_data["amount"]
+            # Lấy kích thước bao từ packaging_info
+            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
+            if bag_size > 0:
+                bags = amount / bag_size
+                bags_item = QTableWidgetItem(format_number(bags))
+            else:
+                bags_item = QTableWidgetItem("")
+            bags_item.setTextAlignment(Qt.AlignCenter)
+            self.mix_import_history_table.setItem(row, 3, bags_item)
+
+            # Ghi chú
+            note_item = QTableWidgetItem(import_data["note"])
+            self.mix_import_history_table.setItem(row, 4, note_item)
 
     def setup_formula_tab(self):
         """Setup the formula management tab"""
