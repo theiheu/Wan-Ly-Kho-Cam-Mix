@@ -2806,6 +2806,25 @@ class ChickenFarmApp(QMainWindow):
                 QMessageBox.warning(self, "Cảnh báo", "Vui lòng tính toán trước khi lưu báo cáo!")
                 return
 
+            # Cập nhật tồn kho dựa trên số lượng đã sử dụng
+            all_ingredients_used = {}
+
+            # Gộp tất cả nguyên liệu đã sử dụng
+            for ingredient, amount in self.feed_ingredients.items():
+                if ingredient in all_ingredients_used:
+                    all_ingredients_used[ingredient] += amount
+                else:
+                    all_ingredients_used[ingredient] = amount
+
+            for ingredient, amount in self.mix_ingredients.items():
+                if ingredient in all_ingredients_used:
+                    all_ingredients_used[ingredient] += amount
+                else:
+                    all_ingredients_used[ingredient] = amount
+
+            # Cập nhật tồn kho
+            self.update_inventory_after_usage(all_ingredients_used)
+
             # Tạo thư mục báo cáo nếu chưa tồn tại
             reports_dir = "src/data/reports"
             if not os.path.exists(reports_dir):
@@ -2895,7 +2914,7 @@ class ChickenFarmApp(QMainWindow):
             with open(report_file, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, ensure_ascii=False, indent=4)
 
-            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào {report_file}")
+            QMessageBox.information(self, "Thành công", f"Đã lưu báo cáo vào {report_file} và đã cập nhật tồn kho")
 
             # Cập nhật danh sách báo cáo trong tab lịch sử
             self.update_history_dates()
@@ -4418,8 +4437,8 @@ class ChickenFarmApp(QMainWindow):
                 # Tạo bảng thành phần cám
         feed_table = QTableWidget()
         feed_table.setFont(TABLE_CELL_FONT)
-        feed_table.setColumnCount(4)  # Ingredient, Amount, Bags, Inventory
-        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)"])
+        feed_table.setColumnCount(5)  # Ingredient, Amount, Bags, Inventory, Remaining
+        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)", "Tồn kho sau (kg)"])
         feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
@@ -4462,7 +4481,7 @@ class ChickenFarmApp(QMainWindow):
         feed_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold))  # Tăng kích thước font
         feed_header.setBackground(QColor(220, 240, 220))  # Light green background
         feed_table.setItem(row, 0, feed_header)
-        feed_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
+        feed_table.setSpan(row, 0, 1, 5)  # Merge cells for header across 5 columns
 
         row += 1
 
@@ -4495,6 +4514,14 @@ class ChickenFarmApp(QMainWindow):
             inventory_item.setBackground(QColor(240, 248, 255))  # Light blue background
             feed_table.setItem(row, 3, inventory_item)
 
+            # Add remaining inventory after usage
+            remaining = max(0, inventory_amount - amount)
+            remaining_item = QTableWidgetItem(format_number(remaining))
+            remaining_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            remaining_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            remaining_item.setBackground(QColor(220, 240, 220))  # Light green background
+            feed_table.setItem(row, 4, remaining_item)
+
             row += 1
 
         # Thêm tổng cộng cho cám
@@ -4516,6 +4543,9 @@ class ChickenFarmApp(QMainWindow):
         # Tổng tồn kho cám (để trống vì không có ý nghĩa cho tổng)
         feed_table.setItem(row, 3, QTableWidgetItem(""))
 
+        # Tổng tồn kho sau (để trống vì không có ý nghĩa cho tổng)
+        feed_table.setItem(row, 4, QTableWidgetItem(""))
+
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(feed_table.rowCount()):
             feed_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
@@ -4534,8 +4564,8 @@ class ChickenFarmApp(QMainWindow):
         # Tạo bảng thành phần mix
         mix_table = QTableWidget()
         mix_table.setFont(TABLE_CELL_FONT)
-        mix_table.setColumnCount(4)  # Ingredient, Amount, Bags, Inventory
-        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)"])
+        mix_table.setColumnCount(5)  # Ingredient, Amount, Bags, Inventory, Remaining
+        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)", "Tồn kho sau (kg)"])
         mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         mix_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
@@ -4564,7 +4594,7 @@ class ChickenFarmApp(QMainWindow):
         mix_header.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold))  # Tăng kích thước font
         mix_header.setBackground(QColor(240, 220, 220))  # Light red background
         mix_table.setItem(row, 0, mix_header)
-        mix_table.setSpan(row, 0, 1, 4)  # Merge cells for header across 4 columns
+        mix_table.setSpan(row, 0, 1, 5)  # Merge cells for header across 5 columns
 
         row += 1
 
@@ -4597,6 +4627,14 @@ class ChickenFarmApp(QMainWindow):
             inventory_item.setBackground(QColor(255, 245, 230))  # Light orange background
             mix_table.setItem(row, 3, inventory_item)
 
+            # Add remaining inventory after usage
+            remaining = max(0, inventory_amount - amount)
+            remaining_item = QTableWidgetItem(format_number(remaining))
+            remaining_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            remaining_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            remaining_item.setBackground(QColor(255, 235, 205))  # Lighter orange background
+            mix_table.setItem(row, 4, remaining_item)
+
             row += 1
 
         # Thêm tổng cộng cho mix
@@ -4617,6 +4655,9 @@ class ChickenFarmApp(QMainWindow):
 
         # Tổng tồn kho mix (để trống vì không có ý nghĩa cho tổng)
         mix_table.setItem(row, 3, QTableWidgetItem(""))
+
+        # Tổng tồn kho sau (để trống vì không có ý nghĩa cho tổng)
+        mix_table.setItem(row, 4, QTableWidgetItem(""))
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(mix_table.rowCount()):
