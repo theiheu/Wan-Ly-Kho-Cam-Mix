@@ -1077,8 +1077,8 @@ class ChickenFarmApp(QMainWindow):
         # Mix formula table
         self.mix_formula_table = QTableWidget()
         self.mix_formula_table.setFont(TABLE_CELL_FONT)
-        self.mix_formula_table.setColumnCount(3)
-        self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Lượng (kg)"])
+        self.mix_formula_table.setColumnCount(4)  # Thêm một cột mới
+        self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "1 mẻ (kg)", "10 mẻ (kg)"])
         self.mix_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.mix_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.mix_formula_table.setStyleSheet("""
@@ -2163,14 +2163,33 @@ class ChickenFarmApp(QMainWindow):
             percentage_item.setTextAlignment(Qt.AlignCenter)
             self.mix_formula_table.setItem(i, 1, percentage_item)
 
-            # Amount input
+            # 1 mẻ (kg) input - read-only
+            one_batch_amount = amount / 10  # 1 mẻ bằng 1/10 của giá trị 10 mẻ
+            one_batch_item = QTableWidgetItem(format_number(one_batch_amount))
+            one_batch_item.setFont(TABLE_CELL_FONT)
+            one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            one_batch_item.setBackground(QColor(240, 248, 255))  # Light blue background
+            self.mix_formula_table.setItem(i, 2, one_batch_item)
+
+            # 10 mẻ (kg) input
             amount_spin = CustomDoubleSpinBox()
             amount_spin.setFont(TABLE_CELL_FONT)
             amount_spin.setMinimumHeight(30)
             amount_spin.setRange(0, 2000)
             amount_spin.setDecimals(2)  # Hiển thị tối đa 2 chữ số thập phân
             amount_spin.setValue(amount)
-            self.mix_formula_table.setCellWidget(i, 2, amount_spin)
+
+            # Khi thay đổi giá trị cột 10 mẻ, tự động cập nhật cột 1 mẻ
+            def update_one_batch(value, row=i):
+                one_batch_value = value / 10
+                one_batch_item = QTableWidgetItem(format_number(one_batch_value))
+                one_batch_item.setFont(TABLE_CELL_FONT)
+                one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                one_batch_item.setBackground(QColor(240, 248, 255))  # Light blue background
+                self.mix_formula_table.setItem(row, 2, one_batch_item)
+
+            amount_spin.valueChanged.connect(update_one_batch)
+            self.mix_formula_table.setCellWidget(i, 3, amount_spin)
 
         # Thêm hàng tổng lượng
         total_row = len(self.mix_formula)
@@ -2185,10 +2204,20 @@ class ChickenFarmApp(QMainWindow):
         total_percentage.setTextAlignment(Qt.AlignCenter)
         self.mix_formula_table.setItem(total_row, 1, total_percentage)
 
+        # Tổng lượng cho 1 mẻ
+        total_one_batch = mix_total / 10
+        total_one_batch_item = QTableWidgetItem(format_number(total_one_batch))
+        total_one_batch_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_one_batch_item.setBackground(QColor(230, 250, 200))  # Light green background
+        total_one_batch_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.mix_formula_table.setItem(total_row, 2, total_one_batch_item)
+
+        # Tổng lượng cho 10 mẻ
         total_value = QTableWidgetItem(format_number(mix_total))
         total_value.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_value.setBackground(QColor(230, 250, 200))  # Light green background
-        self.mix_formula_table.setItem(total_row, 2, total_value)
+        total_value.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.mix_formula_table.setItem(total_row, 3, total_value)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.mix_formula_table.rowCount()):
@@ -2493,10 +2522,14 @@ class ChickenFarmApp(QMainWindow):
 
             # Tính lượng từng thành phần mix
             for ingredient, amount_per_batch in mix_formula.items():
-                # Tính lượng thành phần theo số mẻ
-                mix_amount = amount_per_batch * actual_batches
+                # Lấy giá trị từ cột '1 mẻ (kg)' thay vì cột '10 mẻ (kg)'
+                # amount_per_batch là giá trị cho 10 mẻ, chia 10 để có giá trị cho 1 mẻ
+                one_batch_amount = amount_per_batch / 10
 
-                print(f"  {ingredient}: {amount_per_batch} × {actual_batches} = {mix_amount:.2f} kg")
+                # Tính lượng thành phần theo số mẻ thực tế
+                mix_amount = one_batch_amount * actual_batches
+
+                print(f"  {ingredient}: {one_batch_amount} × {actual_batches} = {mix_amount:.2f} kg")
 
                 # Cộng dồn vào kết quả
                 if ingredient in mix_ingredients:
