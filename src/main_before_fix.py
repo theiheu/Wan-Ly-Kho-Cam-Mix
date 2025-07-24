@@ -1838,171 +1838,12 @@ class ChickenFarmApp(QMainWindow):
             if "mix_ingredients" in report_data:
                 mix_ingredients = report_data.get("mix_ingredients", {})
             else:
-                # Nếu không có dữ liệu mix_ingredients trong báo cáo, thử tính toán lại từ dữ liệu
-                # Nhưng không tính toán theo cách cũ sử dụng "Nguyên liệu tổ hợp"
+                # Không có dữ liệu mix_ingredients trong báo cáo
                 print("Báo cáo không chứa dữ liệu mix_ingredients, không thể hiển thị thành phần mix")
+                self.history_mix_table.setRowCount(0)
+                return
 
-                # Đánh dấu các ô đã xử lý
-                processed_cells = {}
-
-                # 1. Đầu tiên xử lý các ô có công thức mix riêng
-                if cell_mix_formulas:
-                    for cell_key, mix_formula_name in cell_mix_formulas.items():
-                        if not mix_formula_name or cell_key not in cell_formula_data:
-                            continue
-
-                        # Lấy dữ liệu ô
-                        cell_data = cell_formula_data[cell_key]
-                        tong_hop_amount = cell_data["tong_hop_amount"]
-
-                        # Lấy công thức mix
-                        mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
-                        if not mix_formula:
-                            continue
-
-                        # Lưu thông tin công thức mix sử dụng
-                        if mix_formula_name not in mix_formulas_used:
-                            mix_formulas_used[mix_formula_name] = {
-                                "formula": mix_formula,
-                                "tong_hop_amount": 0
-                            }
-
-                        # Cộng dồn lượng nguyên liệu tổ hợp cho công thức này
-                        mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
-
-                        # Đánh dấu ô đã xử lý
-                        processed_cells[cell_key] = True
-
-                # 2. Sau đó xử lý theo cột
-                if column_mix_formulas:
-                    # Tính chỉ số cột cho từng khu/trại
-                    col_indices = {}
-                    current_col = 0
-
-                    for khu_idx, farms in FARMS.items():
-                        khu_name = f"Khu {khu_idx + 1}"
-                        for farm_name in farms:
-                            col_indices[f"{khu_name}_{farm_name}"] = current_col
-                            current_col += 1
-
-                    # Xử lý từng ô chưa được xử lý
-                    for cell_key, cell_data in cell_formula_data.items():
-                        if cell_key in processed_cells:
-                            continue
-
-                        # Phân tích cell_key
-                        parts = cell_key.split('_')
-                        if len(parts) < 3:
-                            continue
-
-                        khu_name, farm_name = parts[0], parts[1]
-                        col_key = f"{khu_name}_{farm_name}"
-
-                        # Tìm chỉ số cột
-                        if col_key not in col_indices:
-                            continue
-
-                        col_index = col_indices[col_key]
-                        col_str = f"{col_index}"
-
-                        # Kiểm tra có công thức mix cho cột này không
-                        if col_str not in column_mix_formulas:
-                            continue
-
-                        mix_formula_name = column_mix_formulas[col_str]
-                        if not mix_formula_name:
-                            continue
-
-                        # Lấy công thức mix
-                        mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
-                        if not mix_formula:
-                            continue
-
-                        # Lấy lượng nguyên liệu tổ hợp
-                        tong_hop_amount = cell_data["tong_hop_amount"]
-
-                        # Lưu thông tin công thức mix sử dụng
-                        if mix_formula_name not in mix_formulas_used:
-                            mix_formulas_used[mix_formula_name] = {
-                                "formula": mix_formula,
-                                "tong_hop_amount": 0
-                            }
-
-                        # Cộng dồn lượng nguyên liệu tổ hợp
-                        mix_formulas_used[mix_formula_name]["tong_hop_amount"] += tong_hop_amount
-
-                        # Đánh dấu ô đã xử lý
-                        processed_cells[cell_key] = True
-
-                # 3. Cuối cùng xử lý theo khu (tương thích ngược)
-                if area_mix_formulas:
-                    for khu_name, mix_formula_name in area_mix_formulas.items():
-                        if not mix_formula_name:
-                            continue
-
-                        # Lấy công thức mix
-                        mix_formula = self.formula_manager.load_mix_preset(mix_formula_name)
-                        if not mix_formula:
-                            continue
-
-                        # Tính tổng lượng nguyên liệu tổ hợp cho khu này (chỉ tính các ô chưa xử lý)
-                        khu_tong_hop_amount = 0
-
-                        for cell_key, cell_data in cell_formula_data.items():
-                            if cell_key in processed_cells:
-                                continue
-
-                            if cell_data["khu"] == khu_name:
-                                khu_tong_hop_amount += cell_data["tong_hop_amount"]
-                                processed_cells[cell_key] = True
-
-                        # Nếu có nguyên liệu tổ hợp, lưu thông tin công thức mix
-                        if khu_tong_hop_amount > 0:
-                            if mix_formula_name not in mix_formulas_used:
-                                mix_formulas_used[mix_formula_name] = {
-                                    "formula": mix_formula,
-                                    "tong_hop_amount": 0
-                                }
-
-                            # Cộng dồn lượng nguyên liệu tổ hợp
-                            mix_formulas_used[mix_formula_name]["tong_hop_amount"] += khu_tong_hop_amount
-
-                # Tính toán thành phần mix từ các công thức mix đã dùng
-                print(f"Tính toán từ {len(mix_formulas_used)} công thức mix")
-
-                for mix_name, mix_data in mix_formulas_used.items():
-                    mix_formula = mix_data["formula"]
-                    tong_hop_amount = mix_data["tong_hop_amount"]
-
-                    print(f"Công thức {mix_name}: lượng tổ hợp = {tong_hop_amount} kg")
-
-                    # Tính tổng tỷ lệ mix
-                    mix_total = sum(mix_formula.values())
-
-                    if mix_total > 0:
-                        # Tính lượng từng thành phần
-                        for ingredient, percentage in mix_formula.items():
-                            # Tính theo tỷ lệ phần trăm
-                            ratio = percentage / mix_total
-                            mix_amount = ratio * tong_hop_amount
-
-                            # Cộng dồn vào kết quả
-                            if ingredient in mix_ingredients:
-                                mix_ingredients[ingredient] += mix_amount
-                            else:
-                                mix_ingredients[ingredient] = mix_amount
-
-                # Cập nhật báo cáo với dữ liệu đã tính toán
-                if mix_ingredients:
-                    print(f"Đã tính toán {len(mix_ingredients)} thành phần mix:")
-                    for ingredient, amount in mix_ingredients.items():
-                        print(f"  {ingredient}: {amount:.2f} kg")
-
-                    report_data["mix_ingredients"] = mix_ingredients
-                else:
-                    print("Không tính được thành phần mix!")
-
-            # Kiểm tra lại mix_ingredients sau khi tính toán
+            # Kiểm tra lại mix_ingredients
             if not mix_ingredients:
                 self.history_mix_table.setRowCount(0)
                 print("Không có dữ liệu thành phần mix để hiển thị")
@@ -2499,11 +2340,11 @@ class ChickenFarmApp(QMainWindow):
                 print(f"  {ingredient}: {amount_per_batch} × {actual_batches} = {mix_amount:.2f} kg")
 
                 # Cộng dồn vào kết quả
-                if ingredient in mix_ingredients:
-                    mix_ingredients[ingredient] += mix_amount
+                    if ingredient in mix_ingredients:
+                        mix_ingredients[ingredient] += mix_amount
                     print(f"    Cộng dồn: {ingredient} = {mix_ingredients[ingredient]:.2f} kg")
-                else:
-                    mix_ingredients[ingredient] = mix_amount
+                    else:
+                        mix_ingredients[ingredient] = mix_amount
                     print(f"    Thêm mới: {ingredient} = {mix_amount:.2f} kg")
 
         # Tính tổng lượng cám và mix
@@ -3992,6 +3833,819 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
 
+    def save_as_feed_preset(self):
+        """Save current feed formula as a preset"""
+        preset_name, ok = QInputDialog.getText(self, "Lưu công thức", "Tên công thức:")
+        if ok and preset_name:
+            try:
+                # Lưu công thức hiện tại trước
+                if not self.save_feed_formula():
+                    return
+
+                # Lấy công thức đã lưu
+                formula = self.feed_formula
+
+                # Save as preset
+                if self.formula_manager.save_preset("feed", preset_name, formula):
+                    self.update_feed_preset_combo()
+
+                    # Chọn preset mới tạo
+                    index = self.feed_preset_combo.findText(preset_name)
+                    if index >= 0:
+                        self.feed_preset_combo.setCurrentIndex(index)
+
+                    QMessageBox.information(self, "Thành công", f"Đã lưu công thức cám '{preset_name}'")
+            except Exception as e:
+                QMessageBox.warning(self, "Lỗi", f"Không thể lưu công thức cám: {str(e)}")
+                # In thông tin lỗi ra console để debug
+                import traceback
+                traceback.print_exc()
+
+    def save_as_mix_preset(self):
+        """Save current mix formula as a preset"""
+        preset_name, ok = QInputDialog.getText(self, "Lưu công thức", "Tên công thức:")
+        if ok and preset_name:
+            try:
+                # Lưu công thức hiện tại trước
+                if not self.save_mix_formula():
+                    return
+
+                # Lấy công thức đã lưu
+                formula = self.mix_formula
+
+                # Save as preset
+                if self.formula_manager.save_preset("mix", preset_name, formula):
+                    self.update_mix_preset_combo()
+
+                    # Chọn preset mới tạo
+                    index = self.mix_preset_combo.findText(preset_name)
+                    if index >= 0:
+                        self.mix_preset_combo.setCurrentIndex(index)
+
+                    QMessageBox.information(self, "Thành công", f"Đã lưu công thức mix '{preset_name}'")
+            except Exception as e:
+                QMessageBox.warning(self, "Lỗi", f"Không thể lưu công thức mix: {str(e)}")
+                # In thông tin lỗi ra console để debug
+                import traceback
+                traceback.print_exc()
+
+    def delete_feed_preset(self):
+        """Delete selected feed preset"""
+        preset_name = self.feed_preset_combo.currentText()
+        if not preset_name:
+            return
+
+        reply = QMessageBox.question(self, "Xác nhận xóa",
+                                     f"Bạn có chắc chắn muốn xóa công thức cám '{preset_name}'?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            if self.formula_manager.delete_preset("feed", preset_name):
+                self.update_feed_preset_combo()
+                QMessageBox.information(self, "Thành công", f"Đã xóa công thức cám '{preset_name}'")
+
+    def delete_mix_preset(self):
+        """Delete selected mix preset"""
+        preset_name = self.mix_preset_combo.currentText()
+        if not preset_name:
+            return
+
+        reply = QMessageBox.question(self, "Xác nhận xóa",
+                                     f"Bạn có chắc chắn muốn xóa công thức mix '{preset_name}'?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            if self.formula_manager.delete_preset("mix", preset_name):
+                self.update_mix_preset_combo()
+                QMessageBox.information(self, "Thành công", f"Đã xóa công thức mix '{preset_name}'")
+
+    def compare_history_data(self):
+        """Compare current history data with another date"""
+        # Nếu không có dữ liệu hiện tại, không thể so sánh
+        if not hasattr(self, 'current_report_data') or not self.current_report_data:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu hiện tại để so sánh!")
+            return
+
+        # Tạo dialog để chọn ngày so sánh
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chọn Ngày So Sánh")
+        dialog.setMinimumWidth(300)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+            QLabel {
+                font-size: 12pt;
+            }
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-height: 30px;
+                font-size: 11pt;
+            }
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 4px;
+                padding: 8px 15px;
+                font-weight: bold;
+                min-height: 30px;
+                font-size: 11pt;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        layout = QVBoxLayout()
+
+        # Thêm label
+        label = QLabel("Chọn ngày để so sánh:")
+        label.setFont(DEFAULT_FONT)
+        layout.addWidget(label)
+
+        # Thêm combobox để chọn ngày
+        compare_date_combo = QComboBox()
+        compare_date_combo.setFont(DEFAULT_FONT)
+
+        # Cập nhật danh sách ngày (loại bỏ ngày hiện tại)
+        self.update_history_dates(compare_date_combo)
+
+        # Nếu chỉ có một lựa chọn (Không có dữ liệu), không thể so sánh
+        if compare_date_combo.count() <= 1:
+            QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu khác để so sánh!")
+            return
+
+        layout.addWidget(compare_date_combo)
+
+        # Thêm nút OK và Cancel
+        button_layout = QHBoxLayout()
+        ok_button = QPushButton("So Sánh")
+        cancel_button = QPushButton("Hủy")
+
+        ok_button.clicked.connect(dialog.accept)
+        cancel_button.clicked.connect(dialog.reject)
+
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+
+        # Hiển thị dialog
+        if dialog.exec_() == QDialog.Accepted:
+            # Lấy ngày đã chọn
+            compare_date_index = compare_date_combo.currentIndex()
+            compare_date_text = compare_date_combo.currentText()
+
+            # Nếu chọn "Không so sánh", thoát
+            if compare_date_text == "Không so sánh":
+                return
+
+            # Lấy dữ liệu báo cáo để so sánh
+            compare_data = self.load_report_data(compare_date_text)
+
+            if not compare_data:
+                QMessageBox.warning(self, "Cảnh báo", f"Không thể tải dữ liệu cho ngày {compare_date_text}!")
+                return
+
+            # Cập nhật bảng so sánh
+            self.update_history_usage_comparison(self.current_report_data, compare_data)
+            self.update_history_feed_comparison(self.current_report_data, compare_data)
+            self.update_history_mix_comparison(self.current_report_data, compare_data)
+
+    def update_history_usage_comparison(self, current_data, compare_data):
+        """Update the history usage table with comparison data"""
+        if "feed_usage" not in current_data or "feed_usage" not in compare_data:
+            return
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_usage_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Populate table with farms and khu information
+        col_index = 0  # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
+        for khu_idx, farms in FARMS.items():
+            khu_name = f"Khu {khu_idx + 1}"
+
+            for farm_idx, farm in enumerate(farms):
+                # Set khu label in first row
+                self.history_usage_table.setItem(0, col_index, QTableWidgetItem(khu_name))
+
+                # Set farm name in second row
+                self.history_usage_table.setItem(1, col_index, QTableWidgetItem(farm))
+
+                # Fill in usage data for each shift
+                for shift_idx, shift in enumerate(SHIFTS):
+                    # Try to get the usage value from the current data
+                    try:
+                        current_usage = current_data["feed_usage"][khu_name][farm][shift]
+                        item = QTableWidgetItem(format_number(current_usage))
+                    except (KeyError, TypeError):
+                        current_usage = 0
+
+                    # Try to get the usage value from the compare data
+                    try:
+                        compare_usage = compare_data["feed_usage"][khu_name][farm][shift]
+                    except (KeyError, TypeError):
+                        compare_usage = 0
+
+                    # Calculate difference
+                    diff = current_usage - compare_usage
+
+                    # Create item with the current usage value
+                    item = QTableWidgetItem(format_number(current_usage))
+
+                    # Set color based on difference
+                    if diff > 0:
+                        item.setForeground(QColor(0, 128, 0))  # Green for increase
+                    elif diff < 0:
+                        item.setForeground(QColor(255, 0, 0))  # Red for decrease
+
+                    # Add tooltip with comparison information
+                    item.setToolTip(f"Hiện tại: {format_number(current_usage)}, So sánh: {format_number(compare_usage)}, Chênh lệch: {format_number(diff)}")
+
+                    self.history_usage_table.setItem(shift_idx + 2, col_index, item)
+
+                col_index += 1
+
+        # Stretch columns to fill available space
+        self.history_usage_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+    def update_history_feed_comparison(self, current_data, compare_data):
+        """Update the history feed ingredients table with comparison data"""
+        if "feed_ingredients" not in current_data or "feed_ingredients" not in compare_data:
+            return
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Chuẩn bị dữ liệu cho bảng so sánh
+        table_data = []
+
+        # Gộp tất cả các thành phần
+        all_ingredients = set(current_data["feed_ingredients"].keys()) | set(compare_data["feed_ingredients"].keys())
+
+        # Tính tổng lượng
+        current_total = 0
+        compare_total = 0
+        current_total_bags = 0
+        compare_total_bags = 0
+
+        # Tạo dữ liệu so sánh
+        for ingredient in all_ingredients:
+            current_val = current_data["feed_ingredients"].get(ingredient, 0)
+            compare_val = compare_data["feed_ingredients"].get(ingredient, 0)
+            diff = current_val - compare_val
+
+            # Tính số bao
+            current_bags = self.inventory_manager.calculate_bags(ingredient, current_val)
+            compare_bags = self.inventory_manager.calculate_bags(ingredient, compare_val)
+            bags_diff = current_bags - compare_bags
+
+            table_data.append((ingredient, current_val, compare_val, diff, current_bags, compare_bags, bags_diff))
+
+            # Cộng vào tổng
+            current_total += current_val
+            compare_total += compare_val
+            current_total_bags += current_bags
+            compare_total_bags += compare_bags
+
+        # Sắp xếp theo lượng sử dụng hiện tại (giảm dần)
+        table_data.sort(key=lambda x: x[1], reverse=True)
+
+        # Cập nhật bảng
+        self.history_feed_table.setColumnCount(7)  # Thành phần, Hiện tại (kg), So sánh (kg), Chênh lệch (kg), Hiện tại (bao), So sánh (bao), Chênh lệch (bao)
+        self.history_feed_table.setHorizontalHeaderLabels([
+            "Thành phần",
+            f"Hiện tại (kg)",
+            f"So sánh (kg)",
+            "Chênh lệch (kg)",
+            f"Hiện tại (bao)",
+            f"So sánh (bao)",
+            "Chênh lệch (bao)"
+        ])
+        self.history_feed_table.setRowCount(len(table_data) + 1)  # +1 cho hàng tổng cộng
+
+        for row, (ingredient, current_val, compare_val, diff, current_bags, compare_bags, bags_diff) in enumerate(table_data):
+            self.history_feed_table.setItem(row, 0, QTableWidgetItem(ingredient))
+            self.history_feed_table.setItem(row, 1, QTableWidgetItem(format_number(current_val)))
+            self.history_feed_table.setItem(row, 2, QTableWidgetItem(format_number(compare_val)))
+
+            # Hiển thị chênh lệch kg với màu sắc
+            diff_item = QTableWidgetItem(format_number(diff))
+            if diff > 0:
+                diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+            elif diff < 0:
+                diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+
+            self.history_feed_table.setItem(row, 3, diff_item)
+
+            # Hiển thị số bao
+            self.history_feed_table.setItem(row, 4, QTableWidgetItem(format_number(current_bags)))
+            self.history_feed_table.setItem(row, 5, QTableWidgetItem(format_number(compare_bags)))
+
+            # Hiển thị chênh lệch bao với màu sắc
+            bags_diff_item = QTableWidgetItem(format_number(bags_diff))
+            if bags_diff > 0:
+                bags_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+            elif bags_diff < 0:
+                bags_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+
+            self.history_feed_table.setItem(row, 6, bags_diff_item)
+
+        # Thêm hàng tổng cộng
+        total_row = len(table_data)
+        total_item = QTableWidgetItem("Tổng lượng Cám")
+        total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        self.history_feed_table.setItem(total_row, 0, total_item)
+
+        # Hiển thị tổng lượng hiện tại
+        current_total_item = QTableWidgetItem(format_number(current_total))
+        current_total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        current_total_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        self.history_feed_table.setItem(total_row, 1, current_total_item)
+
+        # Hiển thị tổng lượng so sánh
+        compare_total_item = QTableWidgetItem(format_number(compare_total))
+        compare_total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        compare_total_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        self.history_feed_table.setItem(total_row, 2, compare_total_item)
+
+        # Hiển thị chênh lệch tổng lượng
+        total_diff = current_total - compare_total
+        total_diff_item = QTableWidgetItem(format_number(total_diff))
+        total_diff_item.setFont(QFont("Arial", weight=QFont.Bold))
+        total_diff_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        if total_diff > 0:
+            total_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+        elif total_diff < 0:
+            total_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+        self.history_feed_table.setItem(total_row, 3, total_diff_item)
+
+        # Hiển thị tổng số bao hiện tại
+        current_total_bags_item = QTableWidgetItem(format_number(current_total_bags))
+        current_total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
+        current_total_bags_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        self.history_feed_table.setItem(total_row, 4, current_total_bags_item)
+
+        # Hiển thị tổng số bao so sánh
+        compare_total_bags_item = QTableWidgetItem(format_number(compare_total_bags))
+        compare_total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
+        compare_total_bags_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        self.history_feed_table.setItem(total_row, 5, compare_total_bags_item)
+
+        # Hiển thị chênh lệch tổng số bao
+        total_bags_diff = current_total_bags - compare_total_bags
+        total_bags_diff_item = QTableWidgetItem(format_number(total_bags_diff))
+        total_bags_diff_item.setFont(QFont("Arial", weight=QFont.Bold))
+        total_bags_diff_item.setBackground(QColor(200, 230, 250))  # Light blue background
+        if total_bags_diff > 0:
+            total_bags_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+        elif total_bags_diff < 0:
+            total_bags_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+        self.history_feed_table.setItem(total_row, 6, total_bags_diff_item)
+
+    def update_history_mix_comparison(self, current_data, compare_data):
+        """Update the history mix ingredients table with comparison data"""
+        if "mix_ingredients" not in current_data or "mix_ingredients" not in compare_data:
+            return
+
+        # Đặt bảng chỉ đọc - không cho phép sửa đổi
+        self.history_mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Get linked mix formula names if available
+        current_linked_mix = current_data.get("linked_mix_formula", "")
+        compare_linked_mix = compare_data.get("linked_mix_formula", "")
+
+        # Set title with linked formula info
+        mix_title = "Thành Phần Mix"
+        if current_linked_mix and compare_linked_mix:
+            if current_linked_mix == compare_linked_mix:
+                mix_title += f" ({current_linked_mix})"
+            else:
+                mix_title += f" ({current_linked_mix} vs {compare_linked_mix})"
+        elif current_linked_mix:
+            mix_title += f" ({current_linked_mix} vs Không có)"
+        elif compare_linked_mix:
+            mix_title += f" (Không có vs {compare_linked_mix})"
+
+        self.history_tabs.setTabText(2, mix_title)
+
+        # Chuẩn bị dữ liệu cho bảng so sánh
+        table_data = []
+
+        # Gộp tất cả các thành phần
+        all_ingredients = set(current_data["mix_ingredients"].keys()) | set(compare_data["mix_ingredients"].keys())
+
+        # Tính tổng lượng
+        current_total = 0
+        compare_total = 0
+        current_total_bags = 0
+        compare_total_bags = 0
+
+        # Tạo dữ liệu so sánh
+        for ingredient in all_ingredients:
+            current_val = current_data["mix_ingredients"].get(ingredient, 0)
+            compare_val = compare_data["mix_ingredients"].get(ingredient, 0)
+            diff = current_val - compare_val
+
+            # Tính số bao
+            current_bags = self.inventory_manager.calculate_bags(ingredient, current_val)
+            compare_bags = self.inventory_manager.calculate_bags(ingredient, compare_val)
+            bags_diff = current_bags - compare_bags
+
+            table_data.append((ingredient, current_val, compare_val, diff, current_bags, compare_bags, bags_diff))
+
+            # Cộng vào tổng
+            current_total += current_val
+            compare_total += compare_val
+            current_total_bags += current_bags
+            compare_total_bags += compare_bags
+
+        # Sắp xếp theo lượng sử dụng hiện tại (giảm dần)
+        table_data.sort(key=lambda x: x[1], reverse=True)
+
+        # Cập nhật bảng
+        self.history_mix_table.setColumnCount(7)  # Thành phần, Hiện tại (kg), So sánh (kg), Chênh lệch (kg), Hiện tại (bao), So sánh (bao), Chênh lệch (bao)
+        self.history_mix_table.setHorizontalHeaderLabels([
+            "Thành phần",
+            f"Hiện tại (kg)",
+            f"So sánh (kg)",
+            "Chênh lệch (kg)",
+            f"Hiện tại (bao)",
+            f"So sánh (bao)",
+            "Chênh lệch (bao)"
+        ])
+        self.history_mix_table.setRowCount(len(table_data) + 1)  # +1 cho hàng tổng cộng
+
+        for row, (ingredient, current_val, compare_val, diff, current_bags, compare_bags, bags_diff) in enumerate(table_data):
+            self.history_mix_table.setItem(row, 0, QTableWidgetItem(ingredient))
+            self.history_mix_table.setItem(row, 1, QTableWidgetItem(format_number(current_val)))
+            self.history_mix_table.setItem(row, 2, QTableWidgetItem(format_number(compare_val)))
+
+            # Hiển thị chênh lệch kg với màu sắc
+            diff_item = QTableWidgetItem(format_number(diff))
+            if diff > 0:
+                diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+            elif diff < 0:
+                diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+
+            self.history_mix_table.setItem(row, 3, diff_item)
+
+            # Hiển thị số bao
+            self.history_mix_table.setItem(row, 4, QTableWidgetItem(format_number(current_bags)))
+            self.history_mix_table.setItem(row, 5, QTableWidgetItem(format_number(compare_bags)))
+
+            # Hiển thị chênh lệch bao với màu sắc
+            bags_diff_item = QTableWidgetItem(format_number(bags_diff))
+            if bags_diff > 0:
+                bags_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+            elif bags_diff < 0:
+                bags_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+
+            self.history_mix_table.setItem(row, 6, bags_diff_item)
+
+        # Thêm hàng tổng cộng
+        total_row = len(table_data)
+        total_item = QTableWidgetItem("Tổng lượng Mix")
+        total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        self.history_mix_table.setItem(total_row, 0, total_item)
+
+        # Hiển thị tổng lượng hiện tại
+        current_total_item = QTableWidgetItem(format_number(current_total))
+        current_total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        current_total_item.setBackground(QColor(230, 250, 200))  # Light green background
+        self.history_mix_table.setItem(total_row, 1, current_total_item)
+
+        # Hiển thị tổng lượng so sánh
+        compare_total_item = QTableWidgetItem(format_number(compare_total))
+        compare_total_item.setFont(QFont("Arial", weight=QFont.Bold))
+        compare_total_item.setBackground(QColor(230, 250, 200))  # Light green background
+        self.history_mix_table.setItem(total_row, 2, compare_total_item)
+
+        # Hiển thị chênh lệch tổng lượng
+        total_diff = current_total - compare_total
+        total_diff_item = QTableWidgetItem(format_number(total_diff))
+        total_diff_item.setFont(QFont("Arial", weight=QFont.Bold))
+        total_diff_item.setBackground(QColor(230, 250, 200))  # Light green background
+        if total_diff > 0:
+            total_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+        elif total_diff < 0:
+            total_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+        self.history_mix_table.setItem(total_row, 3, total_diff_item)
+
+        # Hiển thị tổng số bao hiện tại
+        current_total_bags_item = QTableWidgetItem(format_number(current_total_bags))
+        current_total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
+        current_total_bags_item.setBackground(QColor(230, 250, 200))  # Light green background
+        self.history_mix_table.setItem(total_row, 4, current_total_bags_item)
+
+        # Hiển thị tổng số bao so sánh
+        compare_total_bags_item = QTableWidgetItem(format_number(compare_total_bags))
+        compare_total_bags_item.setFont(QFont("Arial", weight=QFont.Bold))
+        compare_total_bags_item.setBackground(QColor(230, 250, 200))  # Light green background
+        self.history_mix_table.setItem(total_row, 5, compare_total_bags_item)
+
+        # Hiển thị chênh lệch tổng số bao
+        total_bags_diff = current_total_bags - compare_total_bags
+        total_bags_diff_item = QTableWidgetItem(format_number(total_bags_diff))
+        total_bags_diff_item.setFont(QFont("Arial", weight=QFont.Bold))
+        total_bags_diff_item.setBackground(QColor(230, 250, 200))  # Light green background
+        if total_bags_diff > 0:
+            total_bags_diff_item.setForeground(QColor(0, 128, 0))  # Màu xanh lá cho tăng
+        elif total_bags_diff < 0:
+            total_bags_diff_item.setForeground(QColor(255, 0, 0))  # Màu đỏ cho giảm
+        self.history_mix_table.setItem(total_row, 6, total_bags_diff_item)
+
+    def export_history_to_excel(self):
+        """Export historical data for the selected date to Excel"""
+        current_index = self.history_date_combo.currentIndex()
+        if current_index < 0:
+            QMessageBox.warning(self, "Lỗi", "Không có dữ liệu lịch sử để xuất Excel.")
+            return
+
+        report_file = self.history_date_combo.itemData(current_index)
+        if not report_file:
+            QMessageBox.warning(self, "Lỗi", "Không tìm thấy file báo cáo.")
+            return
+
+        try:
+            # Load report data
+            with open(report_file, 'r', encoding='utf-8') as f:
+                report_data = json.load(f)
+
+            # Create reports directory if it doesn't exist
+            reports_dir = "reports"
+            if not os.path.exists(reports_dir):
+                os.makedirs(reports_dir)
+
+            # Get base filename without extension and directory
+            base_filename = os.path.splitext(os.path.basename(report_file))[0]
+            excel_filename = os.path.join(reports_dir, f"{base_filename}_history.xlsx")
+
+            # Create a pandas ExcelWriter object
+            writer = pd.ExcelWriter(excel_filename, engine='openpyxl')
+
+            # Create feed usage by khu dataframe
+            khu_data = []
+            for khu_idx in range(AREAS):
+                khu_name = f"Khu {khu_idx + 1}"
+                row_data = {"Khu": khu_name}
+
+                # Calculate total for each shift in this khu
+                for shift_idx, shift in enumerate(SHIFTS):
+                    total = 0
+                    farms = FARMS.get(khu_idx, [])
+
+                    # If this khu has farms, sum up their values
+                    if farms:
+                        col_start = 0 # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
+                        for prev_khu_idx in range(khu_idx):
+                            col_start += len(FARMS.get(prev_khu_idx, []))
+
+                        for farm_idx in range(len(farms)):
+                            col = col_start + farm_idx
+                            spin_box = self.feed_table.cellWidget(shift_idx + 2, col)
+                            if spin_box:
+                                total += spin_box.value()
+
+                    row_data[shift] = total
+
+                khu_data.append(row_data)
+
+            khu_df = pd.DataFrame(khu_data)
+
+            # Create feed usage by farm dataframe
+            farm_data = []
+            col_index = 0 # Bắt đầu từ cột 0 vì đã bỏ cột nhãn
+            for khu_idx, farms in FARMS.items():
+                khu_name = f"Khu {khu_idx + 1}"
+
+                for farm in farms:
+                    row_data = {"Khu": khu_name, "Trại": farm}
+
+                    for shift_idx, shift in enumerate(SHIFTS):
+                        spin_box = self.feed_table.cellWidget(shift_idx + 2, col_index)
+                        if spin_box:
+                            row_data[shift] = spin_box.value()
+
+                    farm_data.append(row_data)
+                    col_index += 1
+
+            farm_df = pd.DataFrame(farm_data)
+
+            # Tính tổng số mẻ
+            total_batches = 0
+            for row in farm_data:
+                total_batches += sum([row[shift] for shift in SHIFTS])
+
+            # Tính toán thành phần cám sử dụng (không bao gồm mix)
+            feed_ingredients_data = []
+            for ingredient, amount_per_batch in self.feed_formula.items():
+                if ingredient != "Nguyên liệu tổ hợp":
+                    amount = amount_per_batch * total_batches
+                    bags = self.inventory_manager.calculate_bags(ingredient, amount)
+                    feed_ingredients_data.append({
+                        "Thành phần": ingredient,
+                        "Số lượng (kg)": amount,
+                        "Số bao": bags
+                    })
+
+            feed_ingredients_df = pd.DataFrame(feed_ingredients_data)
+
+            # Tính toán thành phần mix sử dụng
+            mix_ingredients_data = []
+            for ingredient, amount_per_batch in self.mix_formula.items():
+                amount = amount_per_batch * total_batches
+                bags = self.inventory_manager.calculate_bags(ingredient, amount)
+                mix_ingredients_data.append({
+                    "Thành phần": ingredient,
+                    "Số lượng (kg)": amount,
+                    "Số bao": bags
+                })
+
+            mix_ingredients_df = pd.DataFrame(mix_ingredients_data)
+
+            # Write to Excel
+            khu_df.to_excel(writer, sheet_name='Lượng Cám theo Khu', index=False)
+            farm_df.to_excel(writer, sheet_name='Lượng Cám theo Trại', index=False)
+            feed_ingredients_df.to_excel(writer, sheet_name='Thành phần Kho Cám', index=False)
+            mix_ingredients_df.to_excel(writer, sheet_name='Thành phần Kho Mix', index=False)
+
+            # Save the Excel file
+            writer.close()
+
+            QMessageBox.information(self, "Thành công", f"Đã xuất dữ liệu lịch sử vào file {excel_filename}!")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể xuất dữ liệu lịch sử: {str(e)}")
+
+    # Bỏ hàm update_mix_link_combo và set_mix_formula_link vì không còn sử dụng liên kết
+
+    def update_feed_preset(self):
+        """Cập nhật công thức cám đã lưu"""
+        preset_name = self.feed_preset_combo.currentText()
+        if not preset_name:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một công thức để cập nhật")
+            return
+
+        try:
+            # Lưu công thức hiện tại
+            updated_formula = {}
+
+            # Duyệt qua các hàng trong bảng
+            for row in range(self.feed_formula_table.rowCount()):
+                # Bỏ qua nếu không có item ở cột 0
+                if self.feed_formula_table.item(row, 0) is None:
+                    continue
+
+                # Lấy tên thành phần
+                ingredient = self.feed_formula_table.item(row, 0).text()
+
+                # Kiểm tra xem hàng hiện tại có phải là hàng tổng cộng không
+                if ingredient == "Tổng lượng Cám":
+                    continue  # Bỏ qua hàng tổng cộng
+
+                # Loại bỏ phần "(Gắn với: ...)" nếu có
+                if " (Gắn với: " in ingredient:
+                    ingredient = ingredient.split(" (Gắn với: ")[0]
+
+                # Lấy giá trị
+                try:
+                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
+                    amount_spin = self.feed_formula_table.cellWidget(row, 2)
+                    if amount_spin is not None:
+                        amount = amount_spin.value()
+                    else:
+                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
+                        item = self.feed_formula_table.item(row, 2)
+                        if item is not None:
+                            amount = float(item.text().replace(',', '.'))
+                        else:
+                            # Nếu không có item, sử dụng giá trị từ công thức hiện tại
+                            amount = self.feed_formula.get(ingredient, 0)
+
+                    # Đã bỏ "Nguyên liệu tổ hợp" nên không cần đoạn code xử lý riêng cho nó
+
+                    updated_formula[ingredient] = amount
+                except Exception as e:
+                    print(f"Lỗi khi xử lý thành phần {ingredient}: {e}")
+
+            # Cập nhật preset
+            if self.formula_manager.save_preset("feed", preset_name, updated_formula):
+                # Cập nhật công thức hiện tại
+                self.formula_manager.set_feed_formula(updated_formula)
+                self.feed_formula = updated_formula
+
+                # Cập nhật lại bảng
+                self.update_feed_formula_table()
+
+                QMessageBox.information(self, "Thành công", f"Đã cập nhật công thức cám '{preset_name}'")
+            else:
+                QMessageBox.warning(self, "Lỗi", f"Không thể cập nhật công thức cám '{preset_name}'")
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể cập nhật công thức cám: {str(e)}")
+            # In thông tin lỗi ra console để debug
+            import traceback
+            traceback.print_exc()
+
+    def update_mix_preset(self):
+        """Cập nhật công thức mix đã lưu"""
+        preset_name = self.mix_preset_combo.currentText()
+        if not preset_name:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một công thức để cập nhật")
+            return
+
+        try:
+            # Lưu công thức hiện tại
+            updated_formula = {}
+
+            # Duyệt qua các hàng trong bảng
+            for row in range(self.mix_formula_table.rowCount()):
+                # Bỏ qua nếu không có item ở cột 0
+                if self.mix_formula_table.item(row, 0) is None:
+                    continue
+
+                # Lấy tên thành phần
+                ingredient = self.mix_formula_table.item(row, 0).text()
+
+                # Kiểm tra xem hàng hiện tại có phải là hàng tổng cộng không
+                if ingredient == "Tổng lượng Mix":
+                    continue  # Bỏ qua hàng tổng cộng
+
+                # Lấy giá trị
+                try:
+                    # Thử lấy giá trị từ spin box ở cột 2 (lượng kg) không phải cột 1 (%)
+                    amount_spin = self.mix_formula_table.cellWidget(row, 2)
+                    if amount_spin is not None:
+                        amount = amount_spin.value()
+                    else:
+                        # Nếu không có spin box, thử lấy giá trị từ item ở cột 2
+                        item = self.mix_formula_table.item(row, 2)
+                        if item is not None:
+                            amount = float(item.text().replace(',', '.'))
+                        else:
+                            # Nếu không có item, sử dụng giá trị từ công thức hiện tại
+                            amount = self.mix_formula.get(ingredient, 0)
+
+                    updated_formula[ingredient] = amount
+                except Exception as e:
+                    print(f"Lỗi khi xử lý thành phần {ingredient}: {e}")
+
+            # Cập nhật preset
+            if self.formula_manager.save_preset("mix", preset_name, updated_formula):
+                # Cập nhật công thức hiện tại
+                self.formula_manager.set_mix_formula(updated_formula)
+                self.mix_formula = updated_formula
+
+                # Cập nhật lại bảng
+                self.update_mix_formula_table()
+
+                QMessageBox.information(self, "Thành công", f"Đã cập nhật công thức mix '{preset_name}'")
+            else:
+                QMessageBox.warning(self, "Lỗi", f"Không thể cập nhật công thức mix '{preset_name}'")
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể cập nhật công thức mix: {str(e)}")
+            # In thông tin lỗi ra console để debug
+            import traceback
+            traceback.print_exc()
+
+    # Thêm phương thức auto_load_feed_preset để tự động tải công thức cám khi chọn
+    def auto_load_feed_preset(self, index):
+        """Tự động tải công thức cám khi chọn từ combo box"""
+        if index < 0:
+            return
+
+        preset_name = self.feed_preset_combo.currentText()
+        if not preset_name:
+            return
+
+        preset_formula = self.formula_manager.load_feed_preset(preset_name)
+        if preset_formula:
+            self.formula_manager.set_feed_formula(preset_formula)
+            self.feed_formula = preset_formula
+            self.update_feed_formula_table()
+
+            # Cập nhật combo box liên kết mix để hiển thị liên kết cho preset này
+            self.update_mix_preset_combo()
+
+    def auto_load_mix_preset(self, index):
+        """Tự động tải công thức mix khi chọn từ combo box"""
+        if index < 0:
+            return
+
+        preset_name = self.mix_preset_combo.currentText()
+        if not preset_name:
+            return
+
+        preset_formula = self.formula_manager.load_mix_preset(preset_name)
+        if preset_formula:
+            self.formula_manager.set_mix_formula(preset_formula)
+            self.mix_formula = preset_formula
+            self.update_mix_formula_table()
+
     def fill_table_from_report(self, date_text):
         """Điền bảng cám từ báo cáo theo ngày đã chọn"""
         try:
@@ -4150,6 +4804,7 @@ class ChickenFarmApp(QMainWindow):
             # Áp dụng công thức mặc định nếu có
             if default_formula:
                 self.default_formula_combo.setCurrentText(default_formula)
+                print(f"Đã áp dụng công thức mặc định: {default_formula}")
 
             # Cập nhật nhãn ngày trên giao diện
             for widget in self.findChildren(QLabel):
@@ -4716,780 +5371,4 @@ class ChickenFarmApp(QMainWindow):
             inventory_item.setBackground(QColor(255, 245, 230))  # Light orange background
             mix_table.setItem(row, 3, inventory_item)
 
-            row += 1
-
-        # Thêm tổng cộng cho mix
-        total_mix_amount = sum(self.mix_ingredients.values())
-
-        total_mix_item = QTableWidgetItem("Tổng Mix")
-        total_mix_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        mix_table.setItem(row, 0, total_mix_item)
-
-        total_mix_amount_item = QTableWidgetItem(format_number(total_mix_amount))
-        total_mix_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        total_mix_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        total_mix_amount_item.setBackground(QColor(240, 220, 220))  # Light red background
-        mix_table.setItem(row, 1, total_mix_amount_item)
-
-        # Tổng số bao mix (để trống vì không có ý nghĩa)
-        mix_table.setItem(row, 2, QTableWidgetItem(""))
-
-        # Tổng tồn kho mix (để trống vì không có ý nghĩa cho tổng)
-        mix_table.setItem(row, 3, QTableWidgetItem(""))
-
-        # Tăng chiều cao của các hàng để dễ nhìn hơn
-        for row in range(mix_table.rowCount()):
-            mix_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
-
-                # Thiết lập bảng mix để kéo dài đến cuối tab
-        mix_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        mix_table.setMinimumHeight(int(dialog_height * 0.7))  # Chiều cao tối thiểu 70% của dialog
-
-        # Thêm bảng vào layout tab thành phần mix
-        mix_layout_scroll.addWidget(mix_table)
-
-        # Hoàn thành scroll area cho tab thành phần mix
-        mix_scroll.setWidget(mix_content)
-        mix_layout.addWidget(mix_scroll)
-
-        # Thiết lập tab số mẻ
-        batches_layout = QVBoxLayout(tab_batches)
-
-        # Tạo widget scroll cho nội dung tab số mẻ
-        batches_scroll = QScrollArea()
-        batches_scroll.setWidgetResizable(True)
-        batches_content = QWidget()
-        batches_layout_scroll = QVBoxLayout(batches_content)
-
-        # Thêm bảng tổng số mẻ
-        batches_summary_label = QLabel("<b>Tổng số mẻ:</b>")
-        batches_summary_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(batches_summary_label)
-
-        # Tạo bảng tổng số mẻ trong ngày
-        total_batches_table = QTableWidget()
-        total_batches_table.setFont(TABLE_CELL_FONT)
-        total_batches_table.setColumnCount(2)
-        total_batches_table.setHorizontalHeaderLabels(["Mô tả", "Số mẻ"])
-        total_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        total_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        total_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        total_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Tính tổng số mẻ trong ngày
-        total_day_batches = 0
-        for khu, batches in self.total_batches_by_area.items():
-            total_day_batches += batches
-
-        # Thêm hàng tổng số mẻ trong ngày
-        total_batches_table.setRowCount(1)
-        total_batches_table.setItem(0, 0, QTableWidgetItem("Tổng số mẻ trong ngày"))
-        total_batches_item = QTableWidgetItem(format_number(total_day_batches))
-        total_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        total_batches_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
-        total_batches_item.setBackground(QColor(230, 240, 250))
-        total_batches_table.setItem(0, 1, total_batches_item)
-
-        # Đặt chiều cao hàng
-        total_batches_table.setRowHeight(0, 50)  # Tăng chiều cao hàng
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(total_batches_table)
-
-        # Tạo bảng tổng số mẻ theo khu
-        khu_batches_label = QLabel("<b>Tổng số mẻ theo khu:</b>")
-        khu_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(khu_batches_label)
-
-        khu_batches_table = QTableWidget()
-        khu_batches_table.setFont(TABLE_CELL_FONT)
-        khu_batches_table.setColumnCount(2)
-        khu_batches_table.setHorizontalHeaderLabels(["Khu", "Số mẻ"])
-        khu_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        khu_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        khu_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        khu_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Thêm dữ liệu tổng số mẻ theo khu
-        khu_batches_table.setRowCount(len(self.total_batches_by_area))
-        row = 0
-        for khu, batches in sorted(self.total_batches_by_area.items()):
-            khu_batches_table.setItem(row, 0, QTableWidgetItem(khu))
-            batches_item = QTableWidgetItem(format_number(batches))
-            batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            khu_batches_table.setItem(row, 1, batches_item)
-            khu_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
-            row += 1
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(khu_batches_table)
-
-        # Tạo bảng tổng số mẻ theo công thức
-        formula_batches_label = QLabel("<b>Tổng số mẻ theo công thức:</b>")
-        formula_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(formula_batches_label)
-
-        formula_batches_table = QTableWidget()
-        formula_batches_table.setFont(TABLE_CELL_FONT)
-        formula_batches_table.setColumnCount(3)
-        formula_batches_table.setHorizontalHeaderLabels(["Công thức", "Số lượng", "Số mẻ"])
-        formula_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        formula_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        formula_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        formula_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Thêm dữ liệu tổng số mẻ theo công thức
-        formula_batches_table.setRowCount(len(self.formula_ingredients))
-        row = 0
-        for formula_name, data in sorted(self.formula_ingredients.items(), key=lambda x: x[0]):
-            batches = data["batches"]
-            actual_batches = batches * 2  # Số mẻ thực tế = giá trị hiển thị * 2
-
-            formula_item = QTableWidgetItem(formula_name)
-            formula_batches_table.setItem(row, 0, formula_item)
-
-            batches_value_item = QTableWidgetItem(format_number(batches))
-            batches_value_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            formula_batches_table.setItem(row, 1, batches_value_item)
-
-            actual_batches_item = QTableWidgetItem(format_number(actual_batches))
-            actual_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            formula_batches_table.setItem(row, 2, actual_batches_item)
-
-            formula_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
-            row += 1
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(formula_batches_table)
-        batches_layout_scroll.addStretch()
-
-        # Hoàn thành scroll area cho tab số mẻ
-        batches_scroll.setWidget(batches_content)
-        batches_layout.addWidget(batches_scroll)
-
-        # Thêm tiêu đề "Chỉ xem" cho TabWidget
-        readonly_label = QLabel("(Chỉ xem - Không thể chỉnh sửa)")
-        italic_font = QFont("Arial", DEFAULT_FONT_SIZE)
-        italic_font.setItalic(True)
-        readonly_label.setFont(italic_font)
-        readonly_label.setAlignment(Qt.AlignCenter)
-        readonly_label.setStyleSheet("QLabel { color: #777; margin-bottom: 5px; }")
-        main_layout.addWidget(readonly_label)
-
-        # Thêm TabWidget vào layout chính
-        main_layout.addWidget(report_tabs)
-
-        # Thêm các nút lưu và xuất Excel
-        button_layout = QHBoxLayout()
-
-        save_button = QPushButton("Lưu Báo Cáo")
-        save_button.setFont(BUTTON_FONT)
-        save_button.setMinimumHeight(40)
-        save_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        save_button.clicked.connect(self.save_report)
-
-        export_button = QPushButton("Xuất Excel")
-        export_button.setFont(BUTTON_FONT)
-        export_button.setMinimumHeight(40)
-        export_button.setStyleSheet("""
-            QPushButton {
-                background-color: #ff9800;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #e68a00;
-            }
-        """)
-        export_button.clicked.connect(self.export_to_excel)
-
-        close_button = QPushButton("Đóng")
-        close_button.setFont(BUTTON_FONT)
-        close_button.setMinimumHeight(40)
-        close_button.setStyleSheet("""
-            QPushButton {
-                background-color: #f44336;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #d32f2f;
-            }
-        """)
-        close_button.clicked.connect(report_dialog.close)
-
-        button_layout.addWidget(save_button)
-        button_layout.addWidget(export_button)
-        button_layout.addWidget(close_button)
-
-        main_layout.addLayout(button_layout)
-
-        # Hiển thị dialog
-        report_dialog.exec_()
-
-    def load_default_formula(self):
-        """Tải công thức mặc định khi khởi động app"""
-        if self.default_formula_loaded:
-            return
-
-        default_formula = self.formula_manager.get_default_feed_formula()
-        print(f"Tải công thức mặc định: {default_formula}")
-
-        # Chỉ thiết lập khi có công thức mặc định
-        if default_formula:
-            self.default_formula_combo.setCurrentText(default_formula)
-            # KHÔNG áp dụng công thức mặc định cho tất cả các ô khi khởi động
-            # Chỉ lưu thông tin công thức mặc định để sử dụng khi người dùng nhập mẻ mới
-
-        self.default_formula_loaded = True
-
-    def on_feed_table_cell_clicked(self, row, column):
-        """Xử lý sự kiện khi người dùng click vào một ô trong bảng"""
-        # Chỉ xử lý các ô chứa dữ liệu cám (bỏ qua hàng khu và trại)
-        if row < 2:
-            return
-
-        # Lấy widget container trong ô
-        cell_widget = self.feed_table.cellWidget(row, column)
-        if not cell_widget:
-            return
-
-        # Lưu lại ô đang được chọn
-        self.selected_cell = (row, column)
-
-        # Đổi màu nền để hiển thị ô đang được chọn
-        for r in range(2, self.feed_table.rowCount()):
-            for c in range(self.feed_table.columnCount()):
-                widget = self.feed_table.cellWidget(r, c)
-                if widget:
-                    # Lấy màu nền gốc từ khu tương ứng
-                    original_c = c  # Lưu lại giá trị c ban đầu
-                    khu_idx = -1
-                    for idx, farms in FARMS.items():
-                        if original_c < len(farms):
-                            khu_idx = idx
-                            break
-                        original_c -= len(farms)
-
-                    khu_colors = [
-                        QColor(240, 248, 255),  # Khu 1: Alice Blue
-                        QColor(245, 245, 220),  # Khu 2: Beige
-                        QColor(240, 255, 240),  # Khu 3: Honeydew
-                        QColor(255, 240, 245),  # Khu 4: Lavender Blush
-                        QColor(255, 250, 240),  # Khu 5: Floral White
-                    ]
-
-                    if r == row and c == column:
-                        # Đổi màu nền cho ô được chọn - xanh nhạt đậm hơn
-                        widget.setStyleSheet(f"background-color: #b3e5fc;")
-                    else:
-                        # Khôi phục màu nền gốc cho các ô khác dựa trên khu
-                        if 0 <= khu_idx < len(khu_colors):
-                            widget.setStyleSheet(f"background-color: {khu_colors[khu_idx].name()};")
-                        else:
-                            widget.setStyleSheet("")
-
-        # Hiển thị menu ngữ cảnh khi click vào ô
-        self.show_cell_context_menu(row, column)
-
-    def show_cell_context_menu(self, row, column):
-        """Hiển thị menu ngữ cảnh khi click vào ô trong bảng cám"""
-        # Lấy widget container trong ô
-        cell_widget = self.feed_table.cellWidget(row, column)
-        if not cell_widget or not hasattr(cell_widget, 'spin_box') or not hasattr(cell_widget, 'formula_combo'):
-            return
-
-        # Chỉ hiển thị menu nếu đã nhập số lượng mẻ > 0
-        if cell_widget.spin_box.value() <= 0:
-            return
-
-        # Lấy thông tin khu và trại
-        khu_item = self.feed_table.item(0, column)
-        farm_item = self.feed_table.item(1, column)
-
-        if not khu_item or not farm_item:
-            return
-
-        khu_name = khu_item.text()
-        farm_name = farm_item.text()
-        shift = SHIFTS[row - 2]  # Trừ 2 vì 2 hàng đầu là khu và trại
-
-        # Tạo menu ngữ cảnh
-        context_menu = QMenu(self)
-
-        # Thêm tiêu đề cho menu
-        title_action = QAction(f"{khu_name} - {farm_name} - {shift}", self)
-        title_action.setEnabled(False)
-        title_font = title_action.font()
-        title_font.setBold(True)
-        title_action.setFont(title_font)
-        context_menu.addAction(title_action)
-        context_menu.addSeparator()
-
-        # Thêm submenu cho công thức cám
-        feed_menu = QMenu("Chọn công thức cám", self)
-
-        # Lấy danh sách công thức cám
-        feed_presets = self.formula_manager.get_feed_presets()
-        current_feed_formula = cell_widget.formula_combo.currentText()
-
-        # Thêm các công thức cám vào menu
-        for preset in sorted(feed_presets):
-            action = QAction(preset, self)
-            action.setCheckable(True)
-            action.setChecked(preset == current_feed_formula)
-            action.triggered.connect(lambda checked, formula=preset: self.apply_formula_to_selected_cell(formula))
-            feed_menu.addAction(action)
-
-        context_menu.addMenu(feed_menu)
-
-        # Thêm submenu cho công thức mix
-        mix_menu = QMenu("Chọn công thức mix", self)
-
-        # Lấy danh sách công thức mix
-        mix_presets = self.formula_manager.get_mix_presets()
-
-        # Lấy cell key để kiểm tra công thức mix hiện tại
-        cell_key = f"{khu_name}_{farm_name}_{shift}"
-        current_mix_formula = ""
-
-        # Kiểm tra xem ô này đã có công thức mix được chọn chưa
-        if hasattr(self, 'cell_mix_formulas') and cell_key in self.cell_mix_formulas:
-            current_mix_formula = self.cell_mix_formulas[cell_key]
-
-        # Tìm công thức mix theo cột
-        column_mix_formula = ""
-        col_key = f"{column}"
-        if hasattr(self, 'column_mix_formulas') and col_key in self.column_mix_formulas:
-            column_mix_formula = self.column_mix_formulas[col_key]
-
-        # Thêm tùy chọn "Không chọn" (sử dụng công thức mix của cột)
-        no_mix_action = QAction("Không chọn (sử dụng công thức mix của cột)", self)
-        no_mix_action.setCheckable(True)
-        no_mix_action.setChecked(current_mix_formula == "")
-        no_mix_action.triggered.connect(lambda checked: self.apply_mix_formula_to_cell(cell_key, ""))
-        mix_menu.addAction(no_mix_action)
-
-        # Hiển thị công thức mix của cột nếu có
-        if column_mix_formula:
-            column_mix_info = QAction(f"Công thức mix của cột: {column_mix_formula}", self)
-            column_mix_info.setEnabled(False)
-            mix_menu.addAction(column_mix_info)
-
-        mix_menu.addSeparator()
-
-        # Thêm các công thức mix vào menu
-        for preset in sorted(mix_presets):
-            action = QAction(preset, self)
-            action.setCheckable(True)
-            action.setChecked(preset == current_mix_formula)
-            action.triggered.connect(lambda checked, formula=preset: self.apply_mix_formula_to_cell(cell_key, formula))
-            mix_menu.addAction(action)
-
-        context_menu.addMenu(mix_menu)
-
-        # Hiển thị menu tại vị trí chuột
-        context_menu.exec_(QCursor.pos())
-
-    def apply_mix_formula_to_cell(self, cell_key, mix_formula):
-        """Áp dụng công thức mix cho ô đã chọn"""
-        if not hasattr(self, 'cell_mix_formulas'):
-            self.cell_mix_formulas = {}
-
-        if mix_formula:
-            # Lưu công thức mix cho ô này
-            self.cell_mix_formulas[cell_key] = mix_formula
-
-            # Hiển thị thông báo
-            parts = cell_key.split('_')
-            if len(parts) >= 3:
-                khu, farm, shift = parts[0], parts[1], parts[2]
-                QMessageBox.information(self, "Thông tin", f"Đã áp dụng công thức Mix '{mix_formula}' cho {khu} - {farm} - {shift}")
-        else:
-            # Xóa công thức mix cho ô này (sử dụng công thức mix của khu)
-            if cell_key in self.cell_mix_formulas:
-                del self.cell_mix_formulas[cell_key]
-
-            # Hiển thị thông báo
-            parts = cell_key.split('_')
-            if len(parts) >= 3:
-                khu, farm, shift = parts[0], parts[1], parts[2]
-                QMessageBox.information(self, "Thông tin", f"Đã xóa công thức Mix riêng cho {khu} - {farm} - {shift} (sẽ sử dụng công thức Mix của cột)")
-
-        # Lưu cài đặt công thức mix cho từng ô vào báo cáo hiện tại
-        if hasattr(self, 'current_report_data') and self.current_report_data:
-            self.current_report_data["cell_mix_formulas"] = self.cell_mix_formulas
-
-            # Lưu báo cáo hiện tại
-            if "date" in self.current_report_data:
-                date_str = self.current_report_data["date"]
-                report_file = f"src/data/reports/report_{date_str}.json"
-                try:
-                    with open(report_file, 'w', encoding='utf-8') as f:
-                        json.dump(self.current_report_data, f, ensure_ascii=False, indent=4)
-                except Exception as e:
-                    print(f"Lỗi khi lưu công thức mix cho từng ô: {e}")
-
-        # Cập nhật hiển thị bảng để hiện dấu hiệu có công thức mix riêng
-        self.update_feed_table_display()
-
-    def update_feed_table_display(self):
-        """Cập nhật hiển thị bảng cám dựa trên giá trị và công thức đã chọn"""
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if not cell_widget or not hasattr(cell_widget, 'spin_box') or not hasattr(cell_widget, 'formula_combo'):
-                    continue
-
-                # Lấy giá trị và công thức
-                value = cell_widget.spin_box.value()
-                formula_text = cell_widget.formula_combo.currentText()
-                default_formula = self.default_formula_combo.currentText()
-
-                # Cập nhật hiển thị
-                if value == 0:
-                    # Ẩn label công thức
-                    cell_widget.formula_label.setVisible(False)
-                    # Mở rộng spinbox để chiếm toàn bộ không gian
-                    cell_widget.layout().setStretch(0, 100)
-                    cell_widget.layout().setStretch(1, 0)
-                else:
-                    # Lấy thông tin khu và trại
-                    khu_item = self.feed_table.item(0, col)
-                    farm_item = self.feed_table.item(1, col)
-
-                    if khu_item and farm_item:
-                        khu_name = khu_item.text()
-                        farm_name = farm_item.text()
-                        shift = SHIFTS[row - 2]  # Trừ 2 vì 2 hàng đầu là khu và trại
-
-                        cell_key = f"{khu_name}_{farm_name}_{shift}"
-                        has_custom_mix = hasattr(self, 'cell_mix_formulas') and cell_key in self.cell_mix_formulas
-
-                        # Kiểm tra xem có phải công thức mặc định không
-                        if formula_text and formula_text != default_formula:
-                            # Nếu không phải công thức mặc định, hiển thị tên
-                            display_text = formula_text
-                            cell_widget.formula_label.setText(display_text)
-                            cell_widget.formula_label.setVisible(True)
-                            # Khôi phục tỷ lệ ban đầu
-                            cell_widget.layout().setStretch(0, 60)
-                            cell_widget.layout().setStretch(1, 40)
-                        else:
-                            # Nếu là công thức mặc định hoặc không có công thức, ẩn label
-                            cell_widget.formula_label.setVisible(False)
-                            # Mở rộng spinbox để chiếm toàn bộ không gian
-                            cell_widget.layout().setStretch(0, 100)
-                            cell_widget.layout().setStretch(1, 0)
-
-    def apply_formula_to_selected_cell(self, formula):
-        """Áp dụng công thức cám cho ô đang được chọn"""
-        if not self.selected_cell:
-            return
-
-        row, column = self.selected_cell
-        cell_widget = self.feed_table.cellWidget(row, column)
-
-        if not cell_widget or not hasattr(cell_widget, 'spin_box') or not hasattr(cell_widget, 'formula_combo'):
-            return
-
-        # Chỉ áp dụng công thức nếu đã nhập số lượng mẻ > 0
-        if cell_widget.spin_box.value() > 0:
-            try:
-                # Thiết lập công thức
-                cell_widget.formula_combo.setCurrentText(formula)
-
-                # Cập nhật hiển thị toàn bộ bảng
-                self.update_feed_table_display()
-            except Exception as e:
-                print(f"Lỗi khi áp dụng công thức: {str(e)}")
-
-    def auto_select_default_formula(self, value, combo):
-        """Tự động chọn công thức mặc định khi người dùng nhập số lượng mẻ"""
-        # Nếu đã chọn công thức rồi thì không thay đổi
-        if combo.currentText():
-            return
-
-        # Nếu người dùng nhập giá trị > 0 và chưa chọn công thức, tự động chọn công thức mặc định
-        if value > 0:
-            default_formula = self.default_formula_combo.currentText()
-            if default_formula:
-                # Tạm ngắt kết nối sự kiện để tránh gọi lại nhiều lần
-                old_handlers = []
-                if combo.receivers(combo.currentTextChanged) > 0:
-                    old_handlers = [combo.currentTextChanged.disconnect() for _ in range(combo.receivers(combo.currentTextChanged))]
-
-                # Thiết lập công thức
-                combo.setCurrentText(default_formula)
-
-                # Kết nối lại các sự kiện nếu có
-                for handler in old_handlers:
-                    if handler:
-                        combo.currentTextChanged.connect(handler)
-
-    def apply_default_formula(self):
-        """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng khi thay đổi công thức mặc định"""
-        default_formula = self.default_formula_combo.currentText()
-
-        # Lưu công thức mặc định để khi khởi động lại app không bị mất
-        self.formula_manager.save_default_feed_formula(default_formula)
-
-        # Nếu không có công thức mặc định, chỉ lưu và không áp dụng
-        if not default_formula:
-            return
-
-        # Kiểm tra xem feed_table đã được tạo chưa
-        if not hasattr(self, 'feed_table'):
-            return
-
-        # Áp dụng cho tất cả các ô trong bảng
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if cell_widget and hasattr(cell_widget, 'formula_combo'):
-                    cell_widget.formula_combo.setCurrentText(default_formula)
-
-        # Kiểm tra xem phương thức update_feed_table_display đã tồn tại chưa
-        if hasattr(self, 'update_feed_table_display'):
-            # Cập nhật hiển thị bảng
-            self.update_feed_table_display()
-        if not default_formula:
-            return
-
-        # Áp dụng cho tất cả các ô trong bảng
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if cell_widget and hasattr(cell_widget, 'formula_combo'):
-                    cell_widget.formula_combo.setCurrentText(default_formula)
-
-        # Cập nhật hiển thị bảng
-        self.update_feed_table_display()
-
-    def setup_inventory_tab(self):
-        """Setup the inventory management tab"""
-        layout = QVBoxLayout()
-
-        # Create tabs for Feed and Mix inventory
-        inventory_tabs = QTabWidget()
-        inventory_tabs.setFont(DEFAULT_FONT)
-        inventory_tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #cccccc;
-                background: white;
-            }
-            QTabWidget::tab-bar {
-                left: 5px;
-            }
-            QTabBar::tab {
-                background: #f0f0f0;
-                border: 1px solid #cccccc;
-                border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 8px 12px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background: #4CAF50;
-                color: white;
-            }
-            QTabBar::tab:!selected {
-                margin-top: 2px;
-            }
-        """)
-
-        feed_inventory_tab = QWidget()
-        mix_inventory_tab = QWidget()
-
-        inventory_tabs.addTab(feed_inventory_tab, "Kho Cám")
-        inventory_tabs.addTab(mix_inventory_tab, "Kho Mix")
-
-        # Setup Feed Inventory tab
-        feed_layout = QVBoxLayout()
-
-        # Thêm tiêu đề
-        feed_header = QLabel("Quản Lý Kho Cám")
-        feed_header.setFont(HEADER_FONT)
-        feed_header.setAlignment(Qt.AlignCenter)
-        feed_header.setStyleSheet("QLabel { padding: 10px; background-color: #e0f2f1; border-radius: 5px; }")
-        feed_layout.addWidget(feed_header)
-
-        self.feed_inventory_table = QTableWidget()
-        self.feed_inventory_table.setFont(TABLE_CELL_FONT)
-        self.feed_inventory_table.setColumnCount(4)
-        self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
-        self.feed_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.feed_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.feed_inventory_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-            QTableWidget::item {
-                padding: 4px;
-            }
-        """)
-        self.feed_inventory_table.setAlternatingRowColors(True)
-
-        # Populate feed inventory table
-        self.update_feed_inventory_table()
-
-        feed_layout.addWidget(self.feed_inventory_table)
-
-        # Add update button for feed inventory
-        update_feed_button = QPushButton("Cập Nhật Kho Cám")
-        update_feed_button.setFont(BUTTON_FONT)
-        update_feed_button.setMinimumHeight(40)
-        update_feed_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        update_feed_button.clicked.connect(lambda: self.update_inventory("feed"))
-        feed_layout.addWidget(update_feed_button)
-
-        feed_inventory_tab.setLayout(feed_layout)
-
-        # Setup Mix Inventory tab
-        mix_layout = QVBoxLayout()
-
-        # Thêm tiêu đề
-        mix_header = QLabel("Quản Lý Kho Mix")
-        mix_header.setFont(HEADER_FONT)
-        mix_header.setAlignment(Qt.AlignCenter)
-        mix_header.setStyleSheet("QLabel { padding: 10px; background-color: #e8f5e9; border-radius: 5px; }")
-        mix_layout.addWidget(mix_header)
-
-        self.mix_inventory_table = QTableWidget()
-        self.mix_inventory_table.setFont(TABLE_CELL_FONT)
-        self.mix_inventory_table.setColumnCount(4)
-        self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
-        self.mix_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.mix_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.mix_inventory_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #8BC34A;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-            QTableWidget::item {
-                padding: 4px;
-            }
-        """)
-        self.mix_inventory_table.setAlternatingRowColors(True)
-
-        # Populate mix inventory table
-        self.update_mix_inventory_table()
-
-        mix_layout.addWidget(self.mix_inventory_table)
-
-        # Add update button for mix inventory
-        update_mix_button = QPushButton("Cập Nhật Kho Mix")
-        update_mix_button.setFont(BUTTON_FONT)
-        update_mix_button.setMinimumHeight(40)
-        update_mix_button.setStyleSheet("""
-            QPushButton {
-                background-color: #8BC34A;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #7CB342;
-            }
-        """)
-        update_mix_button.clicked.connect(lambda: self.update_inventory("mix"))
-        mix_layout.addWidget(update_mix_button)
-
-        mix_inventory_tab.setLayout(mix_layout)
-
-        # Add tabs to layout
-        layout.addWidget(inventory_tabs)
-
-        self.inventory_tab.setLayout(layout)
-
-def main():
-    app = QApplication(sys.argv)
-    app.setWindowIcon(create_app_icon())
-
-    # Thiết lập font mặc định cho toàn bộ ứng dụng
-    app.setFont(DEFAULT_FONT)
-
-    window = ChickenFarmApp()
-    window.show()
-    sys.exit(app.exec_())
-
-if __name__ == "__main__":
-    main()
-
+            row
