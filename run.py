@@ -1,47 +1,41 @@
 #!/usr/bin/env python3
 """
-Phần mềm Quản lý Cám - Trại Gà
-==============================
-
-Script khởi động chính cho ứng dụng.
+Run script for the Chicken Farm App
 """
 
-import os
 import sys
+import os
+from PyQt5.QtWidgets import QApplication
 
-def setup_environment():
-    """Thiết lập môi trường chạy"""
-    # Đảm bảo thư mục hiện tại là thư mục gốc của dự án
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(project_root)
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-    # Thêm thư mục gốc vào đường dẫn tìm kiếm module
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-
-    # Đảm bảo các thư mục dữ liệu tồn tại
-    os.makedirs("src/data/config", exist_ok=True)
-    os.makedirs("src/data/presets/feed", exist_ok=True)
-    os.makedirs("src/data/presets/mix", exist_ok=True)
-    os.makedirs("src/data/reports", exist_ok=True)
-
-def initialize_data():
-    """Khởi tạo dữ liệu nếu chưa tồn tại"""
-    if not os.path.exists("src/data/config/feed_formula.json") or \
-       not os.path.exists("src/data/config/mix_formula.json") or \
-       not os.path.exists("src/data/config/inventory.json"):
-        print("Khởi tạo dữ liệu ban đầu...")
-        from src.utils.init_data import init_data
-        init_data()
+# Import the main window class
+from src.ui.main_window import ChickenFarmApp
+from src.ui.styles import apply_stylesheet
+from src.ui.splash_screen import SplashScreen
+from src.ui.logo import create_app_logo
 
 def main():
-    """Hàm chính để chạy ứng dụng"""
-    setup_environment()
-    initialize_data()
+    """Main function to run the application"""
+    # Create application
+    app = QApplication(sys.argv)
 
-    # Import và chạy ứng dụng chính
-    from src.main import main as run_app
-    run_app()
+    # Set application icon
+    app.setWindowIcon(create_app_logo())
+
+    # Apply stylesheet
+    apply_stylesheet(app)
+
+    # Create main window (but don't show it yet)
+    window = ChickenFarmApp()
+
+    # Create and show splash screen
+    splash = SplashScreen()
+    splash.start_progress(app, window)
+
+    # Run the application
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
