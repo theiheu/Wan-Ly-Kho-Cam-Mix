@@ -1122,29 +1122,50 @@ class ChickenFarmApp(QMainWindow):
         # Setup Import History tab
         history_layout = QVBoxLayout()
 
-        # Date selector for import history
-        history_date_layout = QHBoxLayout()
-        history_date_layout.addWidget(QLabel("Chọn ngày:"))
+        # Date range selector for import history
+        date_range_group = QGroupBox("Lọc lịch sử nhập kho")
+        date_range_group.setFont(DEFAULT_FONT)
+        date_range_layout = QGridLayout()
 
-        self.import_history_date = QDateEdit()
-        self.import_history_date.setDate(QDate.currentDate())
-        self.import_history_date.setCalendarPopup(True)
-        self.import_history_date.setFont(DEFAULT_FONT)
-        history_date_layout.addWidget(self.import_history_date)
+        # From date
+        date_range_layout.addWidget(QLabel("Từ ngày:"), 0, 0)
+        self.history_from_date = QDateEdit()
+        self.history_from_date.setDate(QDate.currentDate().addDays(-30))  # Default 30 ngày trước
+        self.history_from_date.setCalendarPopup(True)
+        self.history_from_date.setFont(DEFAULT_FONT)
+        date_range_layout.addWidget(self.history_from_date, 0, 1)
 
-        import_history_load_btn = QPushButton("Xem lịch sử")
-        import_history_load_btn.setFont(DEFAULT_FONT)
-        import_history_load_btn.clicked.connect(self.load_import_history)
-        history_date_layout.addWidget(import_history_load_btn)
+        # To date
+        date_range_layout.addWidget(QLabel("Đến ngày:"), 0, 2)
+        self.history_to_date = QDateEdit()
+        self.history_to_date.setDate(QDate.currentDate())  # Default ngày hiện tại
+        self.history_to_date.setCalendarPopup(True)
+        self.history_to_date.setFont(DEFAULT_FONT)
+        date_range_layout.addWidget(self.history_to_date, 0, 3)
 
-        history_date_layout.addStretch()
-        history_layout.addLayout(history_date_layout)
+        # Filter by type
+        date_range_layout.addWidget(QLabel("Loại:"), 1, 0)
+        self.history_type_filter = QComboBox()
+        self.history_type_filter.setFont(DEFAULT_FONT)
+        self.history_type_filter.addItem("Tất cả")
+        self.history_type_filter.addItem("Cám")
+        self.history_type_filter.addItem("Mix")
+        date_range_layout.addWidget(self.history_type_filter, 1, 1)
+
+        # Search button
+        search_history_btn = QPushButton("Tìm kiếm")
+        search_history_btn.setFont(DEFAULT_FONT)
+        search_history_btn.clicked.connect(self.load_import_history)
+        date_range_layout.addWidget(search_history_btn, 1, 3)
+
+        date_range_group.setLayout(date_range_layout)
+        history_layout.addWidget(date_range_group)
 
         # Import history table
         self.import_history_table = QTableWidget()
         self.import_history_table.setFont(TABLE_CELL_FONT)
-        self.import_history_table.setColumnCount(5)
-        self.import_history_table.setHorizontalHeaderLabels(["Thời gian", "Loại", "Thành phần", "Số lượng (kg)", "Ghi chú"])
+        self.import_history_table.setColumnCount(6)
+        self.import_history_table.setHorizontalHeaderLabels(["Ngày", "Thời gian", "Loại", "Thành phần", "Số lượng (kg)", "Số bao"])
         self.import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.import_history_table.setAlternatingRowColors(True)
@@ -1265,47 +1286,101 @@ class ChickenFarmApp(QMainWindow):
             json.dump(imports, f, ensure_ascii=False, indent=2)
 
     def load_import_history(self):
-        """Load and display import history for selected date"""
-        selected_date = self.import_history_date.date().toString("yyyy-MM-dd")
-        filename = f"src/data/imports/import_{selected_date}.json"
+        """Tìm kiếm lịch sử nhập hàng từ ngày đến ngày"""
+        from_date = self.history_from_date.date()
+        to_date = self.history_to_date.date()
 
-        # Clear the table
-        self.import_history_table.setRowCount(0)
-
-        # Check if file exists
-        if not os.path.exists(filename):
-            QMessageBox.information(self, "Thông báo", f"Không có dữ liệu nhập hàng cho ngày {selected_date}!")
+        # Đảm bảo from_date <= to_date
+        if from_date > to_date:
+            QMessageBox.warning(self, "Lỗi", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!")
             return
 
-        # Load data
-        with open(filename, "r", encoding="utf-8") as f:
-            imports = json.load(f)
+        # Chuyển đổi ngày thành định dạng yyyy-MM-dd để đọc file
+        from_date_str = from_date.toString("yyyy-MM-dd")
+        to_date_str = to_date.toString("yyyy-MM-dd")
 
-        # Populate table
-        self.import_history_table.setRowCount(len(imports))
+        # Lọc loại nhập kho
+        filter_type = self.history_type_filter.currentText()
 
-        for row, import_data in enumerate(imports):
-            # Timestamp
-            time_item = QTableWidgetItem(import_data["timestamp"])
-            self.import_history_table.setItem(row, 0, time_item)
+        # Xóa dữ liệu cũ trong bảng
+        self.import_history_table.setRowCount(0)
 
-            # Type (feed or mix)
+        # Danh sách lưu tất cả bản ghi nhập kho trong khoảng thời gian
+        all_imports = []
+
+        # Tạo danh sách tất cả các ngày từ from_date đến to_date
+        current_date = from_date
+        while current_date <= to_date:
+            date_str = current_date.toString("yyyy-MM-dd")
+            filename = f"src/data/imports/import_{date_str}.json"
+
+            # Nếu có file dữ liệu cho ngày này
+            if os.path.exists(filename):
+                with open(filename, "r", encoding="utf-8") as f:
+                    try:
+                        imports = json.load(f)
+                        for import_data in imports:
+                            # Thêm thông tin ngày vào mỗi bản ghi
+                            import_data["date"] = current_date.toString("dd/MM/yyyy")
+                            all_imports.append(import_data)
+                    except json.JSONDecodeError:
+                        print(f"Lỗi đọc file {filename}")
+
+            # Chuyển sang ngày tiếp theo
+            current_date = current_date.addDays(1)
+
+        # Lọc theo loại nếu cần
+        if filter_type == "Cám":
+            all_imports = [imp for imp in all_imports if imp["type"] == "feed"]
+        elif filter_type == "Mix":
+            all_imports = [imp for imp in all_imports if imp["type"] == "mix"]
+
+        # Sắp xếp theo thời gian, mới nhất lên đầu
+        all_imports.sort(key=lambda x: (x["date"], x["timestamp"]), reverse=True)
+
+        # Hiển thị kết quả
+        self.import_history_table.setRowCount(len(all_imports))
+
+        for row, import_data in enumerate(all_imports):
+            # Ngày
+            date_item = QTableWidgetItem(import_data["date"])
+            self.import_history_table.setItem(row, 0, date_item)
+
+            # Thời gian
+            time_item = QTableWidgetItem(import_data["timestamp"].split(" ")[1] if " " in import_data["timestamp"] else import_data["timestamp"])
+            self.import_history_table.setItem(row, 1, time_item)
+
+            # Loại
             type_text = "Cám" if import_data["type"] == "feed" else "Mix"
             type_item = QTableWidgetItem(type_text)
-            self.import_history_table.setItem(row, 1, type_item)
+            self.import_history_table.setItem(row, 2, type_item)
 
-            # Ingredient
+            # Thành phần
             ingredient_item = QTableWidgetItem(import_data["ingredient"])
-            self.import_history_table.setItem(row, 2, ingredient_item)
+            self.import_history_table.setItem(row, 3, ingredient_item)
 
-            # Amount
+            # Số lượng
             amount_item = QTableWidgetItem(format_number(import_data["amount"]))
-            amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.import_history_table.setItem(row, 3, amount_item)
+            amount_item.setTextAlignment(Qt.AlignCenter)
+            self.import_history_table.setItem(row, 4, amount_item)
 
-            # Note
-            note_item = QTableWidgetItem(import_data["note"])
-            self.import_history_table.setItem(row, 4, note_item)
+            # Số bao
+            ingredient_name = import_data["ingredient"]
+            amount = import_data["amount"]
+            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
+            if bag_size > 0:
+                bags = amount / bag_size
+                bags_item = QTableWidgetItem(format_number(bags))
+            else:
+                bags_item = QTableWidgetItem("")
+            bags_item.setTextAlignment(Qt.AlignCenter)
+            self.import_history_table.setItem(row, 5, bags_item)
+
+        # Hiển thị thông báo kết quả
+        if len(all_imports) > 0:
+            QMessageBox.information(self, "Kết quả tìm kiếm", f"Tìm thấy {len(all_imports)} bản ghi nhập kho.")
+        else:
+            QMessageBox.information(self, "Kết quả tìm kiếm", "Không tìm thấy dữ liệu nhập kho nào trong khoảng thời gian đã chọn!")
 
     def update_feed_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho cám"""
