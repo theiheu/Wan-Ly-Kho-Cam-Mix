@@ -9,7 +9,10 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLa
 from PyQt5.QtCore import Qt, QDate, QSize
 from PyQt5.QtGui import QFont, QColor, QCursor, QIcon
 
-from src.utils.constants import AREAS, SHIFTS, FARMS, DEFAULT_FONT_SIZE, HEADER_FONT_SIZE, BUTTON_FONT_SIZE, TABLE_HEADER_FONT_SIZE, TABLE_CELL_FONT_SIZE
+from src.utils.constants import (AREAS, SHIFTS, FARMS, DEFAULT_FONT_SIZE, HEADER_FONT_SIZE,
+                               BUTTON_FONT_SIZE, TABLE_HEADER_FONT_SIZE, TABLE_CELL_FONT_SIZE,
+                               TABLE_ROW_HEIGHT, TABLE_HEADER_HEIGHT, UI_PADDING, UI_SPACING,
+                               BUTTON_MIN_HEIGHT, BUTTON_MIN_WIDTH)
 from src.ui.widgets.custom_spinbox import CustomDoubleSpinBox
 from src.utils.formatting import format_number
 
@@ -30,14 +33,15 @@ class FeedUsageTab(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(UI_PADDING, UI_PADDING, UI_PADDING, UI_PADDING)
+        layout.setSpacing(UI_SPACING)
 
         # Thêm tiêu đề
         title_label = QLabel("Quản lý sử dụng cám")
         title_font = QFont("Arial", HEADER_FONT_SIZE, QFont.Bold)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
+        title_label.setProperty("header", True)  # Để áp dụng CSS từ stylesheet
         layout.addWidget(title_label)
 
         # Thêm đường kẻ ngang
@@ -52,6 +56,8 @@ class FeedUsageTab(QWidget):
         # Phần 1: Nhập liệu sử dụng cám
         feed_input_group = QGroupBox("Nhập liệu sử dụng cám")
         feed_input_layout = QVBoxLayout()
+        feed_input_layout.setContentsMargins(UI_PADDING, UI_PADDING, UI_PADDING, UI_PADDING)
+        feed_input_layout.setSpacing(UI_SPACING)
 
         # Thêm nhãn ngày
         date_layout = QHBoxLayout()
@@ -63,14 +69,27 @@ class FeedUsageTab(QWidget):
         # Thêm nút Điền Mẻ Cám Theo Ngày
         fill_by_date_button = QPushButton(QIcon.fromTheme("document-open"), "Điền Mẻ Cám Theo Ngày")
         fill_by_date_button.setFont(QFont("Arial", BUTTON_FONT_SIZE, QFont.Bold))
-        fill_by_date_button.setMinimumHeight(30)
+        fill_by_date_button.setMinimumHeight(BUTTON_MIN_HEIGHT)
+        fill_by_date_button.setMinimumWidth(BUTTON_MIN_WIDTH)
+        fill_by_date_button.setCursor(QCursor(Qt.PointingHandCursor))
         fill_by_date_button.clicked.connect(self.parent.fill_table_by_date if hasattr(self.parent, 'fill_table_by_date') else lambda: None)
         date_layout.addWidget(fill_by_date_button)
 
         # Thêm nút Reset
         reset_button = QPushButton(QIcon.fromTheme("edit-clear"), "Reset Bảng")
         reset_button.setFont(QFont("Arial", BUTTON_FONT_SIZE, QFont.Bold))
-        reset_button.setMinimumHeight(30)
+        reset_button.setMinimumHeight(BUTTON_MIN_HEIGHT)
+        reset_button.setMinimumWidth(BUTTON_MIN_WIDTH)
+        reset_button.setCursor(QCursor(Qt.PointingHandCursor))
+        reset_button.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+        """)
         reset_button.clicked.connect(self.reset_feed_table)
         date_layout.addWidget(reset_button)
 
@@ -79,14 +98,34 @@ class FeedUsageTab(QWidget):
         # Thêm combo box chọn công thức mặc định
         default_formula_layout = QHBoxLayout()
         default_formula_label = QLabel("Công thức cám mặc định:")
-        default_formula_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        default_formula_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
         default_formula_layout.addWidget(default_formula_label)
 
         self.default_formula_combo = QComboBox()
         self.default_formula_combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
         self.default_formula_combo.setMinimumWidth(200)
+        self.default_formula_combo.setMinimumHeight(BUTTON_MIN_HEIGHT)
         self.default_formula_combo.currentIndexChanged.connect(self.apply_default_formula)
         default_formula_layout.addWidget(self.default_formula_combo)
+
+        # Thêm nút áp dụng công thức mặc định
+        apply_default_button = QPushButton("Áp dụng cho tất cả")
+        apply_default_button.setFont(QFont("Arial", BUTTON_FONT_SIZE, QFont.Bold))
+        apply_default_button.setMinimumHeight(BUTTON_MIN_HEIGHT)
+        apply_default_button.setMinimumWidth(BUTTON_MIN_WIDTH)
+        apply_default_button.setCursor(QCursor(Qt.PointingHandCursor))
+        apply_default_button.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+        """)
+        apply_default_button.clicked.connect(self.apply_default_formula)
+        default_formula_layout.addWidget(apply_default_button)
+
         default_formula_layout.addStretch()
 
         feed_input_layout.addLayout(default_formula_layout)
@@ -158,117 +197,189 @@ class FeedUsageTab(QWidget):
         self.feed_table = QTableWidget()
         self.feed_table.setFont(QFont("Arial", TABLE_CELL_FONT_SIZE))
 
-        # Tính tổng số cột dựa trên số khu vực
-        self.feed_table.setColumnCount(AREAS)
-        self.feed_table.setRowCount(len(SHIFTS))  # Mỗi hàng cho một ca
+        # Tính tổng số cột dựa trên số trại trong mỗi khu
+        total_columns = sum(len(farms) for farms in FARMS.values())
+        self.feed_table.setColumnCount(total_columns)
+        self.feed_table.setRowCount(2 + len(SHIFTS))  # 2 hàng đầu cho khu và trại, các hàng còn lại cho các ca
 
-        # Thiết lập header ngang (khu vực)
-        horizontal_headers = [f"Khu {i+1}" for i in range(AREAS)]
-        self.feed_table.setHorizontalHeaderLabels(horizontal_headers)
-        self.feed_table.horizontalHeader().setFont(QFont("Arial", TABLE_HEADER_FONT_SIZE, QFont.Bold))
+        # Thiết lập header ngang
+        self.feed_table.setHorizontalHeaderLabels([""] * total_columns)
+        self.feed_table.horizontalHeader().setVisible(False)
 
-        # Thiết lập header dọc (ca)
-        self.feed_table.setVerticalHeaderLabels(SHIFTS)
+        # Thiết lập header dọc
+        vertical_headers = ["Khu", "Trại"] + SHIFTS
+        self.feed_table.setVerticalHeaderLabels(vertical_headers)
         self.feed_table.verticalHeader().setFont(QFont("Arial", TABLE_HEADER_FONT_SIZE, QFont.Bold))
 
+        # Thiết lập kích thước cho header dọc
+        self.feed_table.verticalHeader().setMinimumWidth(100)
+        self.feed_table.verticalHeader().setDefaultSectionSize(TABLE_ROW_HEIGHT)
+
+        # Tạo các ô cho khu và trại
+        col_index = 0
+        for khu_idx, farms in FARMS.items():
+            khu_name = f"Khu {khu_idx + 1}"
+
+            # Kiểm tra xem danh sách trại có trống không
+            if not farms or (len(farms) == 1 and not farms[0]):
+                print(f"Danh sách trại trống cho {khu_name}")
+                continue
+
+            # Tạo các ô cho khu
+            for farm_idx, farm in enumerate(farms):
+                # Kiểm tra xem tên trại có hợp lệ không
+                if not farm:
+                    print(f"Tên trại trống cho {khu_name}, farm_idx={farm_idx}")
+                    continue
+
+                khu_item = QTableWidgetItem(khu_name)
+                khu_item.setTextAlignment(Qt.AlignCenter)
+                khu_item.setFont(QFont("Arial", TABLE_HEADER_FONT_SIZE, QFont.Bold))
+                self.feed_table.setItem(0, col_index, khu_item)
+
+                farm_item = QTableWidgetItem(farm)
+                farm_item.setTextAlignment(Qt.AlignCenter)
+                farm_item.setFont(QFont("Arial", TABLE_HEADER_FONT_SIZE, QFont.Bold))
+                self.feed_table.setItem(1, col_index, farm_item)
+
+                col_index += 1
+
+        print(f"Đã tạo {col_index} cột cho bảng feed_table")
+
         # Thiết lập màu nền cho các khu
-        khu_colors = [
-            QColor(240, 248, 255),  # Khu 1: Alice Blue
-            QColor(245, 245, 220),  # Khu 2: Beige
-            QColor(240, 255, 240),  # Khu 3: Honeydew
-            QColor(255, 240, 245),  # Khu 4: Lavender Blush
-            QColor(255, 250, 240),  # Khu 5: Floral White
-        ]
+        col_index = 0
+        for khu_idx, farms in FARMS.items():
+            khu_colors = [
+                QColor(240, 248, 255),  # Khu 1: Alice Blue
+                QColor(245, 245, 220),  # Khu 2: Beige
+                QColor(240, 255, 240),  # Khu 3: Honeydew
+                QColor(255, 240, 245),  # Khu 4: Lavender Blush
+                QColor(255, 250, 240),  # Khu 5: Floral White
+            ]
 
-        # Tạo các ô nhập liệu
-        for row in range(len(SHIFTS)):
-            for col in range(AREAS):
-                color = khu_colors[col % len(khu_colors)]
+            # Bỏ qua khu không có trại hợp lệ
+            if not farms or (len(farms) == 1 and not farms[0]):
+                continue
 
-                # Tạo container cho mỗi ô
-                container = QWidget()
-                container.setStyleSheet(f"background-color: {color.name()};")
+            color = khu_colors[khu_idx % len(khu_colors)]
 
-                # Tạo layout cho container
-                container_layout = QVBoxLayout()
-                container_layout.setContentsMargins(1, 1, 1, 1)
-                container_layout.setSpacing(0)
+            for farm_idx, farm in enumerate(farms):
+                # Bỏ qua trại không hợp lệ
+                if not farm:
+                    continue
 
-                # Tạo spin box cho nhập số mẻ
-                spin_box = CustomDoubleSpinBox()
-                spin_box.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
-                spin_box.setDecimals(1)
-                spin_box.setMinimum(0)
-                spin_box.setMaximum(100)
-                spin_box.setSingleStep(0.5)
-                spin_box.setAlignment(Qt.AlignCenter)
-                spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)  # Ẩn nút tăng/giảm
-                spin_box.setStyleSheet("""
-                    QDoubleSpinBox {
-                        border: none;
-                        border-radius: 3px;
-                        padding: 5px;
-                        background-color: transparent;
-                        font-weight: bold;
-                    }
-                """)
+                # Thiết lập màu nền cho hàng khu và trại
+                for row in range(2):
+                    item = self.feed_table.item(row, col_index)
+                    if item:
+                        item.setBackground(color)
 
-                # Tạo label hiển thị tên công thức
-                formula_label = QLabel("")
-                formula_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 2))
-                formula_label.setAlignment(Qt.AlignCenter)
-                formula_label.setStyleSheet("color: #0277bd;")
-                formula_label.setVisible(False)  # Ban đầu ẩn label
+                # Tạo các ô nhập liệu cho các ca
+                for shift_idx in range(len(SHIFTS)):
+                    row = 2 + shift_idx  # Bắt đầu từ hàng thứ 3 (index 2)
 
-                # Tạo combo box chọn công thức (ẩn)
-                formula_combo = QComboBox()
-                formula_combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 2))
-                formula_combo.setVisible(False)  # Ẩn combo box
+                    # Tạo container cho mỗi ô
+                    container = QWidget()
+                    container.setStyleSheet(f"background-color: {color.name()};")
 
-                # Thêm các widget vào layout
-                container_layout.addWidget(spin_box)
-                container_layout.addWidget(formula_label)
-                container_layout.addWidget(formula_combo)
+                    # Tạo layout cho container
+                    container_layout = QVBoxLayout()
+                    container_layout.setContentsMargins(1, 1, 1, 1)
+                    container_layout.setSpacing(0)
 
-                # Thiết lập tỷ lệ không gian
-                container_layout.setStretch(0, 60)  # 60% cho spin_box
-                container_layout.setStretch(1, 40)  # 40% cho formula_label
-                container_layout.setStretch(2, 0)   # 0% cho formula_combo (ẩn)
+                    # Tạo spin box cho nhập số mẻ
+                    spin_box = CustomDoubleSpinBox()
+                    spin_box.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 2, QFont.Bold))  # Tăng kích thước font
+                    spin_box.setDecimals(1)
+                    spin_box.setMinimum(0)
+                    spin_box.setMaximum(100)
+                    spin_box.setSingleStep(0.5)
+                    spin_box.setAlignment(Qt.AlignCenter)
+                    spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)  # Ẩn nút tăng/giảm
+                    spin_box.setStyleSheet("""
+                        QDoubleSpinBox {
+                            border: none;
+                            border-radius: 5px;
+                            padding: 8px;
+                            background-color: transparent;
+                            font-weight: bold;
+                        }
+                    """)
 
-                container.setLayout(container_layout)
+                    # Tạo label hiển thị tên công thức
+                    formula_label = QLabel("")
+                    formula_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+                    formula_label.setAlignment(Qt.AlignCenter)
+                    formula_label.setStyleSheet("color: #0277bd; font-weight: bold;")
+                    formula_label.setVisible(False)  # Ban đầu ẩn label
 
-                # Lưu reference đến các widget
-                container.spin_box = spin_box
-                container.formula_combo = formula_combo
-                container.formula_label = formula_label
+                    # Tạo combo box chọn công thức (ẩn)
+                    formula_combo = QComboBox()
+                    formula_combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+                    formula_combo.setVisible(False)  # Ẩn combo box
+                    formula_combo.setStyleSheet("""
+                        QComboBox {
+                            border: 1px solid #bdc3c7;
+                            border-radius: 5px;
+                            padding: 5px;
+                            background-color: white;
+                        }
+                    """)
 
-                # Lưu các widget vào dictionaries để dễ truy cập
-                cell_key = f"{row}_{col}"
-                self.feed_spinboxes[cell_key] = spin_box
-                self.formula_combos[cell_key] = formula_combo
-                self.formula_labels[cell_key] = formula_label
+                    # Thêm các widget vào layout
+                    container_layout.addWidget(spin_box)
+                    container_layout.addWidget(formula_label)
+                    container_layout.addWidget(formula_combo)
 
-                # Kết nối sự kiện
-                spin_box.valueChanged.connect(lambda value, r=row, c=col: self.on_value_changed(value, r, c))
+                    # Thiết lập tỷ lệ không gian
+                    container_layout.setStretch(0, 60)  # 60% cho spin_box
+                    container_layout.setStretch(1, 40)  # 40% cho formula_label
+                    container_layout.setStretch(2, 0)   # 0% cho formula_combo (ẩn)
 
-                # Thiết lập prefix ban đầu để ẩn số 0
-                if spin_box.value() == 0:
-                    spin_box.setPrefix(" ")
+                    container.setLayout(container_layout)
 
-                # Thêm container vào cell
-                self.feed_table.setCellWidget(row, col, container)
+                    # Lưu reference đến các widget
+                    container.spin_box = spin_box
+                    container.formula_combo = formula_combo
+                    container.formula_label = formula_label
 
-        # Thiết lập kích thước cột và hàng
-        self.feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+                    # Đặt container vào bảng
+                    self.feed_table.setCellWidget(row, col_index, container)
 
-        # Tăng chiều cao của các hàng
-        for row in range(self.feed_table.rowCount()):
-            self.feed_table.setRowHeight(row, 60)
+                    # Lưu các widget vào dictionaries để dễ truy cập
+                    cell_key = f"{shift_idx}_{col_index}"
+                    self.feed_spinboxes[cell_key] = spin_box
+                    self.formula_combos[cell_key] = formula_combo
+                    self.formula_labels[cell_key] = formula_label
+
+                    # Kết nối sự kiện
+                    spin_box.valueChanged.connect(lambda value, r=shift_idx, c=col_index: self.on_value_changed(value, r, c))
+
+                    # Thiết lập prefix ban đầu để ẩn số 0
+                    if spin_box.value() == 0:
+                        spin_box.setPrefix(" ")
+                    else:
+                        spin_box.setPrefix("")
+
+                col_index += 1
 
         # Kết nối sự kiện click vào cell
         self.feed_table.cellClicked.connect(self.on_feed_table_cell_clicked)
+
+        # Kết nối sự kiện chuột phải
         self.feed_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.feed_table.customContextMenuRequested.connect(self.show_context_menu)
+
+        # Thiết lập kích thước cột và hàng
+        self.feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.feed_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+        # Thiết lập chiều cao cho các hàng
+        for row in range(self.feed_table.rowCount()):
+            if row < 2:  # Hàng khu và trại
+                self.feed_table.setRowHeight(row, TABLE_HEADER_HEIGHT)
+            else:  # Hàng ca
+                self.feed_table.setRowHeight(row, TABLE_ROW_HEIGHT)
 
     def setup_feed_usage_table(self):
         """Thiết lập bảng kết quả sử dụng cám"""
@@ -303,85 +414,91 @@ class FeedUsageTab(QWidget):
         """)
 
     def on_value_changed(self, value, row, col):
-        """Xử lý khi giá trị spin box thay đổi"""
+        """Xử lý sự kiện khi giá trị trong spin box thay đổi"""
+        # Lấy thông tin về cell
         cell_key = f"{row}_{col}"
         spin_box = self.feed_spinboxes.get(cell_key)
         formula_combo = self.formula_combos.get(cell_key)
         formula_label = self.formula_labels.get(cell_key)
 
-        if not spin_box or not formula_combo or not formula_label:
-            return
-
-        # Tự động chọn công thức mặc định
-        if hasattr(self.parent, 'auto_select_default_formula'):
-            self.parent.auto_select_default_formula(value, formula_combo)
-
-        # Cập nhật hiển thị
-        if value == 0:
-            # Tạm ngắt kết nối sự kiện để tránh đệ quy
-            spin_box.valueChanged.disconnect()
-            # Thiết lập prefix để hiển thị trống thay vì "0"
-            spin_box.setPrefix(" " if value == 0 else "")
-            # Kết nối lại sự kiện
-            spin_box.valueChanged.connect(lambda v, r=row, c=col: self.on_value_changed(v, r, c))
-
-            # Ẩn label công thức
-            formula_label.setVisible(False)
-            # Điều chỉnh tỷ lệ không gian
-            container = self.feed_table.cellWidget(row, col)
-            if container:
-                container.layout().setStretch(0, 100)
-                container.layout().setStretch(1, 0)
-        else:
-            # Đảm bảo prefix là trống khi có giá trị
-            if spin_box.prefix():
-                # Tạm ngắt kết nối sự kiện
-                spin_box.valueChanged.disconnect()
-                # Thiết lập prefix
+        if spin_box and formula_combo and formula_label:
+            # Thiết lập prefix để ẩn số 0
+            if value == 0:
+                spin_box.setPrefix(" ")
+            else:
                 spin_box.setPrefix("")
-                # Kết nối lại sự kiện
-                spin_box.valueChanged.connect(lambda v, r=row, c=col: self.on_value_changed(v, r, c))
 
-            # Hiển thị tên công thức
-            formula_text = formula_combo.currentText()
-            default_formula = self.default_formula_combo.currentText() if hasattr(self, 'default_formula_combo') else ""
+            # Hiển thị/ẩn combo box và label tùy thuộc vào giá trị
+            if value > 0:
+                # Nếu chưa có công thức được chọn, tự động chọn công thức mặc định
+                if not formula_combo.currentText() and hasattr(self.parent, 'auto_select_default_formula'):
+                    self.parent.auto_select_default_formula(value, formula_combo)
 
-            # Kiểm tra xem có phải công thức mặc định không
-            if formula_text and formula_text != default_formula:
-                # Nếu không phải công thức mặc định, hiển thị tên
+                # Hiển thị tên công thức
+                formula_text = formula_combo.currentText()
                 formula_label.setText(formula_text)
                 formula_label.setVisible(True)
-                # Điều chỉnh tỷ lệ không gian
-                container = self.feed_table.cellWidget(row, col)
-                if container:
-                    container.layout().setStretch(0, 60)
-                    container.layout().setStretch(1, 40)
+
+                # Hiển thị combo box khi click vào cell
+                if self.selected_cell == (row+2, col):  # +2 vì 2 hàng đầu là khu và trại
+                    formula_combo.setVisible(True)
+                    formula_label.setVisible(False)
+                else:
+                    formula_combo.setVisible(False)
+                    formula_label.setVisible(True)
             else:
-                # Nếu là công thức mặc định, ẩn label
+                # Ẩn combo box và label khi giá trị = 0
+                formula_combo.setVisible(False)
                 formula_label.setVisible(False)
-                # Điều chỉnh tỷ lệ không gian
-                container = self.feed_table.cellWidget(row, col)
-                if container:
-                    container.layout().setStretch(0, 100)
-                    container.layout().setStretch(1, 0)
+
+            # Cập nhật trạng thái
+            if hasattr(self.parent, 'update_status'):
+                # Lấy thông tin khu và trại từ header
+                khu_item = self.feed_table.item(0, col)
+                farm_item = self.feed_table.item(1, col)
+
+                khu_name = khu_item.text() if khu_item else f"Khu {col+1}"
+                farm_name = farm_item.text() if farm_item else f"Trại {col+1}"
+
+                formula_text = formula_combo.currentText()
+                if value > 0 and formula_text:
+                    self.parent.update_status(f"Đã cập nhật {khu_name}, {farm_name}, {SHIFTS[row]}: {value} ({formula_text})")
+                elif value > 0:
+                    self.parent.update_status(f"Cần chọn công thức cho {khu_name}, {farm_name}, {SHIFTS[row]}")
+                else:
+                    self.parent.update_status(f"Đã xóa giá trị cho {khu_name}, {farm_name}, {SHIFTS[row]}")
 
     def on_feed_table_cell_clicked(self, row, col):
-        """Xử lý khi người dùng nhấp vào ô trong bảng"""
+        """Xử lý sự kiện khi người dùng click vào ô trong bảng cám"""
+        # Bỏ qua các ô trong 2 hàng đầu (khu và trại)
+        if row < 2:
+            return
+
+        # Lưu lại ô đang được chọn
         self.selected_cell = (row, col)
 
         # Hiển thị thông tin về cell trong thanh trạng thái
-        cell_key = f"{row}_{col}"
-        spin_box = self.feed_spinboxes.get(cell_key)
-        formula_combo = self.formula_combos.get(cell_key)
+        if hasattr(self.parent, 'update_status'):
+            # Lấy thông tin về cell
+            cell_key = f"{row-2}_{col}"  # Trừ 2 vì 2 hàng đầu là khu và trại
+            spin_box = self.feed_spinboxes.get(cell_key)
+            formula_combo = self.formula_combos.get(cell_key)
 
-        if spin_box and formula_combo and hasattr(self.parent, 'update_status'):
-            value = spin_box.value()
-            formula = formula_combo.currentText()
+            if spin_box and formula_combo:
+                value = spin_box.value()
+                formula = formula_combo.currentText()
 
-            if value > 0 and formula:
-                self.parent.update_status(f"Khu {col+1}, {SHIFTS[row]}: {value} ({formula})")
-            else:
-                self.parent.update_status(f"Đã chọn Khu {col+1}, {SHIFTS[row]}")
+                # Lấy thông tin khu và trại từ header
+                khu_item = self.feed_table.item(0, col)
+                farm_item = self.feed_table.item(1, col)
+
+                khu_name = khu_item.text() if khu_item else f"Khu {col+1}"
+                farm_name = farm_item.text() if farm_item else f"Trại {col+1}"
+
+                if value > 0 and formula:
+                    self.parent.update_status(f"{khu_name}, {farm_name}, {SHIFTS[row-2]}: {value} ({formula})")
+                else:
+                    self.parent.update_status(f"Đã chọn {khu_name}, {farm_name}, {SHIFTS[row-2]}")
 
     def show_context_menu(self, pos):
         """Hiển thị menu ngữ cảnh khi nhấp chuột phải vào bảng"""
@@ -424,7 +541,12 @@ class FeedUsageTab(QWidget):
 
     def reset_cell(self, row, col):
         """Reset một ô về giá trị mặc định"""
-        cell_key = f"{row}_{col}"
+        # Bỏ qua các ô trong 2 hàng đầu (khu và trại)
+        if row < 2:
+            return
+
+        # Lấy thông tin về cell
+        cell_key = f"{row-2}_{col}"  # Trừ 2 vì 2 hàng đầu là khu và trại
         spin_box = self.feed_spinboxes.get(cell_key)
         formula_combo = self.formula_combos.get(cell_key)
 
@@ -434,13 +556,25 @@ class FeedUsageTab(QWidget):
         if formula_combo:
             formula_combo.setCurrentIndex(0)
 
+        # Lấy thông tin khu và trại từ header
+        khu_item = self.feed_table.item(0, col)
+        farm_item = self.feed_table.item(1, col)
+
+        khu_name = khu_item.text() if khu_item else f"Khu {col+1}"
+        farm_name = farm_item.text() if farm_item else f"Trại {col+1}"
+
         # Cập nhật trạng thái
         if hasattr(self.parent, 'update_status'):
-            self.parent.update_status(f"Đã reset ô Khu {col+1}, {SHIFTS[row]}")
+            self.parent.update_status(f"Đã reset ô {khu_name}, {farm_name}, {SHIFTS[row-2]}")
 
     def apply_formula_to_cell(self, row, col, formula):
         """Áp dụng công thức cho một ô"""
-        cell_key = f"{row}_{col}"
+        # Bỏ qua các ô trong 2 hàng đầu (khu và trại)
+        if row < 2:
+            return
+
+        # Lấy thông tin về cell
+        cell_key = f"{row-2}_{col}"  # Trừ 2 vì 2 hàng đầu là khu và trại
         formula_combo = self.formula_combos.get(cell_key)
 
         if formula_combo:
@@ -449,9 +583,16 @@ class FeedUsageTab(QWidget):
             if index >= 0:
                 formula_combo.setCurrentIndex(index)
 
+                # Lấy thông tin khu và trại từ header
+                khu_item = self.feed_table.item(0, col)
+                farm_item = self.feed_table.item(1, col)
+
+                khu_name = khu_item.text() if khu_item else f"Khu {col+1}"
+                farm_name = farm_item.text() if farm_item else f"Trại {col+1}"
+
                 # Cập nhật trạng thái
                 if hasattr(self.parent, 'update_status'):
-                    self.parent.update_status(f"Đã áp dụng công thức '{formula}' cho ô Khu {col+1}, {SHIFTS[row]}")
+                    self.parent.update_status(f"Đã áp dụng công thức '{formula}' cho ô {khu_name}, {farm_name}, {SHIFTS[row-2]}")
 
     def reset_feed_table(self):
         """Reset toàn bộ bảng"""
@@ -466,9 +607,9 @@ class FeedUsageTab(QWidget):
 
         if reply == QMessageBox.Yes:
             # Reset tất cả các ô
-            for row in range(len(SHIFTS)):
-                for col in range(AREAS):
-                    cell_key = f"{row}_{col}"
+            for row in range(2, self.feed_table.rowCount()):  # Bắt đầu từ hàng thứ 3 (index 2)
+                for col in range(self.feed_table.columnCount()):
+                    cell_key = f"{row-2}_{col}"  # Trừ 2 vì 2 hàng đầu là khu và trại
                     spin_box = self.feed_spinboxes.get(cell_key)
                     formula_combo = self.formula_combos.get(cell_key)
 
@@ -492,27 +633,40 @@ class FeedUsageTab(QWidget):
 
         default_formula = self.default_formula_combo.currentText()
 
+        # Nếu không có công thức mặc định được chọn, hiển thị thông báo và thoát
+        if not default_formula:
+            QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn một công thức cám mặc định trước khi áp dụng.")
+            return
+
         # Lưu công thức mặc định
         if hasattr(self.parent, 'formula_manager') and hasattr(self.parent.formula_manager, 'save_default_feed_formula'):
             self.parent.formula_manager.save_default_feed_formula(default_formula)
+            print(f"Đã lưu công thức cám mặc định: {default_formula}")
 
-        # Nếu không có công thức mặc định, thoát
-        if not default_formula:
-            return
+        # Đếm số ô đã áp dụng
+        applied_count = 0
 
-        # Áp dụng cho tất cả các ô có giá trị > 0
-        for row in range(len(SHIFTS)):
-            for col in range(AREAS):
-                cell_key = f"{row}_{col}"
-                spin_box = self.feed_spinboxes.get(cell_key)
+        # Áp dụng cho tất cả các ô trong bảng
+        for row in range(2, self.feed_table.rowCount()):  # Bắt đầu từ hàng thứ 3 (index 2) vì 2 hàng đầu là khu và trại
+            for col in range(self.feed_table.columnCount()):
+                cell_key = f"{row-2}_{col}"  # Trừ 2 vì 2 hàng đầu là khu và trại
                 formula_combo = self.formula_combos.get(cell_key)
 
-                if spin_box and formula_combo and spin_box.value() > 0:
-                    formula_combo.setCurrentText(default_formula)
+                if formula_combo:
+                    # Tìm và chọn công thức
+                    index = formula_combo.findText(default_formula)
+                    if index >= 0:
+                        formula_combo.setCurrentIndex(index)
+                        applied_count += 1
+
+        # Hiển thị thông báo thành công
+        QMessageBox.information(self, "Thành công",
+                              f"Đã cài đặt và áp dụng công thức cám mặc định: {default_formula}\n"
+                              f"Đã áp dụng cho {applied_count} ô trong bảng.")
 
         # Cập nhật trạng thái
         if hasattr(self.parent, 'update_status'):
-            self.parent.update_status(f"Đã áp dụng công thức mặc định '{default_formula}' cho tất cả các ô")
+            self.parent.update_status(f"Đã áp dụng công thức cám mặc định '{default_formula}' cho tất cả các ô")
 
     def update_formula_combos(self, formulas):
         """Cập nhật danh sách công thức trong tất cả các combo box"""

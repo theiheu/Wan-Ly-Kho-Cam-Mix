@@ -33,10 +33,10 @@ SHIFTS = ["Sáng", "Chiều"]  # Morning and afternoon shifts
 # Định nghĩa các trại cho từng khu
 FARMS = {
     0: ["T1", "T2", "T4", "T6"],          # Khu 1
-    1: ["T1", "T2", "T4", "T6"],          # Khu 2
-    2: ["1D", "2D", "4D", "2N"],          # Khu 3
+    1: ["T1", "T2", "T3", "T4", "T6"],    # Khu 2
+    2: ["1D", "2D", "3D", "4D", "2N"],    # Khu 3
     3: ["T2", "T4", "T6", "T8", "Trại 1 khu 4"],  # Khu 4
-    4: [""]                           # Khu 5
+    4: ["Trại 1 khu 5", "Trại 2 khu 5"]   # Khu 5
 }
 
 # Thiết lập font mặc định cho toàn bộ ứng dụng
@@ -436,8 +436,18 @@ class ChickenFarmApp(QMainWindow):
         for khu_idx, farms in FARMS.items():
             khu_name = f"Khu {khu_idx + 1}"
 
+            # Kiểm tra xem danh sách trại có trống không
+            if not farms or (len(farms) == 1 and not farms[0]):
+                print(f"Danh sách trại trống cho {khu_name}")
+                continue
+
             # Tạo các ô cho khu
             for farm_idx, farm in enumerate(farms):
+                # Kiểm tra xem tên trại có hợp lệ không
+                if not farm:
+                    print(f"Tên trại trống cho {khu_name}, farm_idx={farm_idx}")
+                    continue
+
                 khu_item = QTableWidgetItem(khu_name)
                 khu_item.setTextAlignment(Qt.AlignCenter)
                 khu_item.setFont(TABLE_HEADER_FONT)
@@ -449,6 +459,8 @@ class ChickenFarmApp(QMainWindow):
                 self.feed_table.setItem(1, col_index, farm_item)
 
                 col_index += 1
+
+        print(f"Đã tạo {col_index} cột cho bảng feed_table")
 
         # Thiết lập màu nền cho các khu
         col_index = 0
@@ -5539,14 +5551,27 @@ class ChickenFarmApp(QMainWindow):
         if self.default_formula_loaded:
             return
 
+        # Tải công thức mặc định từ cài đặt
         default_formula = self.formula_manager.get_default_feed_formula()
         print(f"Tải công thức mặc định: {default_formula}")
 
-        # Chỉ thiết lập khi có công thức mặc định
-        if default_formula:
-            self.default_formula_combo.setCurrentText(default_formula)
-            # KHÔNG áp dụng công thức mặc định cho tất cả các ô khi khởi động
-            # Chỉ lưu thông tin công thức mặc định để sử dụng khi người dùng nhập mẻ mới
+        # Kiểm tra xem default_formula_combo đã được tạo chưa
+        if hasattr(self, 'default_formula_combo'):
+            # Kiểm tra xem công thức mặc định có tồn tại trong danh sách không
+            found = False
+            for i in range(self.default_formula_combo.count()):
+                if self.default_formula_combo.itemText(i) == default_formula:
+                    found = True
+                    break
+
+            # Chỉ thiết lập khi có công thức mặc định và công thức tồn tại trong danh sách
+            if default_formula and found:
+                self.default_formula_combo.setCurrentText(default_formula)
+                print(f"Đã thiết lập công thức mặc định: {default_formula}")
+            elif default_formula:
+                print(f"Công thức mặc định '{default_formula}' không tồn tại trong danh sách")
+        else:
+            print("default_formula_combo chưa được tạo")
 
         self.default_formula_loaded = True
 
@@ -5840,6 +5865,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Lưu công thức mặc định để khi khởi động lại app không bị mất
         self.formula_manager.save_default_feed_formula(default_formula)
+        print(f"Đã lưu công thức mặc định: {default_formula}")
 
         # Nếu không có công thức mặc định, chỉ lưu và không áp dụng
         if not default_formula:
@@ -5856,22 +5882,12 @@ class ChickenFarmApp(QMainWindow):
                 if cell_widget and hasattr(cell_widget, 'formula_combo'):
                     cell_widget.formula_combo.setCurrentText(default_formula)
 
-        # Kiểm tra xem phương thức update_feed_table_display đã tồn tại chưa
-        if hasattr(self, 'update_feed_table_display'):
-            # Cập nhật hiển thị bảng
-            self.update_feed_table_display()
-        if not default_formula:
-            return
-
-        # Áp dụng cho tất cả các ô trong bảng
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if cell_widget and hasattr(cell_widget, 'formula_combo'):
-                    cell_widget.formula_combo.setCurrentText(default_formula)
-
         # Cập nhật hiển thị bảng
-        self.update_feed_table_display()
+        if hasattr(self, 'update_feed_table_display'):
+            self.update_feed_table_display()
+
+        # Hiển thị thông báo thành công
+        QMessageBox.information(self, "Thành công", f"Đã cài đặt công thức mặc định: {default_formula}")
 
     def setup_inventory_tab(self):
         """Setup the inventory management tab"""

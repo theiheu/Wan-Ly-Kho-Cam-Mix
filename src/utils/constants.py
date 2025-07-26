@@ -9,17 +9,17 @@ SHIFTS = ["Sáng", "Chiều"]  # Morning and afternoon shifts
 # Định nghĩa các trại cho từng khu
 FARMS = {
     0: ["T1", "T2", "T4", "T6"],          # Khu 1
-    1: ["T1", "T2", "T4", "T6"],          # Khu 2
-    2: ["1D", "2D", "4D", "2N"],          # Khu 3
+    1: ["T1", "T2", "T3", "T4", "T6"],    # Khu 2
+    2: ["1D", "2D", "3D", "4D", "2N"],    # Khu 3
     3: ["T2", "T4", "T6", "T8", "Trại 1 khu 4"],  # Khu 4
-    4: [""]                           # Khu 5
+    4: ["Trại 1 khu 5", "Trại 2 khu 5"]   # Khu 5
 }
 
-# Font settings
-DEFAULT_FONT_SIZE = 14
-HEADER_FONT_SIZE = DEFAULT_FONT_SIZE + 2
-BUTTON_FONT_SIZE = DEFAULT_FONT_SIZE
-TABLE_HEADER_FONT_SIZE = DEFAULT_FONT_SIZE + 1
+# Font settings - Tăng kích thước font chữ
+DEFAULT_FONT_SIZE = 16  # Tăng từ 14 lên 16
+HEADER_FONT_SIZE = DEFAULT_FONT_SIZE + 4  # Tăng từ +2 lên +4
+BUTTON_FONT_SIZE = DEFAULT_FONT_SIZE + 2  # Tăng từ DEFAULT_FONT_SIZE lên +2
+TABLE_HEADER_FONT_SIZE = DEFAULT_FONT_SIZE + 2  # Tăng từ +1 lên +2
 TABLE_CELL_FONT_SIZE = DEFAULT_FONT_SIZE
 
 # Packaging information
@@ -46,3 +46,11 @@ PACKAGING_INFO = {
     "Muối": 50,
     "Nguyên liệu tổ hợp": 50
 }
+
+# UI Settings
+UI_PADDING = 15  # Padding cho các phần tử giao diện
+UI_SPACING = 10  # Khoảng cách giữa các phần tử
+TABLE_ROW_HEIGHT = 45  # Chiều cao hàng trong bảng
+TABLE_HEADER_HEIGHT = 50  # Chiều cao header trong bảng
+BUTTON_MIN_HEIGHT = 40  # Chiều cao tối thiểu cho các nút
+BUTTON_MIN_WIDTH = 120  # Chiều rộng tối thiểu cho các nút

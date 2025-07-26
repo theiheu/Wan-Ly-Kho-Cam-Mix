@@ -1,0 +1,108 @@
+[2025-07-26 06:57:28,272] ERROR [error_handler.py:73] - Unhandled exception: Traceback (most recent call last):
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\run.py", line 22, in <module>
+    from src.utils.app_initializer import app_initializer
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\src\utils\app_initializer.py", line 19, in <module>
+    from src.utils.performance_monitor import performance_monitor
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\src\utils\performance_monitor.py", line 9, in <module>
+    import psutil
+ModuleNotFoundError: No module named 'psutil'
+
+[2025-07-26 06:59:45,845] ERROR [error_handler.py:73] - Unhandled exception: Traceback (most recent call last):
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\run.py", line 22, in <module>
+    from src.utils.app_initializer import app_initializer
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\src\utils\app_initializer.py", line 19, in <module>
+    from src.utils.performance_monitor import performance_monitor
+  File "C:\Users\thehi\OneDrive\文档\SourceCode\Minh-Tan_Phat\Wan_Ly_Kho_Cam_Mix-2.0\src\utils\performance_monitor.py", line 9, in <module>
+    import psutil
+ModuleNotFoundError: No module named 'psutil'
+
+[2025-07-26 07:03:56,183] INFO [app_initializer.py:147] - Created default configuration in src/data/config/app_config.json
+[2025-07-26 07:03:56,299] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:03:56,299] INFO [app_initializer.py:259] - Application initialized in 0.12 seconds
+[2025-07-26 07:15:26,815] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:15:26,816] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_071526.json
+[2025-07-26 07:15:26,820] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:21:06,257] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:21:06,351] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:21:06,351] INFO [app_initializer.py:259] - Application initialized in 0.09 seconds
+[2025-07-26 07:25:12,064] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:25:12,065] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_072512.json
+[2025-07-26 07:25:12,069] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:31:18,797] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:31:18,879] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:31:18,879] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 07:31:37,442] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:31:37,448] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_073137.json
+[2025-07-26 07:31:37,453] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:31:51,803] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:31:51,878] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:31:51,878] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 07:35:37,621] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:35:37,621] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_073537.json
+[2025-07-26 07:35:37,625] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:40:00,535] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:40:00,617] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:40:00,617] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 07:41:59,896] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:41:59,897] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_074159.json
+[2025-07-26 07:41:59,901] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:47:50,656] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:47:50,740] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:47:50,740] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 07:52:59,926] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:52:59,927] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_075259.json
+[2025-07-26 07:52:59,938] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:53:31,856] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:53:31,933] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:53:31,934] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 07:53:47,500] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:53:47,501] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_075347.json
+[2025-07-26 07:53:47,505] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:55:15,897] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:55:15,985] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:55:15,985] INFO [app_initializer.py:259] - Application initialized in 0.09 seconds
+[2025-07-26 07:55:23,584] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:55:23,585] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_075523.json
+[2025-07-26 07:55:23,589] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:58:26,049] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:58:26,140] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:58:26,140] INFO [app_initializer.py:259] - Application initialized in 0.09 seconds
+[2025-07-26 07:58:40,077] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:58:40,078] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_075840.json
+[2025-07-26 07:58:40,089] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 07:58:45,123] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 07:58:45,220] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 07:58:45,220] INFO [app_initializer.py:259] - Application initialized in 0.10 seconds
+[2025-07-26 07:59:54,130] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 07:59:54,130] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_075954.json
+[2025-07-26 07:59:54,135] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 08:08:27,558] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 08:08:27,636] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 08:08:27,636] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 08:10:15,636] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 08:10:15,636] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_081015.json
+[2025-07-26 08:10:15,641] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 08:17:26,833] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 08:17:26,939] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 08:17:26,940] INFO [app_initializer.py:259] - Application initialized in 0.11 seconds
+[2025-07-26 08:17:53,167] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 08:17:53,168] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_081753.json
+[2025-07-26 08:17:53,179] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 08:20:22,791] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 08:20:22,884] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 08:20:22,884] INFO [app_initializer.py:259] - Application initialized in 0.09 seconds
+[2025-07-26 08:22:34,142] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 08:22:34,143] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_082234.json
+[2025-07-26 08:22:34,154] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 08:24:15,800] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 08:24:15,880] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 08:24:15,880] INFO [app_initializer.py:259] - Application initialized in 0.08 seconds
+[2025-07-26 08:28:21,604] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 08:28:21,605] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_082821.json
+[2025-07-26 08:28:21,615] INFO [app_initializer.py:293] - Application cleanup complete
+[2025-07-26 08:28:25,817] INFO [app_initializer.py:137] - Loaded configuration from src/data/config/app_config.json
+[2025-07-26 08:28:25,922] INFO [performance_monitor.py:147] - psutil not available, only basic metrics will be recorded
+[2025-07-26 08:28:25,922] INFO [app_initializer.py:259] - Application initialized in 0.11 seconds
+[2025-07-26 08:28:42,801] INFO [performance_monitor.py:169] - Stopped performance monitoring
+[2025-07-26 08:28:42,802] INFO [performance_monitor.py:131] - Saved performance metrics to metrics\exit_metrics_20250726_082842.json
+[2025-07-26 08:28:42,813] INFO [app_initializer.py:293] - Application cleanup complete

@@ -1,0 +1,11 @@
+{
+  "performance_monitoring": true,
+  "monitoring_interval": 10.0,
+  "cache_enabled": true,
+  "backup_on_start": true,
+  "backup_on_exit": true,
+  "auto_save_interval": 300,
+  "ui_theme": "default",
+  "font_size": 14,
+  "table_row_height": 30
+}

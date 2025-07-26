@@ -6,7 +6,8 @@ import sys
 import os
 from datetime import datetime
 from PyQt5.QtWidgets import (QMainWindow, QTabWidget, QWidget, QVBoxLayout, QMessageBox,
-                           QFileDialog, QAction, QMenu, QToolBar, QStatusBar, QLabel, QTableWidgetItem)
+                           QFileDialog, QAction, QMenu, QToolBar, QStatusBar, QLabel, QTableWidgetItem,
+                           QScrollArea, QGroupBox, QHBoxLayout, QComboBox, QPushButton, QDialog)
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont, QIcon, QCursor, QColor
 
@@ -825,12 +826,37 @@ class ChickenFarmApp(QMainWindow):
         self.import_tab.update_mix_combo(inventory_items)
 
     def update_feed_preset_combo(self):
-        """Update the feed preset combo box with available presets"""
-        # Get feed presets from formula manager
-        presets = self.formula_manager.get_feed_presets()
+        """Update feed preset combo box"""
+        feed_presets = self.formula_manager.get_feed_presets()
 
-        # Update UI
-        self.formula_tab.update_feed_preset_combo(presets)
+        # Cập nhật combo box trong formula_tab
+        if hasattr(self, 'formula_tab') and hasattr(self.formula_tab, 'feed_preset_combo'):
+            self.formula_tab.feed_preset_combo.clear()
+            self.formula_tab.feed_preset_combo.addItem("Chọn công thức...")
+            for preset in feed_presets:
+                self.formula_tab.feed_preset_combo.addItem(preset)
+
+        # Cập nhật combo box công thức mặc định trong feed_usage_tab
+        if hasattr(self, 'feed_usage_tab') and hasattr(self.feed_usage_tab, 'default_formula_combo'):
+            current_text = self.feed_usage_tab.default_formula_combo.currentText()
+            self.feed_usage_tab.default_formula_combo.clear()
+
+            # Thêm tùy chọn trống
+            self.feed_usage_tab.default_formula_combo.addItem("")
+
+            # Thêm các công thức
+            for preset in feed_presets:
+                self.feed_usage_tab.default_formula_combo.addItem(preset)
+
+            # Khôi phục lựa chọn trước đó nếu có thể
+            if current_text:
+                index = self.feed_usage_tab.default_formula_combo.findText(current_text)
+                if index >= 0:
+                    self.feed_usage_tab.default_formula_combo.setCurrentIndex(index)
+
+        # Cập nhật tất cả combo box công thức trong bảng
+        if hasattr(self, 'feed_usage_tab') and hasattr(self.feed_usage_tab, 'update_formula_combos'):
+            self.feed_usage_tab.update_formula_combos(feed_presets)
 
     def update_mix_preset_combo(self):
         """Update the mix preset combo box with available presets"""
@@ -1249,15 +1275,51 @@ class ChickenFarmApp(QMainWindow):
         self.update_status(f"Đã xuất dữ liệu ra file Excel: {filename}")
 
     def load_default_formula(self):
-        """Load default formulas"""
-        # Load default formulas using formula manager
-        self.formula_manager.load_default_formula_settings()
+        """Tải công thức mặc định khi khởi động app"""
+        if self.default_formula_loaded:
+            return
 
-        # Update UI
-        self.update_feed_formula_table()
-        self.update_mix_formula_table()
+        try:
+            # Tải công thức mặc định từ cài đặt
+            default_formula = self.formula_manager.get_default_feed_formula()
+            print(f"Tải công thức cám mặc định: {default_formula}")
 
-        # Set flag
+            # Kiểm tra xem default_formula_combo đã được tạo chưa
+            if hasattr(self.feed_usage_tab, 'default_formula_combo'):
+                # Cập nhật danh sách công thức trong combo box
+                self.update_feed_preset_combo()
+
+                # Kiểm tra xem công thức mặc định có tồn tại trong danh sách không
+                found = False
+                for i in range(self.feed_usage_tab.default_formula_combo.count()):
+                    if self.feed_usage_tab.default_formula_combo.itemText(i) == default_formula:
+                        found = True
+                        break
+
+                # Chỉ thiết lập khi có công thức mặc định và công thức tồn tại trong danh sách
+                if default_formula and found:
+                    self.feed_usage_tab.default_formula_combo.setCurrentText(default_formula)
+                    print(f"Đã thiết lập công thức cám mặc định: {default_formula}")
+
+                    # Tự động áp dụng công thức mặc định cho tất cả các ô
+                    self.feed_usage_tab.apply_default_formula()
+                elif default_formula:
+                    print(f"Công thức cám mặc định '{default_formula}' không tồn tại trong danh sách")
+                    QMessageBox.warning(self, "Cảnh báo",
+                                      f"Công thức cám mặc định '{default_formula}' không tồn tại trong danh sách.\n"
+                                      "Vui lòng chọn công thức mặc định khác.")
+            else:
+                print("default_formula_combo chưa được tạo")
+
+            # Tải công thức mix theo cột
+            if hasattr(self.formula_manager, 'column_mix_formulas'):
+                print(f"Đã tải {len(self.formula_manager.column_mix_formulas)} công thức mix theo cột")
+
+        except Exception as e:
+            print(f"Lỗi khi tải công thức mặc định: {e}")
+            import traceback
+            traceback.print_exc()
+
         self.default_formula_loaded = True
 
     def on_feed_table_cell_clicked(self, row, column):
@@ -1356,3 +1418,236 @@ class ChickenFarmApp(QMainWindow):
                     combo.setCurrentIndex(index)
                     # Cập nhật trạng thái
                     self.update_status(f"Đã tự động chọn công thức mặc định: {default_formula}")
+
+    def assign_mix_formulas_to_areas(self):
+        """Hiển thị dialog cho người dùng chọn công thức mix cho từng khu/trại"""
+        # Tạo dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chọn công thức Mix mặc định theo khu")
+        dialog.setMinimumWidth(700)
+        dialog.setMinimumHeight(600)
+
+        # Tạo layout
+        main_layout = QVBoxLayout()
+
+        # Thêm label hướng dẫn
+        header_label = QLabel("Chọn công thức Mix mặc định cho từng khu và trại:")
+        header_label.setFont(self.header_font)
+        main_layout.addWidget(header_label)
+
+        # Tạo scroll area để có thể cuộn khi có nhiều khu
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+
+        # Tạo dictionary để lưu các combo box
+        combo_boxes = {}
+
+        # Lấy danh sách các công thức mix
+        mix_presets = self.formula_manager.get_mix_presets()
+
+        # Lấy dữ liệu công thức mix theo cột đã lưu
+        column_mix_formulas = {}
+        if hasattr(self.formula_manager, 'column_mix_formulas'):
+            column_mix_formulas = self.formula_manager.column_mix_formulas
+
+        # Tạo các phần chọn công thức theo khu
+        col_index = 0
+        for khu_idx, farms in FARMS.items():
+            khu_name = f"Khu {khu_idx + 1}"
+
+            # Tạo section cho khu
+            khu_group = QGroupBox(khu_name)
+            khu_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+            khu_layout = QVBoxLayout(khu_group)
+
+            for farm_idx, farm_name in enumerate(farms):
+                # Tạo layout ngang cho mỗi trại
+                farm_layout = QHBoxLayout()
+
+                # Tạo label cho trại
+                farm_label = QLabel(f"{farm_name}:")
+                farm_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1))
+                farm_label.setMinimumWidth(150)
+                farm_layout.addWidget(farm_label)
+
+                # Tạo combo box cho trại
+                combo = QComboBox()
+                combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1))
+                combo.setMinimumHeight(30)
+
+                # Thêm tùy chọn "Không có công thức"
+                combo.addItem("Không có công thức", "")
+
+                # Thêm các công thức mix
+                for preset in mix_presets:
+                    combo.addItem(preset, preset)
+
+                # Thêm vào layout
+                farm_layout.addWidget(combo)
+
+                # Lưu combo box
+                col_key = f"{col_index}"
+                combo_boxes[col_key] = combo
+
+                # Cài đặt giá trị mặc định nếu đã có
+                if col_key in column_mix_formulas:
+                    preset = column_mix_formulas[col_key]
+                    index = combo.findText(preset)
+                    if index >= 0:
+                        combo.setCurrentIndex(index)
+                        print(f"Đã tải công thức mix cho {khu_name}, {farm_name}: {preset}")
+
+                # Thêm layout trại vào layout khu
+                khu_layout.addLayout(farm_layout)
+
+                col_index += 1
+
+            # Thêm section khu vào scroll area
+            scroll_layout.addWidget(khu_group)
+
+        # Thêm nút áp dụng cho tất cả các khu
+        apply_all_layout = QHBoxLayout()
+        apply_all_label = QLabel("Áp dụng một công thức cho tất cả:")
+        apply_all_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        apply_all_layout.addWidget(apply_all_label)
+
+        apply_all_combo = QComboBox()
+        apply_all_combo.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        apply_all_combo.setMinimumHeight(30)
+        apply_all_combo.addItem("Chọn công thức...", "")
+        for preset in mix_presets:
+            apply_all_combo.addItem(preset, preset)
+        apply_all_layout.addWidget(apply_all_combo)
+
+        apply_all_button = QPushButton("Áp dụng cho tất cả")
+        apply_all_button.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        apply_all_button.setMinimumHeight(30)
+        apply_all_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        apply_all_button.clicked.connect(lambda: self.apply_mix_formula_to_all_areas(apply_all_combo.currentData(), combo_boxes))
+        apply_all_layout.addWidget(apply_all_button)
+
+        scroll_layout.addLayout(apply_all_layout)
+
+        scroll_content.setLayout(scroll_layout)
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        # Thêm các nút
+        button_layout = QHBoxLayout()
+
+        # Các nút xác nhận và hủy
+        ok_button = QPushButton("Lưu & Đóng")
+        ok_button.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        ok_button.setMinimumHeight(40)
+        ok_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
+
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+
+        main_layout.addLayout(button_layout)
+
+        # Thiết lập layout cho dialog
+        dialog.setLayout(main_layout)
+
+        # Kết nối sự kiện
+        ok_button.clicked.connect(lambda: self.save_mix_formula_selections(combo_boxes, dialog))
+        cancel_button.clicked.connect(dialog.reject)
+
+        # Hiển thị dialog
+        dialog.exec_()
+
+    def save_mix_formula_selections(self, combo_boxes, dialog):
+        """Lưu các lựa chọn công thức mix cho từng khu/trại"""
+        # Khởi tạo hoặc lấy cấu trúc dữ liệu hiện có
+        column_mix_formulas = {}
+
+        # Lưu công thức mix cho từng cột
+        for col_key, combo in combo_boxes.items():
+            mix_formula_name = combo.currentData()
+            if mix_formula_name:
+                column_mix_formulas[col_key] = mix_formula_name
+
+        # Lưu cài đặt công thức mix theo cột vào file cấu hình
+        self.formula_manager.save_column_mix_formulas(column_mix_formulas)
+
+        dialog.accept()
+
+        # Hiển thị thông tin về công thức mix đã chọn
+        if column_mix_formulas:
+            mix_info = "Đã lưu công thức Mix cho các khu/trại:\n"
+            count = 0
+            for col, formula in column_mix_formulas.items():
+                col_index = int(col)
+                # Lấy thông tin khu và trại
+                khu_item = self.feed_usage_tab.feed_table.item(0, col_index)
+                farm_item = self.feed_usage_tab.feed_table.item(1, col_index)
+                if khu_item and farm_item:
+                    khu_name = khu_item.text()
+                    farm_name = farm_item.text()
+                    mix_info += f"- {khu_name}, {farm_name}: {formula}\n"
+                    count += 1
+                    if count >= 10:
+                        mix_info += f"... và {len(column_mix_formulas) - 10} trại khác\n"
+                        break
+            QMessageBox.information(self, "Thông tin công thức Mix", mix_info)
+
+    def apply_mix_formula_to_all_areas(self, mix_formula, combo_boxes):
+        """Áp dụng một công thức mix cho tất cả các khu/trại"""
+        if not mix_formula or mix_formula == "Chọn công thức...":
+            QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn một công thức mix để áp dụng.")
+            return
+
+        # Kiểm tra xác nhận
+        reply = QMessageBox.question(
+            self,
+            "Xác nhận",
+            f"Bạn có chắc chắn muốn áp dụng công thức mix '{mix_formula}' cho TẤT CẢ các khu/trại không?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            # Áp dụng công thức cho tất cả các combo box
+            for combo in combo_boxes.values():
+                index = combo.findText(mix_formula)
+                if index >= 0:
+                    combo.setCurrentIndex(index)
+
+            QMessageBox.information(self, "Thành công", f"Đã áp dụng công thức mix '{mix_formula}' cho tất cả các khu/trại.")
