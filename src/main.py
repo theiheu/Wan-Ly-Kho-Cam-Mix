@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QGroupBox, QDialog, QRadioButton, QDateEdit, QScrollArea, QSizePolicy,
                             QMenu, QAction, QAbstractSpinBox)
 from PyQt5.QtCore import Qt, QDate, QTimer
-from PyQt5.QtGui import QFont, QColor, QCursor
+from PyQt5.QtGui import QFont, QColor, QCursor, QBrush
 
 # Kiểm tra xem đang chạy từ thư mục gốc hay từ thư mục src
 try:
@@ -357,8 +357,8 @@ class ChickenFarmApp(QMainWindow):
         date_layout.addWidget(date_label)
         date_layout.addStretch()
 
-        # Thêm nút Điền Mẻ Cám Theo Ngày
-        fill_by_date_button = QPushButton("Điền Mẻ Cám Theo Ngày")
+        # Thêm nút Điền Cám Theo Ngày
+        fill_by_date_button = QPushButton("Điền Cám Theo Ngày")
         fill_by_date_button.setFont(BUTTON_FONT)
         fill_by_date_button.setMinimumHeight(30)
         fill_by_date_button.setStyleSheet("""
@@ -500,7 +500,7 @@ class ChickenFarmApp(QMainWindow):
 
                         # Tạo label hiển thị tên công thức
                         formula_label = QLabel("")
-                        formula_label.setFont(QFont("Arial", 14))
+                        formula_label.setFont(QFont("Arial", 14, 8))
                         formula_label.setAlignment(Qt.AlignCenter)
                         formula_label.setStyleSheet("color: #0277bd;")
                         formula_label.setVisible(False)  # Ban đầu ẩn label
@@ -627,14 +627,14 @@ class ChickenFarmApp(QMainWindow):
 
         # Thêm bảng vào layout
         # Tạo GroupBox cho bảng nhập liệu cám
-        feed_group = QGroupBox("Bảng Điền Mẻ Cám")
+        feed_group = QGroupBox("Bảng Điền Cám")
         feed_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
         feed_layout = QVBoxLayout()
         feed_layout.addWidget(self.feed_table)
         feed_group.setLayout(feed_layout)
 
         # Tạo GroupBox cho bảng lịch sử cám
-        history_group = QGroupBox("Lịch sử mẻ cám các ngày trước")
+        history_group = QGroupBox("Lịch sử cám các ngày trước")
         history_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
         history_layout = QVBoxLayout()
 
@@ -646,36 +646,88 @@ class ChickenFarmApp(QMainWindow):
         self.feed_usage_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_usage_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.feed_usage_history_table.setStyleSheet("""
+            /* QTableWidget với hiệu ứng hover và selection cả hàng */
             QTableWidget {
                 gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
+                selection-background-color: #c8e6c9;
+                alternate-background-color: #f0f8f0;
                 border: 1px solid #ddd;
+                border-radius: 4px;
+                outline: none;
+
+                /* Thiết lập chế độ chọn cả hàng */
+                selection-behavior: select-rows;
             }
+
+            QHeaderView::section {
+                background-color: #2E7D32;
+                color: white;
+                padding: 8px;
+                border: 1px solid #1B5E20;
+                font-weight: bold;
+            }
+
+            /* Styling cho từng cell */
             QTableWidget::item {
-                padding: 4px;
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+                border-right: none;
+                border-left: none;
+                border-top: none;
+            }
+
+
+            /* Selection effect cho cả hàng */
+            QTableWidget::item:selected {
+                background-color: #c8e6c9;
+                color: #000;
+                font-weight: bold;
+            }
+
+            /* Focus effect */
+            QTableWidget::item:focus {
+                border: 1px solid #4CAF50;
+                outline: none;
+            }
+
+            /* Đảm bảo hover hoạt động trên toàn bộ hàng */
+            QTableWidget QTableWidgetItem:hover {
+                background-color: #e8f5e9;
+            }
+
+            /* Selection cho inactive state */
+            QTableWidget::item:selected:!active {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            /* Tăng cường hiệu ứng hover cho các hàng alternate */
+            QTableWidget::item:alternate:hover {
+                background-color: #e8f5e9;
+            }
+
+            QTableWidget::item:alternate:selected {
+                background-color: #c8e6c9;
             }
         """)
         self.feed_usage_history_table.setAlternatingRowColors(True)
         self.feed_usage_history_table.setEditTriggers(QTableWidget.NoEditTriggers)  # Chỉ đọc
 
         # Tăng chiều cao hàng cho bảng lịch sử
-        self.feed_usage_history_table.verticalHeader().setDefaultSectionSize(40)
+        self.feed_usage_history_table.verticalHeader().setDefaultSectionSize(55)
 
         # Kết nối sự kiện double click vào hàng để tải dữ liệu vào bảng cám
         self.feed_usage_history_table.doubleClicked.connect(self.on_history_row_double_clicked)
+
+        # Kết nối sự kiện click vào hàng để chọn toàn bộ hàng
+        self.feed_usage_history_table.clicked.connect(self.on_history_row_clicked)
 
         history_layout.addWidget(self.feed_usage_history_table)
         history_group.setLayout(history_layout)
 
         # Thêm các GroupBox vào layout chính với tỷ lệ 40:60
-        layout.addWidget(feed_group, 35)
-        layout.addWidget(history_group, 65)
+        layout.addWidget(feed_group, 40)
+        layout.addWidget(history_group, 60)
 
         # Thêm button chọn công thức mix theo khu
         mix_formula_button = QPushButton("Chọn Công Thức Mix Theo Khu")
@@ -726,7 +778,7 @@ class ChickenFarmApp(QMainWindow):
         self.feed_usage_tab.setLayout(layout)
 
     def reset_feed_table(self):
-        """Xóa toàn bộ dữ liệu trong bảng điền mẻ cám"""
+        """Xóa toàn bộ dữ liệu trong bảng điền cám"""
         # Hiển thị hộp thoại xác nhận
         reply = QMessageBox.question(
             self,
@@ -1249,7 +1301,7 @@ class ChickenFarmApp(QMainWindow):
         """Import feed into inventory"""
         ingredient = self.feed_import_combo.currentText()
         amount = self.feed_import_amount.value()
-        date = self.feed_import_date.date().toString("yyyy-MM-dd")
+        date = self.feed_import_date.date().toString("dd/MM/yyyy")
         note = self.feed_import_note.text()
 
         if amount <= 0:
@@ -1281,7 +1333,7 @@ class ChickenFarmApp(QMainWindow):
         """Import mix into inventory"""
         ingredient = self.mix_import_combo.currentText()
         amount = self.mix_import_amount.value()
-        date = self.mix_import_date.date().toString("yyyy-MM-dd")
+        date = self.mix_import_date.date().toString("dd/MM/yyyy")
         note = self.mix_import_note.text()
 
         if amount <= 0:
@@ -1346,9 +1398,9 @@ class ChickenFarmApp(QMainWindow):
             QMessageBox.warning(self, "Lỗi", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!")
             return
 
-        # Chuyển đổi ngày thành định dạng yyyy-MM-dd để đọc file
-        from_date_str = from_date.toString("yyyy-MM-dd")
-        to_date_str = to_date.toString("yyyy-MM-dd")
+        # Chuyển đổi ngày thành định dạng dd/MM/yyyy để đọc file
+        from_date_str = from_date.toString("dd/MM/yyyy")
+        to_date_str = to_date.toString("dd/MM/yyyy")
 
         # Lọc loại nhập kho
         filter_type = self.history_type_filter.currentText()
@@ -1362,7 +1414,7 @@ class ChickenFarmApp(QMainWindow):
         # Tạo danh sách tất cả các ngày từ from_date đến to_date
         current_date = from_date
         while current_date <= to_date:
-            date_str = current_date.toString("yyyy-MM-dd")
+            date_str = current_date.toString("dd/MM/yyyy")
             filename = f"src/data/imports/import_{date_str}.json"
 
             # Nếu có file dữ liệu cho ngày này
@@ -1436,7 +1488,7 @@ class ChickenFarmApp(QMainWindow):
     def update_feed_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho cám"""
         # Lấy ngày hiện tại
-        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+        current_date = QDate.currentDate().toString("dd/MM/yyyy")
         filename = f"src/data/imports/import_{current_date}.json"
 
         # Xóa dữ liệu hiện tại
@@ -1493,7 +1545,7 @@ class ChickenFarmApp(QMainWindow):
     def update_mix_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho mix"""
         # Lấy ngày hiện tại
-        current_date = QDate.currentDate().toString("yyyy-MM-dd")
+        current_date = QDate.currentDate().toString("dd/MM/yyyy")
         filename = f"src/data/imports/import_{current_date}.json"
 
         # Xóa dữ liệu hiện tại
@@ -2322,7 +2374,6 @@ class ChickenFarmApp(QMainWindow):
 
         # Kết thúc trạng thái tải báo cáo
         self.loading_report = False
-
     def update_history_usage_table(self, report_data):
         """Update the history usage table with data from a report"""
         try:
@@ -3515,24 +3566,24 @@ class ChickenFarmApp(QMainWindow):
             if not os.path.exists(reports_dir):
                 os.makedirs(reports_dir)
 
-            # Kiểm tra xem có đang sử dụng ngày tùy chỉnh không
-            custom_date = None
+            # Luôn lấy ngày từ UI để đảm bảo lưu đúng vào ngày đang hiển thị
+            date_text = ""
             for widget in self.findChildren(QLabel):
                 if widget.text().startswith("Ngày:"):
                     date_text = widget.text().replace("Ngày:", "").strip()
-                    if date_text != QDate.currentDate().toString("dd/MM/yyyy"):
-                        try:
-                            # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyyMMdd
-                            day, month, year = date_text.split('/')
-                            custom_date = f"{year}{month.zfill(2)}{day.zfill(2)}"
-                        except:
-                            pass
                     break
 
-            # Sử dụng ngày tùy chỉnh nếu có, nếu không thì sử dụng ngày hiện tại
-            if custom_date:
-                date_str = custom_date
-            else:
+            # Nếu không tìm thấy ngày trên UI, sử dụng ngày hiện tại
+            if not date_text:
+                date_text = QDate.currentDate().toString("dd/MM/yyyy")
+
+            # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyyMMdd để đặt tên file
+            try:
+                day, month, year = date_text.split('/')
+                date_str = f"{year}{month.zfill(2)}{day.zfill(2)}"
+            except Exception as e:
+                print(f"Lỗi khi chuyển đổi định dạng ngày: {str(e)}")
+                # Nếu có lỗi, sử dụng ngày hiện tại
                 date_str = QDate.currentDate().toString("yyyyMMdd")
 
             report_file = os.path.join(reports_dir, f"report_{date_str}.json")
@@ -3636,8 +3687,25 @@ class ChickenFarmApp(QMainWindow):
     def export_to_excel(self):
         """Export current report to Excel"""
         try:
-            # Get date for filename
-            date_str = QDate.currentDate().toString('yyyyMMdd')
+            # Luôn lấy ngày từ UI để đảm bảo xuất đúng vào ngày đang hiển thị
+            date_text = ""
+            for widget in self.findChildren(QLabel):
+                if widget.text().startswith("Ngày:"):
+                    date_text = widget.text().replace("Ngày:", "").strip()
+                    break
+
+            # Nếu không tìm thấy ngày trên UI, sử dụng ngày hiện tại
+            if not date_text:
+                date_text = QDate.currentDate().toString("dd/MM/yyyy")
+
+            # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyyMMdd để đặt tên file
+            try:
+                day, month, year = date_text.split('/')
+                date_str = f"{year}{month.zfill(2)}{day.zfill(2)}"
+            except Exception as e:
+                print(f"Lỗi khi chuyển đổi định dạng ngày: {str(e)}")
+                # Nếu có lỗi, sử dụng ngày hiện tại
+                date_str = QDate.currentDate().toString("yyyyMMdd")
 
             # Create reports directory if it doesn't exist
             reports_dir = "reports"
@@ -4766,7 +4834,7 @@ class ChickenFarmApp(QMainWindow):
             if hasattr(self, 'cell_mix_formulas'):
                 self.cell_mix_formulas = {}
 
-            QMessageBox.information(self, "Thành công", f"Đã tạo bảng mới cho ngày {date_text}\n\nBạn có thể bắt đầu nhập dữ liệu mẻ cám cho ngày này.")
+            QMessageBox.information(self, "Thành công", f"Đã tạo bảng mới cho ngày {date_text}\n\nBạn có thể bắt đầu nhập dữ liệu cám cho ngày này.")
 
         except Exception as e:
             QMessageBox.warning(self, "Lỗi", f"Không thể tạo bảng mới: {str(e)}")
@@ -6214,28 +6282,55 @@ class ChickenFarmApp(QMainWindow):
             except Exception as e:
                 print(f"Lỗi khi đọc file báo cáo {report_file}: {str(e)}")
 
-        # Hiển thị dữ liệu lịch sử
+                # Hiển thị dữ liệu lịch sử
         self.feed_usage_history_table.setRowCount(len(history_data))
+
+        # Tạo font đậm cho ngày
+        bold_font = QFont()
+        bold_font.setBold(True)
 
         for row, data in enumerate(history_data):
             # Ngày báo cáo
             date_item = QTableWidgetItem(data["date"])
             date_item.setTextAlignment(Qt.AlignCenter)
+            date_item.setFont(bold_font)
+
+            # Thêm tooltip giải thích
+            date_item.setToolTip(f"Nhấp đúp để tải báo cáo ngày {data['date']}")
+
             self.feed_usage_history_table.setItem(row, 0, date_item)
 
             # Tổng lượng cám
-            total_feed_item = QTableWidgetItem(format_number(data["total_feed"]))
+            total_feed = data["total_feed"]
+            total_feed_item = QTableWidgetItem(f"{format_number(total_feed)} kg")
             total_feed_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+            # Đặt màu chữ dựa trên giá trị
+            if total_feed > 5000:
+                total_feed_item.setForeground(QBrush(QColor("#2E7D32")))  # Màu xanh lá đậm
+
             self.feed_usage_history_table.setItem(row, 1, total_feed_item)
 
             # Tổng lượng mix
-            total_mix_item = QTableWidgetItem(format_number(data["total_mix"]))
+            total_mix = data["total_mix"]
+            total_mix_item = QTableWidgetItem(f"{format_number(total_mix)} kg")
             total_mix_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+            # Đặt màu chữ dựa trên giá trị
+            if total_mix > 100:
+                total_mix_item.setForeground(QBrush(QColor("#1565C0")))  # Màu xanh dương đậm
+
             self.feed_usage_history_table.setItem(row, 2, total_mix_item)
 
             # Tổng số mẻ
-            batch_count_item = QTableWidgetItem(format_number(data["batch_count"]))
+            batch_count = data["batch_count"]
+            batch_count_item = QTableWidgetItem(format_number(batch_count))
             batch_count_item.setTextAlignment(Qt.AlignCenter)
+
+            # Đặt màu chữ dựa trên giá trị
+            if batch_count > 3:
+                batch_count_item.setForeground(QBrush(QColor("#C62828")))  # Màu đỏ đậm
+
             self.feed_usage_history_table.setItem(row, 3, batch_count_item)
 
             # Lưu đường dẫn file báo cáo vào data của item
@@ -6245,6 +6340,12 @@ class ChickenFarmApp(QMainWindow):
         if show_message:
             QMessageBox.information(self, "Thông báo", f"Tìm thấy {len(history_data)} báo cáo!")
 
+
+    def on_history_row_clicked(self, index):
+        """Xử lý sự kiện khi click vào hàng trong bảng lịch sử"""
+        # Chọn toàn bộ hàng
+        row = index.row()
+        self.feed_usage_history_table.selectRow(row)
 
     def on_history_row_double_clicked(self, index):
         """Xử lý sự kiện khi double click vào hàng trong bảng lịch sử"""
@@ -6269,6 +6370,12 @@ class ChickenFarmApp(QMainWindow):
             # Reset bảng cám trước khi điền dữ liệu mới
             self.reset_feed_table()
 
+            # Cập nhật nhãn ngày trên giao diện
+            for widget in self.findChildren(QLabel):
+                if widget.text().startswith("Ngày:"):
+                    widget.setText(f"Ngày: {date_text}")
+                    break
+
             # Điền dữ liệu vào bảng cám
             if "feed_usage" in report_data:
                 feed_usage = report_data["feed_usage"]
@@ -6324,359 +6431,6 @@ class ChickenFarmApp(QMainWindow):
             if show_message:
                 QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu từ báo cáo: {str(e)}")
 
-
-    def load_feed_usage_history(self, show_message=True):
-        """Tải lịch sử sử dụng cám từ các báo cáo đã lưu"""
-        print("Tải lịch sử sử dụng cám")
-
-        # Xóa dữ liệu cũ trong bảng
-        if hasattr(self, 'feed_usage_history_table'):
-            self.feed_usage_history_table.setRowCount(0)
-        else:
-            print("feed_usage_history_table not found")
-            return
-
-        # Reports directory
-        reports_dir = "src/data/reports"
-
-        # Check if reports directory exists
-        if not os.path.exists(reports_dir):
-            # Thử đường dẫn cũ
-            reports_dir = "reports"
-            if not os.path.exists(reports_dir):
-                if show_message:
-                    QMessageBox.information(self, "Thông báo", "Không tìm thấy thư mục báo cáo!")
-                return
-
-        # Find all report files in the reports directory
-        report_files = []
-        for f in os.listdir(reports_dir):
-            if f.startswith('report_') and f.endswith('.json'):
-                report_files.append(os.path.join(reports_dir, f))
-
-        # Nếu không có file báo cáo
-        if not report_files:
-            if show_message:
-                QMessageBox.information(self, "Thông báo", "Không tìm thấy báo cáo nào!")
-            return
-
-        # Sort by date (newest first)
-        report_files.sort(reverse=True)
-
-        # Danh sách lưu thông tin báo cáo
-        history_data = []
-
-        # Đọc dữ liệu từ các file báo cáo
-        for report_file in report_files:
-            try:
-                # Extract date from filename (format: reports/report_YYYYMMDD.json)
-                file_name = os.path.basename(report_file)
-                if file_name.startswith('report_') and file_name.endswith('.json'):
-                    date_str = file_name[7:-5]  # Remove 'report_' and '.json'
-
-                    # Format date as DD/MM/YYYY for display
-                    if len(date_str) == 8:  # Đảm bảo đúng định dạng YYYYMMDD
-                        year = date_str[0:4]
-                        month = date_str[4:6]
-                        day = date_str[6:8]
-                        formatted_date = f"{day}/{month}/{year}"
-
-                        # Đọc dữ liệu báo cáo
-                        with open(report_file, 'r', encoding='utf-8') as f:
-                            report_data = json.load(f)
-
-                        # Lấy tổng lượng cám và tổng số mẻ từ báo cáo
-                        total_feed = 0
-                        total_mix = 0
-                        batch_count = 0
-
-                        # Ưu tiên sử dụng dữ liệu đã tính toán sẵn trong báo cáo
-                        if "total_feed" in report_data and "total_mix" in report_data and "batch_count" in report_data:
-                            total_feed = report_data["total_feed"]
-                            total_mix = report_data["total_mix"]
-                            batch_count = report_data["batch_count"]
-                            print(f"Sử dụng dữ liệu tính sẵn cho {formatted_date}: {total_feed} kg cám, {total_mix} kg mix, {batch_count} mẻ")
-                        else:
-                            print(f"Không tìm thấy dữ liệu tính sẵn, tính lại từ dữ liệu gốc cho {formatted_date}")
-                            # Nếu không có dữ liệu đã tính toán, tính từ dữ liệu sử dụng
-                            if "feed_ingredients" in report_data:
-                                # Tính tổng lượng cám từ thành phần
-                                for ingredient, amount in report_data["feed_ingredients"].items():
-                                    if ingredient != "Nguyên liệu tổ hợp":  # Không tính mix
-                                        total_feed += amount
-
-                            if "mix_ingredients" in report_data:
-                                # Tính tổng lượng mix từ thành phần
-                                for ingredient, amount in report_data["mix_ingredients"].items():
-                                    total_mix += amount
-
-                            # Tính tổng số mẻ từ dữ liệu sử dụng
-                            if "feed_usage" in report_data:
-                                for khu, farms in report_data["feed_usage"].items():
-                                    for farm, shifts in farms.items():
-                                        for shift, value in shifts.items():
-                                            batch_count += value
-
-                        # Thêm vào danh sách
-                        history_data.append({
-                            "date": formatted_date,
-                            "total_feed": total_feed,
-                            "total_mix": total_mix,
-                            "batch_count": batch_count,
-                            "report_file": report_file
-                        })
-                    else:
-                        print(f"Định dạng ngày không hợp lệ trong file: {report_file}")
-
-            except Exception as e:
-                print(f"Lỗi khi đọc file báo cáo {report_file}: {str(e)}")
-
-        # Hiển thị dữ liệu lịch sử
-        self.feed_usage_history_table.setRowCount(len(history_data))
-
-        for row, data in enumerate(history_data):
-            # Ngày báo cáo
-            date_item = QTableWidgetItem(data["date"])
-            date_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_usage_history_table.setItem(row, 0, date_item)
-
-            # Tổng lượng cám
-            total_feed_item = QTableWidgetItem(format_number(data["total_feed"]))
-            total_feed_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.feed_usage_history_table.setItem(row, 1, total_feed_item)
-
-            # Tổng lượng mix
-            total_mix_item = QTableWidgetItem(format_number(data["total_mix"]))
-            total_mix_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.feed_usage_history_table.setItem(row, 2, total_mix_item)
-
-            # Tổng số mẻ
-            batch_count_item = QTableWidgetItem(format_number(data["batch_count"]))
-            batch_count_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_usage_history_table.setItem(row, 3, batch_count_item)
-
-            # Lưu đường dẫn file báo cáo vào data của item
-            date_item.setData(Qt.UserRole, data["report_file"])
-
-        # Hiển thị thông báo
-        if show_message:
-            QMessageBox.information(self, "Thông báo", f"Tìm thấy {len(history_data)} báo cáo!")
-
-
-    def load_feed_usage_history(self, show_message=True):
-        """Tải lịch sử sử dụng cám từ các báo cáo đã lưu"""
-        print("Tải lịch sử sử dụng cám")
-
-        # Xóa dữ liệu cũ trong bảng
-        if hasattr(self, 'feed_usage_history_table'):
-            self.feed_usage_history_table.setRowCount(0)
-        else:
-            print("feed_usage_history_table not found")
-            return
-
-        # Reports directory
-        reports_dir = "src/data/reports"
-
-        # Check if reports directory exists
-        if not os.path.exists(reports_dir):
-            # Thử đường dẫn cũ
-            reports_dir = "reports"
-            if not os.path.exists(reports_dir):
-                if show_message:
-                    QMessageBox.information(self, "Thông báo", "Không tìm thấy thư mục báo cáo!")
-                return
-
-        # Find all report files in the reports directory
-        report_files = []
-        for f in os.listdir(reports_dir):
-            if f.startswith('report_') and f.endswith('.json'):
-                report_files.append(os.path.join(reports_dir, f))
-
-        # Nếu không có file báo cáo
-        if not report_files:
-            if show_message:
-                QMessageBox.information(self, "Thông báo", "Không tìm thấy báo cáo nào!")
-            return
-
-        # Sort by date (newest first)
-        report_files.sort(reverse=True)
-
-        # Danh sách lưu thông tin báo cáo
-        history_data = []
-
-        # Đọc dữ liệu từ các file báo cáo
-        for report_file in report_files:
-            try:
-                # Extract date from filename (format: reports/report_YYYYMMDD.json)
-                file_name = os.path.basename(report_file)
-                if file_name.startswith('report_') and file_name.endswith('.json'):
-                    date_str = file_name[7:-5]  # Remove 'report_' and '.json'
-
-                    # Format date as DD/MM/YYYY for display
-                    if len(date_str) == 8:  # Đảm bảo đúng định dạng YYYYMMDD
-                        year = date_str[0:4]
-                        month = date_str[4:6]
-                        day = date_str[6:8]
-                        formatted_date = f"{day}/{month}/{year}"
-
-                        # Đọc dữ liệu báo cáo
-                        with open(report_file, 'r', encoding='utf-8') as f:
-                            report_data = json.load(f)
-
-                        # Lấy tổng lượng cám và tổng số mẻ từ báo cáo
-                        total_feed = 0
-                        total_mix = 0
-                        batch_count = 0
-
-                        # Ưu tiên sử dụng dữ liệu đã tính toán sẵn trong báo cáo
-                        if "total_feed" in report_data and "total_mix" in report_data and "batch_count" in report_data:
-                            total_feed = report_data["total_feed"]
-                            total_mix = report_data["total_mix"]
-                            batch_count = report_data["batch_count"]
-                            print(f"Sử dụng dữ liệu tính sẵn cho {formatted_date}: {total_feed} kg cám, {total_mix} kg mix, {batch_count} mẻ")
-                        else:
-                            print(f"Không tìm thấy dữ liệu tính sẵn, tính lại từ dữ liệu gốc cho {formatted_date}")
-                            # Nếu không có dữ liệu đã tính toán, tính từ dữ liệu sử dụng
-                            if "feed_ingredients" in report_data:
-                                # Tính tổng lượng cám từ thành phần
-                                for ingredient, amount in report_data["feed_ingredients"].items():
-                                    if ingredient != "Nguyên liệu tổ hợp":  # Không tính mix
-                                        total_feed += amount
-
-                            if "mix_ingredients" in report_data:
-                                # Tính tổng lượng mix từ thành phần
-                                for ingredient, amount in report_data["mix_ingredients"].items():
-                                    total_mix += amount
-
-                            # Tính tổng số mẻ từ dữ liệu sử dụng
-                            if "feed_usage" in report_data:
-                                for khu, farms in report_data["feed_usage"].items():
-                                    for farm, shifts in farms.items():
-                                        for shift, value in shifts.items():
-                                            batch_count += value
-
-                        # Thêm vào danh sách
-                        history_data.append({
-                            "date": formatted_date,
-                            "total_feed": total_feed,
-                            "total_mix": total_mix,
-                            "batch_count": batch_count,
-                            "report_file": report_file
-                        })
-                    else:
-                        print(f"Định dạng ngày không hợp lệ trong file: {report_file}")
-
-            except Exception as e:
-                print(f"Lỗi khi đọc file báo cáo {report_file}: {str(e)}")
-
-        # Hiển thị dữ liệu lịch sử
-        self.feed_usage_history_table.setRowCount(len(history_data))
-
-        for row, data in enumerate(history_data):
-            # Ngày báo cáo
-            date_item = QTableWidgetItem(data["date"])
-            date_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_usage_history_table.setItem(row, 0, date_item)
-
-            # Tổng lượng cám
-            total_feed_item = QTableWidgetItem(format_number(data["total_feed"]))
-            total_feed_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.feed_usage_history_table.setItem(row, 1, total_feed_item)
-
-            # Tổng lượng mix
-            total_mix_item = QTableWidgetItem(format_number(data["total_mix"]))
-            total_mix_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.feed_usage_history_table.setItem(row, 2, total_mix_item)
-
-            # Tổng số mẻ
-            batch_count_item = QTableWidgetItem(format_number(data["batch_count"]))
-            batch_count_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_usage_history_table.setItem(row, 3, batch_count_item)
-
-            # Lưu đường dẫn file báo cáo vào data của item
-            date_item.setData(Qt.UserRole, data["report_file"])
-
-        # Hiển thị thông báo
-        if show_message:
-            QMessageBox.information(self, "Thông báo", f"Tìm thấy {len(history_data)} báo cáo!")
-
-    def on_history_row_double_clicked(self, index):
-        """Xử lý sự kiện khi double click vào hàng trong bảng lịch sử"""
-        row = index.row()
-
-        # Lấy đường dẫn file báo cáo từ item đầu tiên của hàng
-        report_file = self.feed_usage_history_table.item(row, 0).data(Qt.UserRole)
-
-        # Lấy ngày từ item đầu tiên của hàng
-        date_text = self.feed_usage_history_table.item(row, 0).text()
-
-        # Tải dữ liệu vào bảng cám
-        self.load_feed_table_from_history(report_file, date_text)
-
-    def load_feed_table_from_history(self, report_file, date_text, show_message=False):
-        """Tải dữ liệu từ báo cáo lịch sử vào bảng cám"""
-        try:
-            # Đọc dữ liệu báo cáo
-            with open(report_file, 'r', encoding='utf-8') as f:
-                report_data = json.load(f)
-
-            # Reset bảng cám trước khi điền dữ liệu mới
-            self.reset_feed_table_silent()
-
-            # Điền dữ liệu vào bảng cám
-            if "feed_usage" in report_data:
-                feed_usage = report_data["feed_usage"]
-
-                # Duyệt qua từng khu và trại
-                col_index = 0
-                for khu_idx, farms in FARMS.items():
-                    khu_name = f"Khu {khu_idx + 1}"
-
-                    for farm_idx, farm in enumerate(farms):
-                        # Nếu có dữ liệu cho khu và trại này
-                        if khu_name in feed_usage and farm in feed_usage[khu_name]:
-                            farm_data = feed_usage[khu_name][farm]
-
-                            # Điền dữ liệu cho từng ca
-                            for shift_idx, shift in enumerate(SHIFTS):
-                                if shift in farm_data:
-                                    value = farm_data[shift]
-
-                                    # Lấy cell widget
-                                    cell_widget = self.feed_table.cellWidget(shift_idx + 2, col_index)
-                                    if cell_widget and hasattr(cell_widget, 'spin_box'):
-                                        cell_widget.spin_box.setValue(value)
-
-                                        # Nếu có dữ liệu công thức, cập nhật công thức
-                                        if "formula_usage" in report_data and khu_name in report_data["formula_usage"] and farm in report_data["formula_usage"][khu_name] and shift in report_data["formula_usage"][khu_name][farm]:
-                                            formula = report_data["formula_usage"][khu_name][farm][shift]
-                                            if formula and hasattr(cell_widget, 'formula_combo'):
-                                                # Tìm index của công thức trong combo box
-                                                index = cell_widget.formula_combo.findText(formula)
-                                                if index >= 0:
-                                                    cell_widget.formula_combo.setCurrentIndex(index)
-
-                        col_index += 1
-
-            # Nếu có dữ liệu công thức mix cho cột, cập nhật
-            if "column_mix_formulas" in report_data:
-                self.column_mix_formulas = report_data["column_mix_formulas"]
-
-            # Nếu có dữ liệu công thức mix cho từng ô, cập nhật
-            if "cell_mix_formulas" in report_data:
-                self.cell_mix_formulas = report_data["cell_mix_formulas"]
-
-            # Tính toán lại kết quả
-            self.calculate_feed_usage()
-
-            # Hiển thị thông báo
-            if show_message:
-                QMessageBox.information(self, "Thông báo", f"Đã điền bảng cám từ báo cáo ngày {date_text}")
-
-        except Exception as e:
-            print(f"Lỗi khi tải dữ liệu từ báo cáo: {str(e)}")
-            if show_message:
-                QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu từ báo cáo: {str(e)}")
 
     def reset_feed_table_silent(self):
         """Reset bảng cám mà không hiển thị thông báo"""
@@ -6692,6 +6446,16 @@ class ChickenFarmApp(QMainWindow):
         # Xóa dữ liệu công thức mix cho từng ô
         if hasattr(self, 'cell_mix_formulas'):
             self.cell_mix_formulas = {}
+
+        # Ẩn bảng kết quả nếu đang hiển thị
+        self.results_label.setVisible(False)
+        self.results_table.setVisible(False)
+
+        # Xóa dữ liệu kết quả
+        self.results_data = {}
+
+        # Cập nhật hiển thị bảng
+        self.update_feed_table_display()
 def main():
     import sys
     from PyQt5.QtWidgets import QApplication
@@ -6712,4 +6476,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
