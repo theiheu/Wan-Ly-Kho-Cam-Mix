@@ -75,6 +75,15 @@ def format_number(value):
                 return parts[0]
         return formatted
 
+def format_total(value):
+    """Format total numbers (feed/mix) as integers without decimal places"""
+    # Nếu giá trị là 0, trả về chuỗi rỗng
+    if value == 0:
+        return ""
+
+    # Làm tròn thành số nguyên và định dạng với dấu phẩy ngăn cách hàng nghìn
+    return f"{int(round(value)):,}"
+
 # Custom QDoubleSpinBox để định dạng số theo yêu cầu
 class CustomDoubleSpinBox(QDoubleSpinBox):
     def textFromValue(self, value):
@@ -479,10 +488,10 @@ class ChickenFarmApp(QMainWindow):
                         # Tạo spin box cho nhập số mẻ
                         spin_box = CustomDoubleSpinBox()
                         spin_box.setFont(QFont("Arial", 14))
-                        spin_box.setDecimals(1)
+                        spin_box.setDecimals(2)  # Cho phép 2 chữ số thập phân để nhập 0.25
                         spin_box.setMinimum(0)
                         spin_box.setMaximum(100)
-                        spin_box.setSingleStep(0.5)
+                        spin_box.setSingleStep(0.25)  # Bước nhảy 0.25 để dễ nhập các giá trị như 0.25, 0.5, 0.75
                         spin_box.setAlignment(Qt.AlignTop | Qt.AlignHCenter)  # Canh lề trên và canh giữa ngang
                         spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)  # Ẩn nút tăng/giảm
                         spin_box.setStyleSheet("""
@@ -3116,8 +3125,7 @@ class ChickenFarmApp(QMainWindow):
                     mix_ingredients[ingredient] = mix_amount
                     print(f"    Thêm mới: {ingredient} = {mix_amount:.2f} kg")
 
-        # Tính tổng lượng cám và mix
-        total_feed = sum(feed_ingredients.values()) if feed_ingredients else 0
+        # Tính tổng lượng mix trước
         total_mix = sum(mix_ingredients.values()) if mix_ingredients else 0
 
         # Đảm bảo thành phần "Nguyên liệu tổ hợp" trong cám trùng với tổng mix
@@ -3125,6 +3133,21 @@ class ChickenFarmApp(QMainWindow):
             # Nếu có thành phần "Nguyên liệu tổ hợp" thì cập nhật giá trị bằng tổng mix
             if total_mix > 0:
                 feed_ingredients["Nguyên liệu tổ hợp"] = total_mix
+
+        # Tính tổng lượng cám (BAO GỒM cả "Nguyên liệu tổ hợp")
+        total_feed = sum(feed_ingredients.values()) if feed_ingredients else 0
+
+        # Validation: total_feed phải bằng (individual feed ingredients) + total_mix
+        individual_feed_total = 0
+        for ingredient, amount in feed_ingredients.items():
+            if ingredient != "Nguyên liệu tổ hợp":  # Chỉ tính các nguyên liệu cám thuần
+                individual_feed_total += amount
+
+        expected_total_feed = individual_feed_total + total_mix
+        if abs(total_feed - expected_total_feed) > 0.1:  # Tolerance 0.1 kg
+            print(f"CẢNH BÁO: Sai lệch tính toán! total_feed={total_feed:.2f}, expected={expected_total_feed:.2f}")
+
+        print(f"Tính toán hoàn tất - Total feed: {format_total(total_feed)} kg (bao gồm {individual_feed_total:.2f} kg cám + {format_total(total_mix)} kg mix)")
 
         # Lưu kết quả tính toán vào biến thành viên để sử dụng khi lưu báo cáo
         self.feed_ingredients = feed_ingredients
@@ -3622,18 +3645,15 @@ class ChickenFarmApp(QMainWindow):
                     break
 
             # Tính tổng lượng cám và mix từ thành phần
-            total_feed = 0
             total_mix = 0
             batch_count = 0
-
-            # Tính tổng lượng cám từ thành phần
-            for ingredient, amount in self.feed_ingredients.items():
-                if ingredient != "Nguyên liệu tổ hợp":  # Không tính mix
-                    total_feed += amount
 
             # Tính tổng lượng mix từ thành phần
             for ingredient, amount in self.mix_ingredients.items():
                 total_mix += amount
+
+            # Tính tổng lượng cám (BAO GỒM cả "Nguyên liệu tổ hợp")
+            total_feed = sum(self.feed_ingredients.values()) if self.feed_ingredients else 0
 
             # Lấy tổng số mẻ
             batch_count = self.total_batches
@@ -5304,7 +5324,7 @@ class ChickenFarmApp(QMainWindow):
         total_feed_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         feed_table.setItem(row, 0, total_feed_item)
 
-        total_feed_amount_item = QTableWidgetItem(format_number(total_feed_amount))
+        total_feed_amount_item = QTableWidgetItem(format_total(total_feed_amount))
         total_feed_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_feed_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_feed_amount_item.setBackground(QColor(220, 240, 220))  # Light green background
@@ -5417,7 +5437,7 @@ class ChickenFarmApp(QMainWindow):
         total_mix_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         mix_table.setItem(row, 0, total_mix_item)
 
-        total_mix_amount_item = QTableWidgetItem(format_number(total_mix_amount))
+        total_mix_amount_item = QTableWidgetItem(format_total(total_mix_amount))
         total_mix_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
         total_mix_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         total_mix_amount_item.setBackground(QColor(240, 220, 220))  # Light red background
@@ -6246,20 +6266,18 @@ class ChickenFarmApp(QMainWindow):
                             total_feed = report_data["total_feed"]
                             total_mix = report_data["total_mix"]
                             batch_count = report_data["batch_count"]
-                            print(f"Sử dụng dữ liệu tính sẵn cho {formatted_date}: {total_feed} kg cám, {total_mix} kg mix, {batch_count} mẻ")
+                            print(f"Sử dụng dữ liệu tính sẵn cho {formatted_date}: {format_total(total_feed)} kg cám, {format_total(total_mix)} kg mix, {batch_count} mẻ")
                         else:
                             print(f"Không tìm thấy dữ liệu tính sẵn, tính lại từ dữ liệu gốc cho {formatted_date}")
                             # Nếu không có dữ liệu đã tính toán, tính từ dữ liệu sử dụng
-                            if "feed_ingredients" in report_data:
-                                # Tính tổng lượng cám từ thành phần
-                                for ingredient, amount in report_data["feed_ingredients"].items():
-                                    if ingredient != "Nguyên liệu tổ hợp":  # Không tính mix
-                                        total_feed += amount
-
                             if "mix_ingredients" in report_data:
                                 # Tính tổng lượng mix từ thành phần
                                 for ingredient, amount in report_data["mix_ingredients"].items():
                                     total_mix += amount
+
+                            if "feed_ingredients" in report_data:
+                                # Tính tổng lượng cám (BAO GỒM cả "Nguyên liệu tổ hợp")
+                                total_feed = sum(report_data["feed_ingredients"].values())
 
                             # Tính tổng số mẻ từ dữ liệu sử dụng
                             if "feed_usage" in report_data:
@@ -6302,7 +6320,7 @@ class ChickenFarmApp(QMainWindow):
 
             # Tổng lượng cám
             total_feed = data["total_feed"]
-            total_feed_item = QTableWidgetItem(f"{format_number(total_feed)} kg")
+            total_feed_item = QTableWidgetItem(f"{format_total(total_feed)} kg")
             total_feed_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
             # Đặt màu chữ dựa trên giá trị
@@ -6313,7 +6331,7 @@ class ChickenFarmApp(QMainWindow):
 
             # Tổng lượng mix
             total_mix = data["total_mix"]
-            total_mix_item = QTableWidgetItem(f"{format_number(total_mix)} kg")
+            total_mix_item = QTableWidgetItem(f"{format_total(total_mix)} kg")
             total_mix_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
             # Đặt màu chữ dựa trên giá trị
