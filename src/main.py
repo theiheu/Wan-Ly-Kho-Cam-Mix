@@ -734,9 +734,8 @@ class ChickenFarmApp(QMainWindow):
         history_layout.addWidget(self.feed_usage_history_table)
         history_group.setLayout(history_layout)
 
-        # Thêm các GroupBox vào layout chính với tỷ lệ 40:60
+        # Thêm bảng cám vào layout chính
         layout.addWidget(feed_group, 40)
-        layout.addWidget(history_group, 60)
 
         # Thêm button chọn công thức mix theo khu
         mix_formula_button = QPushButton("Chọn Công Thức Mix Theo Khu")
@@ -755,13 +754,18 @@ class ChickenFarmApp(QMainWindow):
         """)
         mix_formula_button.clicked.connect(self.assign_mix_formulas_to_areas)
 
-        # Tạo layout ngang cho các button
+        # Tạo layout ngang cho các button ở giữa với khoảng cách đẹp
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(10)  # Khoảng cách giữa các button
+        buttons_layout.setContentsMargins(10, 10, 10, 10)  # Margin xung quanh
         buttons_layout.addWidget(mix_formula_button)
         buttons_layout.addWidget(view_report_button)
 
-        # Thêm layout buttons vào layout chính
+        # Thêm layout buttons vào giữa bảng cám và lịch sử cám
         layout.addLayout(buttons_layout)
+
+        # Thêm bảng lịch sử cám vào layout chính
+        layout.addWidget(history_group, 60)
 
         # Thêm label hiển thị kết quả
         self.results_label = QLabel("Kết quả tính toán:")
