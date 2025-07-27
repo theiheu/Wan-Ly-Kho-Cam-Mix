@@ -2884,6 +2884,9 @@ class ChickenFarmApp(QMainWindow):
 
     def calculate_feed_usage(self):
         """Calculate feed usage based on input values"""
+        # Reset dữ liệu tích lũy từ lần tính toán trước để tránh cộng dồn
+        self.cell_formula_data = {}
+
         # Collect data from table
         formula_batches = {}  # Dictionary to store formula name and total batches
         farm_formula_batches = {}  # Dictionary to store formula name and batches for each farm
