@@ -40,8 +40,26 @@ def main():
     initialize_data()
 
     # Import và chạy ứng dụng chính
-    from src.main import main as run_app
-    run_app()
+    import sys
+    from PyQt5.QtWidgets import QApplication
+    from PyQt5.QtGui import QFont
+    from src.main import ChickenFarmApp
+    from src.utils.app_icon import create_app_icon
+    from src.main import DEFAULT_FONT
+
+    print("Starting Chicken Farm Application...")
+    app = QApplication(sys.argv)
+    app.setWindowIcon(create_app_icon())
+
+    # Thiết lập font mặc định cho toàn bộ ứng dụng
+    app.setFont(DEFAULT_FONT)
+
+    print("Creating main window...")
+    window = ChickenFarmApp()
+    print("Showing main window...")
+    window.show()
+    print("Entering application event loop...")
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
