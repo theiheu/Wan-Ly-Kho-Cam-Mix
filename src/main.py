@@ -109,27 +109,278 @@ class ChickenFarmApp(QMainWindow):
         self.report_loaded = False
         self.default_formula_loaded = False
 
+        # Initialize responsive design utilities
+        self.init_responsive_design()
 
-
-        # Lấy kích thước màn hình
-        desktop = QApplication.desktop()
-        screen_rect = desktop.availableGeometry()
-        screen_width = screen_rect.width()
-        screen_height = screen_rect.height()
-
-        # Tính toán kích thước cửa sổ (95% kích thước màn hình)
-        window_width = int(screen_width * 0.95)
-        window_height = int(screen_height * 0.95)
-
-        # Tính toán vị trí để cửa sổ xuất hiện ở giữa màn hình
-        x_position = (screen_width - window_width) // 2
-        y_position = (screen_height - window_height) // 2
-
-        # Thiết lập kích thước và vị trí cửa sổ
-        self.setGeometry(x_position, y_position, window_width, window_height)
+        # Setup main window with responsive sizing
+        self.setup_responsive_main_window()
 
         # Set application icon
         self.setWindowIcon(create_app_icon())
+
+        # Initialize managers and data
+        self.init_managers_and_data()
+
+        # Initialize UI components
+        try:
+            print("Initializing UI...")
+            self.init_ui()
+            print("UI initialization completed successfully")
+        except Exception as e:
+            print(f"Error during UI initialization: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def init_responsive_design(self):
+        """Initialize responsive design utilities and screen information"""
+        # Get screen information
+        screen = QApplication.primaryScreen()
+        self.screen_geometry = screen.geometry()
+        self.screen_width = self.screen_geometry.width()
+        self.screen_height = self.screen_geometry.height()
+        self.screen_dpi = screen.logicalDotsPerInch()
+
+        # Calculate responsive scaling factors
+        width_scale = self.screen_width / 1920
+        height_scale = self.screen_height / 1080
+        self.scale_factor = min(width_scale, height_scale)
+
+        # Apply optimized scaling for perfect display compatibility
+        if self.screen_width < 1366:
+            # For small screens, maintain readability and fit
+            self.scale_factor = max(0.70, min(0.90, self.scale_factor))
+        elif self.screen_width == 1366:
+            # Ultra-compact for 1366x768 - 0.30 scale factor for maximum density
+            self.scale_factor = max(0.25, min(0.35, self.scale_factor))
+        elif self.screen_width <= 1600:
+            # Balanced for medium screens
+            self.scale_factor = max(0.75, min(1.0, self.scale_factor))
+        else:
+            # For large screens, use original range
+            self.scale_factor = max(0.8, min(1.5, self.scale_factor))
+
+        # Define responsive breakpoints
+        self.is_small_screen = self.screen_width < 1366
+        self.is_medium_screen = 1366 <= self.screen_width < 1920
+        self.is_large_screen = self.screen_width >= 1920
+
+        # Calculate responsive dimensions for perfect display compatibility
+        if self.is_small_screen:
+            self.responsive_dialog_width_ratio = 0.90
+            self.responsive_dialog_height_ratio = 0.85
+        elif self.is_medium_screen:
+            if self.screen_width == 1366:
+                # Optimized ratios for 1366x768 - perfect fit without cutoff
+                self.responsive_dialog_width_ratio = 0.88
+                self.responsive_dialog_height_ratio = 0.85
+            else:
+                self.responsive_dialog_width_ratio = 0.85
+                self.responsive_dialog_height_ratio = 0.82
+        else:  # large screen
+            self.responsive_dialog_width_ratio = 0.80
+            self.responsive_dialog_height_ratio = 0.80
+
+        # Enhanced debug information for ultra-compact 0.30 scale factor
+        screen_category = "Small" if self.is_small_screen else "Medium" if self.is_medium_screen else "Large"
+        ultra_compact = " (ULTRA-COMPACT-0.30)" if self.screen_width == 1366 else ""
+        print(f"Screen: {self.screen_width}x{self.screen_height} ({screen_category}{ultra_compact})")
+        print(f"Scale Factor: {self.scale_factor:.3f}")
+        print(f"Dialog Ratios: {self.responsive_dialog_width_ratio:.2f}w x {self.responsive_dialog_height_ratio:.2f}h")
+        dialog_w, dialog_h = self.get_responsive_dialog_size()
+        print(f"Dialog Size: {dialog_w}x{dialog_h}px")
+        print(f"Ultra-Compact Font: 12px → {self.get_responsive_font_size(12)}px")
+        print(f"Ultra-Compact Row: 30px → {self.get_responsive_row_height(30)}px")
+        print(f"Ultra-Compact Table: 500px → {self.get_responsive_table_height(500)}px")
+        print("Ultra-Compact Design: 0.30 scale factor for maximum information density")
+
+    def setup_responsive_main_window(self):
+        """Setup main window with responsive sizing"""
+        # Calculate responsive window size
+        if self.is_small_screen:
+            window_width = int(self.screen_width * 0.98)
+            window_height = int(self.screen_height * 0.95)
+        elif self.is_large_screen:
+            window_width = int(self.screen_width * 0.90)
+            window_height = int(self.screen_height * 0.85)
+        else:
+            window_width = int(self.screen_width * 0.95)
+            window_height = int(self.screen_height * 0.90)
+
+        # Calculate position to center window
+        x_position = (self.screen_width - window_width) // 2
+        y_position = (self.screen_height - window_height) // 2
+
+        # Set window geometry
+        self.setGeometry(x_position, y_position, window_width, window_height)
+
+    def get_responsive_font_size(self, base_size):
+        """Get responsive font size optimized for perfect display compatibility"""
+        # Balanced scaling for optimal readability and fit
+        scaled_size = int(base_size * self.scale_factor * 0.8)  # 20% reduction for balance
+
+        # Apply balanced screen-specific font size constraints
+        if self.is_small_screen:
+            return max(9, min(11, scaled_size))   # Readable fonts for small screens
+        elif self.is_medium_screen:
+            # Ultra-compact handling for 1366x768 with 0.30 scale factor
+            if self.screen_width == 1366:
+                return max(8, min(10, scaled_size))  # Ultra-compact for 1366x768 with 0.30 scale
+            else:
+                return max(10, min(13, scaled_size))  # Compact for other medium screens
+        else:
+            return max(11, min(15, scaled_size))  # Controlled fonts for large screens
+
+    def get_responsive_dimension(self, base_dimension):
+        """Get responsive dimension based on screen scale"""
+        return max(20, int(base_dimension * self.scale_factor))
+
+    def get_responsive_dialog_size(self, base_width_ratio=0.80, base_height_ratio=0.80):
+        """Get responsive dialog size with perfect screen fit guarantee"""
+        width = int(self.screen_width * self.responsive_dialog_width_ratio)
+        height = int(self.screen_height * self.responsive_dialog_height_ratio)
+
+        # Apply screen-specific constraints for perfect fit
+        if self.screen_width == 1366:
+            # Special constraints for 1366x768 - ensure perfect fit
+            min_width = 600
+            max_width = 1300  # Leave margin for window decorations
+            min_height = 400
+            max_height = 650   # Leave margin for taskbar and title bar
+        else:
+            # Standard constraints for other screens
+            min_width = 800
+            max_width = 2000
+            min_height = 600
+            max_height = 1400
+
+        width = max(min_width, min(max_width, width))
+        height = max(min_height, min(max_height, height))
+
+        return width, height
+
+    def get_responsive_table_height(self, base_height=500):
+        """Get responsive table height optimized for perfect display compatibility"""
+        # Balanced heights for optimal fit and usability
+        if self.is_small_screen:
+            # Balanced tables for small screens
+            return max(250, int(base_height * 0.65))
+        elif self.is_medium_screen:
+            # Ultra-compact handling for 1366x768 with 0.30 scale factor
+            if self.screen_width == 1366:
+                return max(250, int(base_height * 0.55))  # Ultra-compact for 1366x768 with 0.30 scale
+            else:
+                return max(320, int(base_height * 0.75))  # Compact for other medium screens
+        elif self.is_large_screen:
+            # Controlled height for large screens
+            return max(400, int(base_height * 0.90))
+        else:
+            return int(base_height * 0.75)  # Default balanced sizing
+
+    def get_responsive_row_height(self, base_height=70):
+        """Get responsive row height optimized for perfect display compatibility"""
+        # Balanced scaling for optimal usability and fit
+        scaled_height = int(base_height * self.scale_factor * 0.6)  # 40% reduction for balance
+
+        # Apply balanced screen-specific constraints
+        if self.is_small_screen:
+            return max(30, min(38, scaled_height))  # Usable rows for small screens
+        elif self.is_medium_screen:
+            # Ultra-compact handling for 1366x768 with 0.30 scale factor
+            if self.screen_width == 1366:
+                return max(18, min(25, scaled_height))  # Ultra-compact for 1366x768 with 0.30 scale
+            else:
+                return max(35, min(45, scaled_height))  # Compact for other medium screens
+        else:
+            return max(40, min(50, scaled_height))  # Controlled rows for large screens
+
+    def get_responsive_table_css(self, accent_color="#4CAF50", header_text_color="#2E7D32"):
+        """Generate responsive CSS for tables - optimized for perfect display compatibility"""
+        responsive_font_size = self.get_responsive_font_size(12)  # Balanced compact base
+        responsive_header_font_size = self.get_responsive_font_size(13)  # Balanced compact header
+        responsive_row_height = self.get_responsive_row_height(30)  # Balanced compact rows
+        responsive_header_height = self.get_responsive_row_height(28)  # Balanced compact header
+
+        # Ultra-compact padding for maximum density with 0.30 scale factor
+        if self.screen_width == 1366:
+            # Ultra-compact padding for 1366x768 with 0.30 scale factor
+            responsive_padding_v = max(4, int(6 * self.scale_factor))
+            responsive_padding_h = max(6, int(8 * self.scale_factor))
+        else:
+            # Standard compact padding for other screens
+            responsive_padding_v = max(8, int(10 * self.scale_factor))
+            responsive_padding_h = max(10, int(12 * self.scale_factor))
+
+        return f"""
+            QTableWidget {{
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: {responsive_font_size}px;
+                font-weight: 500;
+                selection-background-color: #e3f2fd;
+            }}
+            QTableWidget::item {{
+                padding: {responsive_padding_v}px {responsive_padding_h}px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+                min-height: {responsive_row_height}px;
+            }}
+            QTableWidget::item:selected {{
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }}
+            QTableWidget::item:hover {{
+                background-color: #f5f5f5;
+            }}
+            QHeaderView::section {{
+                background-color: #f8f9fa;
+                padding: {responsive_padding_v}px {responsive_padding_h}px;
+                border: none;
+                border-bottom: 3px solid {accent_color};
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: {responsive_header_font_size}px;
+                color: {header_text_color};
+                min-height: {responsive_header_height}px;
+            }}
+            QHeaderView::section:hover {{
+                background-color: #e8f5e8;
+            }}
+        """
+
+    def init_managers_and_data(self):
+        """Initialize managers and data structures"""
+        print("Initializing managers and data...")
+
+        # Các thư mục dữ liệu
+        os.makedirs("src/data/reports", exist_ok=True)
+        os.makedirs("src/data/imports", exist_ok=True)
+
+        # Initialize managers
+        self.formula_manager = FormulaManager()
+        self.inventory_manager = InventoryManager()
+
+        # Get formulas and inventory data
+        self.feed_formula = self.formula_manager.get_feed_formula()
+        self.mix_formula = self.formula_manager.get_mix_formula()
+        self.inventory = self.inventory_manager.get_inventory()
+
+        # Tải công thức mix theo cột từ file cấu hình
+        self.column_mix_formulas = self.formula_manager.column_mix_formulas
+
+        # Initialize data structures
+        self.feed_ingredients = {}
+        self.mix_ingredients = {}
+        self.formula_ingredients = {}
+        self.total_batches_by_area = {}
+        self.cell_formula_data = {}
+
+        print("Managers and data initialized successfully")
 
         # Thiết lập style cho toàn bộ ứng dụng
         self.setStyleSheet("""
@@ -177,25 +428,7 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
 
-        # Các thư mục dữ liệu
-        os.makedirs("src/data/reports", exist_ok=True)
-        os.makedirs("src/data/imports", exist_ok=True)  # Thư mục chứa lịch sử nhập hàng
 
-        # Các thư mục dữ liệu
-        os.makedirs("src/data/reports", exist_ok=True)
-        os.makedirs("src/data/imports", exist_ok=True)  # Thư mục chứa lịch sử nhập hàng
-
-        # Initialize managers
-        self.formula_manager = FormulaManager()
-        self.inventory_manager = InventoryManager()
-
-        # Get formulas and inventory data
-        self.feed_formula = self.formula_manager.get_feed_formula()
-        self.mix_formula = self.formula_manager.get_mix_formula()
-        self.inventory = self.inventory_manager.get_inventory()
-
-        # Tải công thức mix theo cột từ file cấu hình
-        self.column_mix_formulas = self.formula_manager.column_mix_formulas
 
         # Thiết lập stylesheet chung cho spinbox
         self.setStyleSheet(self.styleSheet() + """
@@ -5350,19 +5583,12 @@ class ChickenFarmApp(QMainWindow):
         report_dialog = QDialog(self)
         report_dialog.setWindowTitle(f"Báo Cáo Ngày {report_date}")
 
-        # Lấy kích thước màn hình desktop
-        desktop = QApplication.desktop()
-        screen_rect = desktop.screenGeometry()
-        screen_width = screen_rect.width()
-        screen_height = screen_rect.height()
-
-        # Đặt kích thước dialog bằng 75% màn hình
-        dialog_width = int(screen_width * 0.75)
-        dialog_height = int(screen_height * 0.75)
+        # Get responsive dialog size
+        dialog_width, dialog_height = self.get_responsive_dialog_size()
         report_dialog.resize(dialog_width, dialog_height)
 
-        # Đặt vị trí giữa màn hình
-        report_dialog.move((screen_width - dialog_width) // 2, (screen_height - dialog_height) // 2)
+        # Center dialog on screen
+        report_dialog.move((self.screen_width - dialog_width) // 2, (self.screen_height - dialog_height) // 2)
 
         report_dialog.setWindowModality(Qt.WindowModal)
 
@@ -5409,15 +5635,15 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
 
-                # Tạo các tab
+                # Tạo các tab (removed tab_batches)
+        tab_area_report = QWidget() # Tab báo cáo theo khu - moved to first position
         tab_feed = QWidget()        # Tab thành phần cám
         tab_mix = QWidget()         # Tab thành phần mix
-        tab_batches = QWidget()     # Tab số mẻ theo khu và công thức
 
-        # Thêm các tab vào TabWidget
-        report_tabs.addTab(tab_feed, "Thành Phần Cám")
-        report_tabs.addTab(tab_mix, "Thành Phần Mix")
-        report_tabs.addTab(tab_batches, "Số Mẻ")
+        # Thêm các tab vào TabWidget với thứ tự mới
+        report_tabs.addTab(tab_area_report, "🏭 Báo cáo theo Khu")  # Position 1
+        report_tabs.addTab(tab_feed, "Thành Phần Cám")              # Position 2
+        report_tabs.addTab(tab_mix, "Thành Phần Mix")               # Position 3
 
                 # Thiết lập tab thành phần cám
         feed_layout = QVBoxLayout(tab_feed)
@@ -5437,28 +5663,83 @@ class ChickenFarmApp(QMainWindow):
         mix_content = QWidget()
         mix_layout_scroll = QVBoxLayout(mix_content)
 
-                # Tạo bảng thành phần cám
+                # Tạo bảng thành phần cám với compact styling
         feed_table = QTableWidget()
-        feed_table.setFont(TABLE_CELL_FONT)
+        responsive_font_size = self.get_responsive_font_size(14)  # Compact font
+        feed_table.setFont(QFont("Arial", responsive_font_size, QFont.Medium))
         feed_table.setColumnCount(5)  # Ingredient, Amount, Bags, Inventory, Remaining
-        feed_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)", "Tồn kho sau (kg)"])
-        feed_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        feed_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        feed_table.setHorizontalHeaderLabels(["🌾 Thành phần", "⚖️ Số lượng (kg)", "📦 Số bao", "📊 Tồn kho (kg)", "📈 Tồn kho sau (kg)"])
+        responsive_header_font_size = self.get_responsive_font_size(15)  # Compact header font
+        feed_table.horizontalHeader().setFont(QFont("Arial", responsive_header_font_size, QFont.Bold))
+
+        # Enhanced column width configuration
+        header = feed_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Thành phần
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Số lượng
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Số bao
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Tồn kho
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Tồn kho sau
+        header.setMinimumSectionSize(120)
+
+        # Enhanced row height with responsive scaling
+        responsive_row_height = self.get_responsive_row_height(70)
+        feed_table.verticalHeader().setDefaultSectionSize(responsive_row_height)
+        feed_table.verticalHeader().setVisible(False)
 
         # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
         feed_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Enhanced table styling matching Area Report
         feed_table.setStyleSheet("""
             QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 500;
+                selection-background-color: #e3f2fd;
+            }
+            QTableWidget::item {
+                padding: 20px 16px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+                min-height: 70px;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
             }
             QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
+                background-color: #f8f9fa;
+                padding: 20px 16px;
+                border: none;
+                border-bottom: 3px solid #4CAF50;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 17px;
+                color: #2E7D32;
+                min-height: 65px;
+            }
+            QHeaderView::section:hover {
+                background-color: #e8f5e8;
             }
         """)
+
+        feed_table.setAlternatingRowColors(True)
+        feed_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        # Set responsive table height
+        responsive_table_height = self.get_responsive_table_height(500)
+        feed_table.setMinimumHeight(responsive_table_height)
+        feed_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Sắp xếp các thành phần để đưa bắp và nành lên đầu
         priority_ingredients = ["Bắp", "Nành"]
@@ -5488,74 +5769,80 @@ class ChickenFarmApp(QMainWindow):
 
         row += 1
 
-        # Thêm thành phần cám
+        # Thêm thành phần cám với enhanced formatting
         for ingredient, amount in sorted_feed_ingredients.items():
-                        # Ingredient name
+            # Ingredient name with compact styling
             ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            ingredient_item.setFont(QFont("Arial", self.get_responsive_font_size(13), QFont.Medium))
+            ingredient_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             feed_table.setItem(row, 0, ingredient_item)
 
-            # Amount
-            amount_item = QTableWidgetItem(format_number(amount))
-            amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))  # Tăng kích thước và làm đậm số
+            # Amount with thousand separators and compact font
+            amount_item = QTableWidgetItem(f"{amount:,.1f}")
+            amount_item.setFont(QFont("Arial", self.get_responsive_font_size(13), QFont.Bold))
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             feed_table.setItem(row, 1, amount_item)
 
-            # Calculate bags
+            # Calculate bags with enhanced formatting
             bag_size = self.inventory_manager.get_bag_size(ingredient)
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
-            bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            bags_item = QTableWidgetItem(f"{bags:,.1f}")
+            bags_item.setFont(QFont("Arial", 16, QFont.Medium))
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             feed_table.setItem(row, 2, bags_item)
 
-            # Add inventory information
+            # Add inventory information with enhanced styling
             inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
-            inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            inventory_item = QTableWidgetItem(f"{inventory_amount:,.1f}")
+            inventory_item.setFont(QFont("Arial", 16, QFont.Medium))
             inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            inventory_item.setBackground(QColor(240, 248, 255))  # Light blue background
+            inventory_item.setBackground(QColor("#e3f2fd"))  # Light blue background
             feed_table.setItem(row, 3, inventory_item)
 
-            # Add remaining inventory after usage
+            # Add remaining inventory after usage with enhanced styling
             remaining = max(0, inventory_amount - amount)
-            remaining_item = QTableWidgetItem(format_number(remaining))
-            remaining_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            remaining_item = QTableWidgetItem(f"{remaining:,.1f}")
+            remaining_item.setFont(QFont("Arial", 16, QFont.Medium))
             remaining_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            remaining_item.setBackground(QColor(220, 240, 220))  # Light green background
+
+            # Color code remaining inventory
+            if remaining < amount * 0.1:  # Less than 10% of usage
+                remaining_item.setBackground(QColor("#ffebee"))  # Light red
+                remaining_item.setForeground(QBrush(QColor("#d32f2f")))  # Red text
+            elif remaining < amount * 0.5:  # Less than 50% of usage
+                remaining_item.setBackground(QColor("#fff3e0"))  # Light orange
+                remaining_item.setForeground(QBrush(QColor("#f57c00")))  # Orange text
+            else:
+                remaining_item.setBackground(QColor("#e8f5e9"))  # Light green
+                remaining_item.setForeground(QBrush(QColor("#388e3c")))  # Green text
+
             feed_table.setItem(row, 4, remaining_item)
 
             row += 1
 
-        # Thêm tổng cộng cho cám
+        # Thêm tổng cộng cho cám với enhanced styling
         total_feed_amount = sum(self.feed_ingredients.values())
 
-        total_feed_item = QTableWidgetItem("Tổng Cám")
-        total_feed_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        # Enhanced TOTAL row styling
+        total_feed_item = QTableWidgetItem("📊 TỔNG CÁM")
+        total_feed_item.setFont(QFont("Arial", 16, QFont.Bold))
+        total_feed_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        total_feed_item.setBackground(QColor("#2E7D32"))  # Dark green background
+        total_feed_item.setForeground(QBrush(QColor("#ffffff")))  # White text
         feed_table.setItem(row, 0, total_feed_item)
 
-        total_feed_amount_item = QTableWidgetItem(format_total(total_feed_amount))
-        total_feed_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_feed_amount_item = QTableWidgetItem(f"{total_feed_amount:,.1f}")
+        total_feed_amount_item.setFont(QFont("Arial", 16, QFont.Bold))
         total_feed_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        total_feed_amount_item.setBackground(QColor(220, 240, 220))  # Light green background
+        total_feed_amount_item.setBackground(QColor("#2E7D32"))  # Dark green background
+        total_feed_amount_item.setForeground(QBrush(QColor("#ffffff")))  # White text
         feed_table.setItem(row, 1, total_feed_amount_item)
 
-        # Tổng số bao cám (để trống vì không có ý nghĩa)
-        feed_table.setItem(row, 2, QTableWidgetItem(""))
-
-        # Tổng tồn kho cám (để trống vì không có ý nghĩa cho tổng)
-        feed_table.setItem(row, 3, QTableWidgetItem(""))
-
-        # Tổng tồn kho sau (để trống vì không có ý nghĩa cho tổng)
-        feed_table.setItem(row, 4, QTableWidgetItem(""))
-
-        # Tăng chiều cao của các hàng để dễ nhìn hơn
-        for row in range(feed_table.rowCount()):
-            feed_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
-
-                # Thiết lập bảng cám để kéo dài đến cuối tab
-        feed_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        feed_table.setMinimumHeight(int(dialog_height * 0.7))  # Chiều cao tối thiểu 70% của dialog
+        # Enhanced empty cells for total row
+        for col in range(2, 5):
+            empty_item = QTableWidgetItem("")
+            empty_item.setBackground(QColor("#2E7D32"))  # Dark green background
+            feed_table.setItem(row, col, empty_item)
 
         # Thêm bảng vào layout tab thành phần cám
         feed_layout_scroll.addWidget(feed_table)
@@ -5564,28 +5851,83 @@ class ChickenFarmApp(QMainWindow):
         feed_scroll.setWidget(feed_content)
         feed_layout.addWidget(feed_scroll)
 
-        # Tạo bảng thành phần mix
+        # Tạo bảng thành phần mix với compact styling
         mix_table = QTableWidget()
-        mix_table.setFont(TABLE_CELL_FONT)
+        responsive_font_size = self.get_responsive_font_size(14)  # Compact font
+        mix_table.setFont(QFont("Arial", responsive_font_size, QFont.Medium))
         mix_table.setColumnCount(5)  # Ingredient, Amount, Bags, Inventory, Remaining
-        mix_table.setHorizontalHeaderLabels(["Thành phần", "Số lượng (kg)", "Số bao", "Tồn kho (kg)", "Tồn kho sau (kg)"])
-        mix_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        mix_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        mix_table.setHorizontalHeaderLabels(["🧪 Thành phần", "⚖️ Số lượng (kg)", "📦 Số bao", "📊 Tồn kho (kg)", "📈 Tồn kho sau (kg)"])
+        responsive_header_font_size = self.get_responsive_font_size(15)  # Compact header font
+        mix_table.horizontalHeader().setFont(QFont("Arial", responsive_header_font_size, QFont.Bold))
+
+        # Enhanced column width configuration
+        header = mix_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Thành phần
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Số lượng
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Số bao
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Tồn kho
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Tồn kho sau
+        header.setMinimumSectionSize(120)
+
+        # Enhanced row height with responsive scaling
+        responsive_row_height = self.get_responsive_row_height(70)
+        mix_table.verticalHeader().setDefaultSectionSize(responsive_row_height)
+        mix_table.verticalHeader().setVisible(False)
 
         # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
         mix_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Enhanced table styling matching Area Report (with orange accent for mix)
         mix_table.setStyleSheet("""
             QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 500;
+                selection-background-color: #e3f2fd;
+            }
+            QTableWidget::item {
+                padding: 20px 16px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+                min-height: 70px;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
             }
             QHeaderView::section {
-                background-color: #FF9800;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
+                background-color: #f8f9fa;
+                padding: 20px 16px;
+                border: none;
+                border-bottom: 3px solid #FF9800;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 17px;
+                color: #E65100;
+                min-height: 65px;
+            }
+            QHeaderView::section:hover {
+                background-color: #fff3e0;
             }
         """)
+
+        mix_table.setAlternatingRowColors(True)
+        mix_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        # Set responsive table height
+        responsive_table_height = self.get_responsive_table_height(500)
+        mix_table.setMinimumHeight(responsive_table_height)
+        mix_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Tính tổng số hàng cần thiết cho bảng mix
         mix_rows = len(self.mix_ingredients) + 2  # +2 cho tiêu đề và tổng cộng
@@ -5601,41 +5943,53 @@ class ChickenFarmApp(QMainWindow):
 
         row += 1
 
-        # Thêm thành phần mix
+        # Thêm thành phần mix với enhanced formatting
         for ingredient, amount in self.mix_ingredients.items():
-                        # Ingredient name
+            # Ingredient name with enhanced styling
             ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            ingredient_item.setFont(QFont("Arial", 16, QFont.Medium))
+            ingredient_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             mix_table.setItem(row, 0, ingredient_item)
 
-            # Amount
-            amount_item = QTableWidgetItem(format_number(amount))
-            amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))  # Tăng kích thước và làm đậm số
+            # Amount with thousand separators
+            amount_item = QTableWidgetItem(f"{amount:,.1f}")
+            amount_item.setFont(QFont("Arial", 16, QFont.Bold))
             amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             mix_table.setItem(row, 1, amount_item)
 
-            # Calculate bags
+            # Calculate bags with enhanced formatting
             bag_size = self.inventory_manager.get_bag_size(ingredient)
             bags = self.inventory_manager.calculate_bags(ingredient, amount)
-            bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            bags_item = QTableWidgetItem(f"{bags:,.1f}")
+            bags_item.setFont(QFont("Arial", 16, QFont.Medium))
             bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             mix_table.setItem(row, 2, bags_item)
 
-            # Add inventory information
+            # Add inventory information with enhanced styling
             inventory_amount = self.inventory_manager.get_inventory().get(ingredient, 0)
-            inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            inventory_item = QTableWidgetItem(f"{inventory_amount:,.1f}")
+            inventory_item.setFont(QFont("Arial", 16, QFont.Medium))
             inventory_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            inventory_item.setBackground(QColor(255, 245, 230))  # Light orange background
+            inventory_item.setBackground(QColor("#fff3e0"))  # Light orange background
             mix_table.setItem(row, 3, inventory_item)
 
-            # Add remaining inventory after usage
+            # Add remaining inventory after usage with enhanced styling
             remaining = max(0, inventory_amount - amount)
-            remaining_item = QTableWidgetItem(format_number(remaining))
-            remaining_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1))  # Tăng kích thước font
+            remaining_item = QTableWidgetItem(f"{remaining:,.1f}")
+            remaining_item.setFont(QFont("Arial", 16, QFont.Medium))
             remaining_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            remaining_item.setBackground(QColor(255, 235, 205))  # Lighter orange background
+
+            # Color code remaining inventory (orange theme for mix)
+            if remaining < amount * 0.1:  # Less than 10% of usage
+                remaining_item.setBackground(QColor("#ffebee"))  # Light red
+                remaining_item.setForeground(QBrush(QColor("#d32f2f")))  # Red text
+            elif remaining < amount * 0.5:  # Less than 50% of usage
+                remaining_item.setBackground(QColor("#fff8e1"))  # Light amber
+                remaining_item.setForeground(QBrush(QColor("#f57c00")))  # Orange text
+            else:
+                remaining_item.setBackground(QColor("#f3e5f5"))  # Light purple
+                remaining_item.setForeground(QBrush(QColor("#7b1fa2")))  # Purple text
+
             mix_table.setItem(row, 4, remaining_item)
 
             row += 1
@@ -5643,32 +5997,26 @@ class ChickenFarmApp(QMainWindow):
         # Thêm tổng cộng cho mix
         total_mix_amount = sum(self.mix_ingredients.values())
 
-        total_mix_item = QTableWidgetItem("Tổng Mix")
-        total_mix_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        # Enhanced TOTAL row styling for mix
+        total_mix_item = QTableWidgetItem("🧪 TỔNG MIX")
+        total_mix_item.setFont(QFont("Arial", 16, QFont.Bold))
+        total_mix_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        total_mix_item.setBackground(QColor("#E65100"))  # Dark orange background
+        total_mix_item.setForeground(QBrush(QColor("#ffffff")))  # White text
         mix_table.setItem(row, 0, total_mix_item)
 
-        total_mix_amount_item = QTableWidgetItem(format_total(total_mix_amount))
-        total_mix_amount_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        total_mix_amount_item = QTableWidgetItem(f"{total_mix_amount:,.1f}")
+        total_mix_amount_item.setFont(QFont("Arial", 16, QFont.Bold))
         total_mix_amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        total_mix_amount_item.setBackground(QColor(240, 220, 220))  # Light red background
+        total_mix_amount_item.setBackground(QColor("#E65100"))  # Dark orange background
+        total_mix_amount_item.setForeground(QBrush(QColor("#ffffff")))  # White text
         mix_table.setItem(row, 1, total_mix_amount_item)
 
-        # Tổng số bao mix (để trống vì không có ý nghĩa)
-        mix_table.setItem(row, 2, QTableWidgetItem(""))
-
-        # Tổng tồn kho mix (để trống vì không có ý nghĩa cho tổng)
-        mix_table.setItem(row, 3, QTableWidgetItem(""))
-
-        # Tổng tồn kho sau (để trống vì không có ý nghĩa cho tổng)
-        mix_table.setItem(row, 4, QTableWidgetItem(""))
-
-        # Tăng chiều cao của các hàng để dễ nhìn hơn
-        for row in range(mix_table.rowCount()):
-            mix_table.setRowHeight(row, 50)  # Tăng chiều cao các hàng
-
-                # Thiết lập bảng mix để kéo dài đến cuối tab
-        mix_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        mix_table.setMinimumHeight(int(dialog_height * 0.7))  # Chiều cao tối thiểu 70% của dialog
+        # Enhanced empty cells for total row
+        for col in range(2, 5):
+            empty_item = QTableWidgetItem("")
+            empty_item.setBackground(QColor("#E65100"))  # Dark orange background
+            mix_table.setItem(row, col, empty_item)
 
         # Thêm bảng vào layout tab thành phần mix
         mix_layout_scroll.addWidget(mix_table)
@@ -5677,159 +6025,8 @@ class ChickenFarmApp(QMainWindow):
         mix_scroll.setWidget(mix_content)
         mix_layout.addWidget(mix_scroll)
 
-        # Thiết lập tab số mẻ
-        batches_layout = QVBoxLayout(tab_batches)
-
-        # Tạo widget scroll cho nội dung tab số mẻ
-        batches_scroll = QScrollArea()
-        batches_scroll.setWidgetResizable(True)
-        batches_content = QWidget()
-        batches_layout_scroll = QVBoxLayout(batches_content)
-
-        # Thêm bảng tổng số mẻ
-        batches_summary_label = QLabel("<b>Tổng số mẻ:</b>")
-        batches_summary_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(batches_summary_label)
-
-        # Tạo bảng tổng số mẻ trong ngày
-        total_batches_table = QTableWidget()
-        total_batches_table.setFont(TABLE_CELL_FONT)
-        total_batches_table.setColumnCount(2)
-        total_batches_table.setHorizontalHeaderLabels(["Mô tả", "Số mẻ"])
-        total_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        total_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        total_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        total_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Tính tổng số mẻ trong ngày
-        total_day_batches = 0
-        for khu, batches in self.total_batches_by_area.items():
-            total_day_batches += batches
-
-        # Thêm hàng tổng số mẻ trong ngày
-        total_batches_table.setRowCount(1)
-        total_batches_table.setItem(0, 0, QTableWidgetItem("Tổng số mẻ trong ngày"))
-        total_batches_item = QTableWidgetItem(format_number(total_day_batches))
-        total_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        total_batches_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
-        total_batches_item.setBackground(QColor(230, 240, 250))
-        total_batches_table.setItem(0, 1, total_batches_item)
-
-        # Đặt chiều cao hàng
-        total_batches_table.setRowHeight(0, 50)  # Tăng chiều cao hàng
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(total_batches_table)
-
-        # Tạo bảng tổng số mẻ theo khu
-        khu_batches_label = QLabel("<b>Tổng số mẻ theo khu:</b>")
-        khu_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(khu_batches_label)
-
-        khu_batches_table = QTableWidget()
-        khu_batches_table.setFont(TABLE_CELL_FONT)
-        khu_batches_table.setColumnCount(2)
-        khu_batches_table.setHorizontalHeaderLabels(["Khu", "Số mẻ"])
-        khu_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        khu_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        khu_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        khu_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Thêm dữ liệu tổng số mẻ theo khu
-        khu_batches_table.setRowCount(len(self.total_batches_by_area))
-        row = 0
-        for khu, batches in sorted(self.total_batches_by_area.items()):
-            khu_batches_table.setItem(row, 0, QTableWidgetItem(khu))
-            batches_item = QTableWidgetItem(format_number(batches))
-            batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            khu_batches_table.setItem(row, 1, batches_item)
-            khu_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
-            row += 1
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(khu_batches_table)
-
-        # Tạo bảng tổng số mẻ theo công thức
-        formula_batches_label = QLabel("<b>Tổng số mẻ theo công thức:</b>")
-        formula_batches_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
-        batches_layout_scroll.addWidget(formula_batches_label)
-
-        formula_batches_table = QTableWidget()
-        formula_batches_table.setFont(TABLE_CELL_FONT)
-        formula_batches_table.setColumnCount(3)
-        formula_batches_table.setHorizontalHeaderLabels(["Công thức", "Số lượng", "Số mẻ"])
-        formula_batches_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        formula_batches_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # Đặt bảng ở chế độ chỉ đọc - không cho phép chỉnh sửa
-        formula_batches_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        formula_batches_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-            }
-            QHeaderView::section {
-                background-color: #3F51B5;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-        """)
-
-        # Thêm dữ liệu tổng số mẻ theo công thức
-        formula_batches_table.setRowCount(len(self.formula_ingredients))
-        row = 0
-        for formula_name, data in sorted(self.formula_ingredients.items(), key=lambda x: x[0]):
-            batches = data["batches"]
-            actual_batches = batches * 2  # Số mẻ thực tế = giá trị hiển thị * 2
-
-            formula_item = QTableWidgetItem(formula_name)
-            formula_batches_table.setItem(row, 0, formula_item)
-
-            batches_value_item = QTableWidgetItem(format_number(batches))
-            batches_value_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            formula_batches_table.setItem(row, 1, batches_value_item)
-
-            actual_batches_item = QTableWidgetItem(format_number(actual_batches))
-            actual_batches_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            formula_batches_table.setItem(row, 2, actual_batches_item)
-
-            formula_batches_table.setRowHeight(row, 50)  # Tăng chiều cao hàng
-            row += 1
-
-        # Thêm bảng vào layout tab số mẻ
-        batches_layout_scroll.addWidget(formula_batches_table)
-        batches_layout_scroll.addStretch()
-
-        # Hoàn thành scroll area cho tab số mẻ
-        batches_scroll.setWidget(batches_content)
-        batches_layout.addWidget(batches_scroll)
+        # Thiết lập tab báo cáo theo khu (moved to first position)
+        self.setup_area_report_tab(tab_area_report)
 
         # Thêm tiêu đề "Chỉ xem" cho TabWidget
         readonly_label = QLabel("(Chỉ xem - Không thể chỉnh sửa)")
@@ -5902,6 +6099,362 @@ class ChickenFarmApp(QMainWindow):
 
         # Hiển thị dialog
         report_dialog.exec_()
+
+    def setup_area_report_tab(self, tab_area_report):
+        """Setup area report tab with detailed breakdown by area"""
+        area_layout = QVBoxLayout(tab_area_report)
+
+        # Tạo widget scroll cho nội dung tab báo cáo theo khu
+        area_scroll = QScrollArea()
+        area_scroll.setWidgetResizable(True)
+        area_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        area_content = QWidget()
+        area_layout_scroll = QVBoxLayout(area_content)
+
+        # Header section
+        header_label = QLabel("<b>📊 Báo cáo chi tiết theo từng khu vực sản xuất</b>")
+        header_label.setFont(QFont("Arial", 16, QFont.Bold))
+        header_label.setAlignment(Qt.AlignCenter)
+        header_label.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                background-color: #e8f5e9;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+            }
+        """)
+        area_layout_scroll.addWidget(header_label)
+
+        # Calculate area-specific data
+        area_data = self.calculate_area_breakdown()
+
+        # Create area report table with improved structure
+        area_table = QTableWidget()
+        area_table.setFont(QFont("Arial", 16, QFont.Medium))  # Increased font size
+        area_table.setColumnCount(5)  # Reduced from 7 to 5 columns
+        area_table.setHorizontalHeaderLabels([
+            "🏭 Khu vực", "🌾 Cám (kg)", "🧪 Mix (kg)", "🔢 Số mẻ", "📊 Tỷ lệ (%)"
+        ])
+
+        # Enhanced table styling with responsive design
+        area_table.setStyleSheet(self.get_responsive_table_css("#4CAF50", "#2E7D32"))
+
+        # Set enhanced row height with responsive scaling
+        responsive_row_height = self.get_responsive_row_height(70)
+        area_table.verticalHeader().setDefaultSectionSize(responsive_row_height)
+        area_table.verticalHeader().setVisible(False)
+
+        # Set improved column widths for better readability
+        header = area_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # Khu vực
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Cám (kg) - more space
+        header.setSectionResizeMode(2, QHeaderView.Stretch)  # Mix (kg) - more space
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Số mẻ
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Tỷ lệ
+        header.setMinimumSectionSize(120)  # Increased minimum width
+
+        area_table.setAlternatingRowColors(True)
+        area_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        area_table.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        # Set responsive minimum height for better visibility
+        responsive_table_height = self.get_responsive_table_height(500)
+        area_table.setMinimumHeight(responsive_table_height)
+        area_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Populate table with area data
+        self.populate_area_table(area_table, area_data)
+
+        area_layout_scroll.addWidget(area_table)
+
+        # Add summary section
+        self.add_area_summary_section(area_layout_scroll, area_data)
+
+        area_layout_scroll.addStretch()
+
+        # Complete scroll area setup
+        area_scroll.setWidget(area_content)
+        area_layout.addWidget(area_scroll)
+
+    def calculate_area_breakdown(self):
+        """Calculate feed and mix breakdown by area"""
+        area_data = {}
+
+        try:
+            # Get total batches by area
+            total_batches_by_area = getattr(self, 'total_batches_by_area', {})
+            total_batches = sum(total_batches_by_area.values()) if total_batches_by_area else 0
+
+            # Get total ingredients
+            feed_ingredients = getattr(self, 'feed_ingredients', {})
+            mix_ingredients = getattr(self, 'mix_ingredients', {})
+
+            total_feed_kg = sum(feed_ingredients.values()) if feed_ingredients else 0
+            total_mix_kg = sum(mix_ingredients.values()) if mix_ingredients else 0
+
+            # Calculate breakdown for each area
+            for area, area_batches in total_batches_by_area.items():
+                if total_batches > 0:
+                    # Calculate proportional distribution
+                    batch_ratio = area_batches / total_batches
+
+                    # Calculate feed quantities for this area
+                    area_feed_kg = total_feed_kg * batch_ratio
+
+                    # Calculate mix quantities for this area
+                    area_mix_kg = total_mix_kg * batch_ratio
+
+                    # Calculate percentage
+                    percentage = (area_batches / total_batches) * 100 if total_batches > 0 else 0
+
+                    area_data[area] = {
+                        'feed_kg': area_feed_kg,
+                        'mix_kg': area_mix_kg,
+                        'batches': area_batches,
+                        'percentage': percentage
+                    }
+
+            # Add totals
+            area_data['TOTAL'] = {
+                'feed_kg': total_feed_kg,
+                'mix_kg': total_mix_kg,
+                'batches': total_batches,
+                'percentage': 100.0
+            }
+
+        except Exception as e:
+            print(f"Error calculating area breakdown: {str(e)}")
+
+        return area_data
+
+    def populate_area_table(self, table, area_data):
+        """Populate area table with calculated data"""
+        try:
+            # Define area colors for visual distinction
+            area_colors = {
+                'Khu A': '#e3f2fd',    # Light blue
+                'Khu B': '#e8f5e9',    # Light green
+                'Khu C': '#fff3e0',    # Light orange
+                'Khu D': '#f3e5f5',    # Light purple
+                'Khu E': '#fce4ec',    # Light pink
+                'TOTAL': '#2E7D32'     # Dark green for prominence
+            }
+
+            # Text colors for better contrast
+            text_colors = {
+                'Khu A': '#2c2c2c',    # Dark text for light backgrounds
+                'Khu B': '#2c2c2c',
+                'Khu C': '#2c2c2c',
+                'Khu D': '#2c2c2c',
+                'Khu E': '#2c2c2c',
+                'TOTAL': '#ffffff'     # White text for dark background
+            }
+
+            # Sort areas (put TOTAL at the end)
+            sorted_areas = sorted([area for area in area_data.keys() if area != 'TOTAL'])
+            if 'TOTAL' in area_data:
+                sorted_areas.append('TOTAL')
+
+            table.setRowCount(len(sorted_areas))
+
+            for row, area in enumerate(sorted_areas):
+                data = area_data[area]
+
+                # Area name with icon
+                area_icon = "🏭" if area != 'TOTAL' else "📊"
+                area_name = f"{area_icon} {area}"
+                area_item = QTableWidgetItem(area_name)
+                area_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                area_item.setFont(QFont("Arial", 16, QFont.Bold if area == 'TOTAL' else QFont.Medium))
+
+                # Set background and text colors for enhanced TOTAL row
+                if area in area_colors:
+                    area_item.setBackground(QColor(area_colors[area]))
+                if area in text_colors:
+                    area_item.setForeground(QBrush(QColor(text_colors[area])))
+
+                table.setItem(row, 0, area_item)
+
+                # Feed kg - Column 1
+                feed_kg_item = QTableWidgetItem(f"{data['feed_kg']:,.1f}")
+                feed_kg_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                feed_kg_item.setFont(QFont("Arial", 16, QFont.Bold if area == 'TOTAL' else QFont.Medium))
+                if area in area_colors:
+                    feed_kg_item.setBackground(QColor(area_colors[area]))
+                if area in text_colors:
+                    feed_kg_item.setForeground(QBrush(QColor(text_colors[area])))
+                table.setItem(row, 1, feed_kg_item)
+
+                # Mix kg - Column 2
+                mix_kg_item = QTableWidgetItem(f"{data['mix_kg']:,.1f}")
+                mix_kg_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                mix_kg_item.setFont(QFont("Arial", 16, QFont.Bold if area == 'TOTAL' else QFont.Medium))
+                if area in area_colors:
+                    mix_kg_item.setBackground(QColor(area_colors[area]))
+                if area in text_colors:
+                    mix_kg_item.setForeground(QBrush(QColor(text_colors[area])))
+                table.setItem(row, 2, mix_kg_item)
+
+                # Batches - Column 3
+                batches_item = QTableWidgetItem(f"{data['batches']:,.0f}")
+                batches_item.setTextAlignment(Qt.AlignCenter)
+                batches_item.setFont(QFont("Arial", 16, QFont.Bold if area == 'TOTAL' else QFont.Medium))
+                if area in area_colors:
+                    batches_item.setBackground(QColor(area_colors[area]))
+                if area in text_colors:
+                    batches_item.setForeground(QBrush(QColor(text_colors[area])))
+                table.setItem(row, 3, batches_item)
+
+                # Percentage - Column 4
+                percentage_item = QTableWidgetItem(f"{data['percentage']:.1f}%")
+                percentage_item.setTextAlignment(Qt.AlignCenter)
+                percentage_item.setFont(QFont("Arial", 16, QFont.Bold if area == 'TOTAL' else QFont.Medium))
+                if area in area_colors:
+                    percentage_item.setBackground(QColor(area_colors[area]))
+
+                # Enhanced color coding for percentage
+                if area == 'TOTAL':
+                    # White text for TOTAL row
+                    percentage_item.setForeground(QBrush(QColor(text_colors[area])))
+                else:
+                    # Color code percentage for better visual feedback
+                    if data['percentage'] >= 30:
+                        percentage_item.setForeground(QBrush(QColor("#4CAF50")))  # Green
+                    elif data['percentage'] >= 15:
+                        percentage_item.setForeground(QBrush(QColor("#FF9800")))  # Orange
+                    else:
+                        percentage_item.setForeground(QBrush(QColor("#f44336")))  # Red
+
+                table.setItem(row, 4, percentage_item)
+
+        except Exception as e:
+            print(f"Error populating area table: {str(e)}")
+
+    def add_area_summary_section(self, layout, area_data):
+        """Add summary section with key insights"""
+        try:
+            # Summary header
+            summary_header = QLabel("<b>📈 Tóm tắt và Phân tích</b>")
+            summary_header.setFont(QFont("Arial", 16, QFont.Bold))
+            summary_header.setStyleSheet("""
+                QLabel {
+                    color: #1976D2;
+                    background-color: #e3f2fd;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 15px 0px 10px 0px;
+                }
+            """)
+            layout.addWidget(summary_header)
+
+            # Calculate insights
+            if area_data and len(area_data) > 1:  # More than just TOTAL
+                areas = [area for area in area_data.keys() if area != 'TOTAL']
+
+                # Find highest and lowest production areas
+                highest_area = max(areas, key=lambda x: area_data[x]['batches'])
+                lowest_area = min(areas, key=lambda x: area_data[x]['batches'])
+
+                # Calculate efficiency metrics
+                total_data = area_data.get('TOTAL', {})
+                avg_batches_per_area = total_data.get('batches', 0) / len(areas) if areas else 0
+
+                # Create insights text
+                insights_text = f"""
+                <div style="font-size: 14px; line-height: 1.6;">
+                    <p><b>🎯 Khu vực sản xuất cao nhất:</b> {highest_area}
+                       ({area_data[highest_area]['batches']:.0f} mẻ - {area_data[highest_area]['percentage']:.1f}%)</p>
+
+                    <p><b>📉 Khu vực sản xuất thấp nhất:</b> {lowest_area}
+                       ({area_data[lowest_area]['batches']:.0f} mẻ - {area_data[lowest_area]['percentage']:.1f}%)</p>
+
+                    <p><b>📊 Trung bình mẻ/khu:</b> {avg_batches_per_area:.1f} mẻ</p>
+
+                    <p><b>🌾 Tổng lượng cám:</b> {total_data.get('feed_kg', 0):,.1f} kg</p>
+
+                    <p><b>🧪 Tổng lượng mix:</b> {total_data.get('mix_kg', 0):,.1f} kg</p>
+
+                    <p><b>🔢 Tổng số mẻ:</b> {total_data.get('batches', 0):,.0f} mẻ</p>
+                </div>
+                """
+
+                insights_label = QLabel(insights_text)
+                insights_label.setFont(QFont("Arial", 14))
+                insights_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 8px;
+                        border-left: 4px solid #4CAF50;
+                        margin: 5px 0px;
+                    }
+                """)
+                insights_label.setWordWrap(True)
+                layout.addWidget(insights_label)
+
+                # Add efficiency recommendations
+                self.add_efficiency_recommendations(layout, area_data)
+
+        except Exception as e:
+            print(f"Error adding area summary: {str(e)}")
+
+    def add_efficiency_recommendations(self, layout, area_data):
+        """Add efficiency recommendations based on area data"""
+        try:
+            recommendations = []
+
+            if area_data and len(area_data) > 1:
+                areas = [area for area in area_data.keys() if area != 'TOTAL']
+                total_batches = area_data.get('TOTAL', {}).get('batches', 0)
+
+                # Check for imbalanced production
+                for area in areas:
+                    percentage = area_data[area]['percentage']
+                    if percentage > 40:
+                        recommendations.append(f"⚠️ {area} chiếm {percentage:.1f}% sản lượng - cân nhắc phân bổ lại")
+                    elif percentage < 10:
+                        recommendations.append(f"📈 {area} chỉ chiếm {percentage:.1f}% - có thể tăng công suất")
+
+                # Check feed/mix ratio
+                total_feed = area_data.get('TOTAL', {}).get('feed_kg', 0)
+                total_mix = area_data.get('TOTAL', {}).get('mix_kg', 0)
+                if total_feed > 0:
+                    mix_ratio = (total_mix / total_feed) * 100
+                    if mix_ratio < 1:
+                        recommendations.append(f"🧪 Tỷ lệ mix thấp ({mix_ratio:.1f}%) - xem xét tăng mix")
+                    elif mix_ratio > 3:
+                        recommendations.append(f"🧪 Tỷ lệ mix cao ({mix_ratio:.1f}%) - kiểm tra công thức")
+
+            if recommendations:
+                rec_header = QLabel("<b>💡 Khuyến nghị cải thiện</b>")
+                rec_header.setFont(QFont("Arial", 14, QFont.Bold))
+                rec_header.setStyleSheet("""
+                    QLabel {
+                        color: #FF9800;
+                        margin: 10px 0px 5px 0px;
+                    }
+                """)
+                layout.addWidget(rec_header)
+
+                rec_text = "<br>".join(recommendations)
+                rec_label = QLabel(rec_text)
+                rec_label.setFont(QFont("Arial", 13))
+                rec_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #fff3e0;
+                        padding: 12px;
+                        border-radius: 6px;
+                        border-left: 4px solid #FF9800;
+                        margin: 5px 0px;
+                    }
+                """)
+                rec_label.setWordWrap(True)
+                layout.addWidget(rec_label)
+
+        except Exception as e:
+            print(f"Error adding recommendations: {str(e)}")
 
     def load_default_formula(self):
         """Tải công thức mặc định khi khởi động app"""
