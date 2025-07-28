@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
                             QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
                             QGroupBox, QDialog, QRadioButton, QDateEdit, QScrollArea, QSizePolicy,
-                            QMenu, QAction, QAbstractSpinBox)
+                            QMenu, QAction, QAbstractSpinBox, QAbstractItemView, QCalendarWidget,
+                            QCheckBox, QListWidget, QListWidgetItem, QTextEdit)
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor, QCursor, QBrush
 
@@ -258,6 +259,7 @@ class ChickenFarmApp(QMainWindow):
         self.import_tab = QWidget()  # Tab mới cho nhập hàng
         self.formula_tab = QWidget()
         self.history_tab = QWidget()  # Tab mới cho lịch sử
+        self.team_management_tab = QWidget()  # Tab quản lý tổ cám
 
         # Add tabs to widget
         self.tabs.addTab(self.feed_usage_tab, "Tổng quan")
@@ -265,6 +267,7 @@ class ChickenFarmApp(QMainWindow):
         self.tabs.addTab(self.import_tab, "Nhập Hàng")  # Tab nhập hàng
         self.tabs.addTab(self.formula_tab, "Công Thức")
         self.tabs.addTab(self.history_tab, "Lịch Sử")  # Thêm tab lịch sử
+        self.tabs.addTab(self.team_management_tab, "Quản lý tổ cám")  # Tab quản lý tổ cám
 
         # Khởi tạo các combobox trước khi sử dụng
         self.feed_preset_combo = QComboBox()
@@ -281,6 +284,7 @@ class ChickenFarmApp(QMainWindow):
         self.setup_import_tab()  # Thiết lập tab nhập hàng
         self.setup_formula_tab()
         self.setup_history_tab()  # Thiết lập tab lịch sử
+        self.setup_team_management_tab()  # Thiết lập tab quản lý tổ cám
 
         # Tải công thức mặc định và tải báo cáo mới nhất khi khởi động
         QTimer.singleShot(200, self.load_default_formula)
@@ -1410,23 +1414,47 @@ class ChickenFarmApp(QMainWindow):
 
     def import_feed(self):
         """Import feed into inventory"""
-        ingredient = self.feed_import_combo.currentText()
-        amount = self.feed_import_amount.value()
-        date = self.feed_import_date.date().toString("dd/MM/yyyy")
-        note = self.feed_import_note.text()
+        try:
+            ingredient = self.feed_import_combo.currentText()
+            amount = self.feed_import_amount.value()
+            # Fix: Use YYYY-MM-DD format for filename compatibility
+            date_obj = self.feed_import_date.date()
+            date_display = date_obj.toString("dd/MM/yyyy")  # For display
+            date_filename = date_obj.toString("yyyy-MM-dd")  # For filename
+            note = self.feed_import_note.text()
 
-        if amount <= 0:
-            QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
-            return
+            if amount <= 0:
+                QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
+                return
 
-        # Update inventory
-        inventory = self.inventory_manager.get_inventory()
-        current_amount = inventory.get(ingredient, 0)
-        inventory[ingredient] = current_amount + amount
-        self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+            if not ingredient:
+                QMessageBox.warning(self, "Lỗi", "Vui lòng chọn thành phần!")
+                return
+
+            # Show employee selection dialog
+            if self.show_employee_selection_dialog(date_filename, ingredient, amount, "feed"):
+                selected_employees = self.get_selected_employees()
+
+                # Update inventory
+                inventory = self.inventory_manager.get_inventory()
+                current_amount = inventory.get(ingredient, 0)
+                inventory[ingredient] = current_amount + amount
+                self.inventory_manager.update_inventory(ingredient, current_amount + amount)
 
                 # Save import history
-        self.save_import_history("feed", ingredient, amount, date, note)
+                self.save_import_history("feed", ingredient, amount, date_filename, note)
+
+                # Save employee participation
+                self.save_employee_participation("feed", ingredient, amount, date_filename, note, selected_employees)
+
+            else:
+                # User cancelled - don't proceed with import
+                return
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể nhập kho cám: {str(e)}")
+            print(f"Error in import_feed: {str(e)}")
+            return
 
         # Update tables
         self.update_feed_inventory_table()
@@ -1442,23 +1470,46 @@ class ChickenFarmApp(QMainWindow):
 
     def import_mix(self):
         """Import mix into inventory"""
-        ingredient = self.mix_import_combo.currentText()
-        amount = self.mix_import_amount.value()
-        date = self.mix_import_date.date().toString("dd/MM/yyyy")
-        note = self.mix_import_note.text()
+        try:
+            ingredient = self.mix_import_combo.currentText()
+            amount = self.mix_import_amount.value()
+            # Fix: Use YYYY-MM-DD format for filename compatibility
+            date_obj = self.mix_import_date.date()
+            date_filename = date_obj.toString("yyyy-MM-dd")  # For filename
+            note = self.mix_import_note.text()
 
-        if amount <= 0:
-            QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
-            return
+            if amount <= 0:
+                QMessageBox.warning(self, "Lỗi", "Số lượng nhập phải lớn hơn 0!")
+                return
 
-        # Update inventory
-        inventory = self.inventory_manager.get_inventory()
-        current_amount = inventory.get(ingredient, 0)
-        inventory[ingredient] = current_amount + amount
-        self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+            if not ingredient:
+                QMessageBox.warning(self, "Lỗi", "Vui lòng chọn thành phần!")
+                return
+
+            # Show employee selection dialog
+            if self.show_employee_selection_dialog(date_filename, ingredient, amount, "mix"):
+                selected_employees = self.get_selected_employees()
+
+                # Update inventory
+                inventory = self.inventory_manager.get_inventory()
+                current_amount = inventory.get(ingredient, 0)
+                inventory[ingredient] = current_amount + amount
+                self.inventory_manager.update_inventory(ingredient, current_amount + amount)
 
                 # Save import history
-        self.save_import_history("mix", ingredient, amount, date, note)
+                self.save_import_history("mix", ingredient, amount, date_filename, note)
+
+                # Save employee participation
+                self.save_employee_participation("mix", ingredient, amount, date_filename, note, selected_employees)
+
+            else:
+                # User cancelled - don't proceed with import
+                return
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể nhập kho mix: {str(e)}")
+            print(f"Error in import_mix: {str(e)}")
+            return
 
         # Update tables
         self.update_mix_inventory_table()
@@ -1474,30 +1525,66 @@ class ChickenFarmApp(QMainWindow):
 
     def save_import_history(self, import_type, ingredient, amount, date, note):
         """Save import history to file"""
-        # Create filename based on date
-        filename = f"src/data/imports/import_{date}.json"
+        try:
+            # Ensure date is in YYYY-MM-DD format
+            if "/" in date:
+                # Convert dd/MM/yyyy to yyyy-MM-dd
+                day, month, year = date.split("/")
+                date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
-        # Load existing data if file exists
-        if os.path.exists(filename):
-            with open(filename, "r", encoding="utf-8") as f:
-                imports = json.load(f)
-        else:
+            # Create filename based on date
+            filename = f"src/data/imports/import_{date}.json"
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+            # Load existing data if file exists
             imports = []
+            if os.path.exists(filename):
+                try:
+                    with open(filename, "r", encoding="utf-8") as f:
+                        imports = json.load(f)
+                        if not isinstance(imports, list):
+                            imports = []
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    print(f"Warning: Could not read existing import file {filename}: {e}")
+                    imports = []
 
-        # Add new import record
-        import_data = {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "type": import_type,
-            "ingredient": ingredient,
-            "amount": amount,
-            "note": note
-        }
+            # Add new import record
+            import_data = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "type": import_type,
+                "ingredient": ingredient,
+                "amount": float(amount),  # Ensure amount is numeric
+                "note": str(note) if note else ""
+            }
 
-        imports.append(import_data)
+            imports.append(import_data)
 
-        # Save updated data
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(imports, f, ensure_ascii=False, indent=2)
+            # Save updated data
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(imports, f, ensure_ascii=False, indent=2)
+
+            # Update history tables
+            self.update_feed_import_history()
+            self.update_mix_import_history()
+
+            # Show success message
+            QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho!")
+
+            # Reset form
+            if import_type == "feed":
+                self.feed_import_amount.setValue(0)
+                self.feed_import_note.clear()
+            else:
+                self.mix_import_amount.setValue(0)
+                self.mix_import_note.clear()
+
+        except Exception as e:
+            error_msg = f"Không thể lưu lịch sử nhập hàng: {str(e)}"
+            QMessageBox.critical(self, "Lỗi", error_msg)
+            print(f"Error in save_import_history: {str(e)}")
+            raise
 
     def load_import_history(self):
         """Tìm kiếm lịch sử nhập hàng từ ngày đến ngày"""
@@ -1598,20 +1685,29 @@ class ChickenFarmApp(QMainWindow):
 
     def update_feed_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho cám"""
-        # Lấy ngày hiện tại
-        current_date = QDate.currentDate().toString("dd/MM/yyyy")
-        filename = f"src/data/imports/import_{current_date}.json"
+        try:
+            # Lấy ngày hiện tại với format đúng
+            current_date = QDate.currentDate().toString("yyyy-MM-dd")
+            filename = f"src/data/imports/import_{current_date}.json"
 
-        # Xóa dữ liệu hiện tại
-        self.feed_import_history_table.setRowCount(0)
+            # Xóa dữ liệu hiện tại
+            self.feed_import_history_table.setRowCount(0)
 
-        # Kiểm tra xem file có tồn tại không
-        if not os.path.exists(filename):
+            # Kiểm tra xem file có tồn tại không
+            if not os.path.exists(filename):
+                return
+
+            # Đọc dữ liệu
+            with open(filename, "r", encoding="utf-8") as f:
+                imports = json.load(f)
+
+            if not isinstance(imports, list):
+                print(f"Warning: Invalid data format in {filename}")
+                return
+
+        except Exception as e:
+            print(f"Error updating feed import history: {str(e)}")
             return
-
-        # Đọc dữ liệu
-        with open(filename, "r", encoding="utf-8") as f:
-            imports = json.load(f)
 
                 # Lọc chỉ lấy dữ liệu cám
         feed_imports = [import_data for import_data in imports if import_data["type"] == "feed"]
@@ -1655,20 +1751,29 @@ class ChickenFarmApp(QMainWindow):
 
     def update_mix_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho mix"""
-        # Lấy ngày hiện tại
-        current_date = QDate.currentDate().toString("dd/MM/yyyy")
-        filename = f"src/data/imports/import_{current_date}.json"
+        try:
+            # Lấy ngày hiện tại với format đúng
+            current_date = QDate.currentDate().toString("yyyy-MM-dd")
+            filename = f"src/data/imports/import_{current_date}.json"
 
-        # Xóa dữ liệu hiện tại
-        self.mix_import_history_table.setRowCount(0)
+            # Xóa dữ liệu hiện tại
+            self.mix_import_history_table.setRowCount(0)
 
-        # Kiểm tra xem file có tồn tại không
-        if not os.path.exists(filename):
+            # Kiểm tra xem file có tồn tại không
+            if not os.path.exists(filename):
+                return
+
+            # Đọc dữ liệu
+            with open(filename, "r", encoding="utf-8") as f:
+                imports = json.load(f)
+
+            if not isinstance(imports, list):
+                print(f"Warning: Invalid data format in {filename}")
+                return
+
+        except Exception as e:
+            print(f"Error updating mix import history: {str(e)}")
             return
-
-        # Đọc dữ liệu
-        with open(filename, "r", encoding="utf-8") as f:
-            imports = json.load(f)
 
                 # Lọc chỉ lấy dữ liệu mix
         mix_imports = [import_data for import_data in imports if import_data["type"] == "mix"]
@@ -6419,13 +6524,26 @@ class ChickenFarmApp(QMainWindow):
                         print(f"Không tìm thấy dữ liệu tính sẵn, tính lại từ dữ liệu gốc cho {formatted_date}")
                         # Nếu không có dữ liệu đã tính toán, tính từ dữ liệu sử dụng
                         if "mix_ingredients" in report_data:
-                            # Tính tổng lượng mix từ thành phần
-                            for ingredient, amount in report_data["mix_ingredients"].items():
-                                total_mix += amount
+                            mix_ingredients = report_data["mix_ingredients"]
+                            # Kiểm tra xem mix_ingredients có phải là dict không
+                            if isinstance(mix_ingredients, dict):
+                                # Tính tổng lượng mix từ thành phần
+                                for ingredient, amount in mix_ingredients.items():
+                                    if isinstance(amount, (int, float)):
+                                        total_mix += amount
+                            else:
+                                print(f"Warning: mix_ingredients is not a dict in {report_file}")
 
                         if "feed_ingredients" in report_data:
-                            # Tính tổng lượng cám (BAO GỒM cả "Nguyên liệu tổ hợp")
-                            total_feed = sum(report_data["feed_ingredients"].values())
+                            feed_ingredients = report_data["feed_ingredients"]
+                            # Kiểm tra xem feed_ingredients có phải là dict không
+                            if isinstance(feed_ingredients, dict):
+                                # Tính tổng lượng cám (BAO GỒM cả "Nguyên liệu tổ hợp")
+                                for ingredient, amount in feed_ingredients.items():
+                                    if isinstance(amount, (int, float)):
+                                        total_feed += amount
+                            else:
+                                print(f"Warning: feed_ingredients is not a dict in {report_file}")
 
                         # Tính tổng số mẻ từ dữ liệu sử dụng
                         if "feed_usage" in report_data:
@@ -6622,6 +6740,3773 @@ class ChickenFarmApp(QMainWindow):
 
         # Cập nhật hiển thị bảng
         self.update_feed_table_display()
+
+    def setup_team_management_tab(self):
+        """Setup the team management tab for feed team management and bonus calculation"""
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("Quản lý tổ cám và tính toán tiền thưởng")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                background-color: #4CAF50;
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Create tabs for different management functions
+        team_tabs = QTabWidget()
+        team_tabs.setFont(DEFAULT_FONT)
+        team_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #cccccc;
+                background: white;
+                border-radius: 5px;
+            }
+            QTabWidget::tab-bar {
+                left: 5px;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background: white;
+                border-bottom-color: white;
+            }
+            QTabBar::tab:hover {
+                background: #e0e0e0;
+            }
+        """)
+
+        # Create sub-tabs
+        employee_tab = QWidget()  # Quản lý nhân viên
+        attendance_tab = QWidget()  # Quản lý nghỉ phép/ốm
+        import_tracking_tab = QWidget()  # Theo dõi nhập kho
+        salary_calculation_tab = QWidget()  # Tính lương tháng
+        bonus_calculation_tab = QWidget()  # Tính toán tiền thưởng
+
+        team_tabs.addTab(employee_tab, "Nhân viên")
+        team_tabs.addTab(attendance_tab, "Nghỉ phép/ốm")
+        team_tabs.addTab(import_tracking_tab, "Theo dõi nhập kho")
+        team_tabs.addTab(salary_calculation_tab, "Tính lương")
+        team_tabs.addTab(bonus_calculation_tab, "Tính tiền thưởng")
+
+        # Setup each sub-tab
+        self.setup_employee_management_tab(employee_tab)
+        self.setup_attendance_management_tab(attendance_tab)
+        self.setup_import_tracking_tab(import_tracking_tab)
+        self.setup_salary_calculation_tab(salary_calculation_tab)
+        self.setup_bonus_calculation_tab(bonus_calculation_tab)
+
+        layout.addWidget(team_tabs)
+        self.team_management_tab.setLayout(layout)
+
+    def setup_employee_management_tab(self, tab_widget):
+        """Setup employee management sub-tab"""
+        layout = QVBoxLayout()
+        layout.setSpacing(20)  # Increased spacing between sections
+        layout.setContentsMargins(20, 20, 20, 20)  # Add margins around the tab
+
+        # Header section with improved styling
+        header_widget = QWidget()
+        header_widget.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                margin-bottom: 15px;
+            }
+        """)
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        title = QLabel("👥 Danh sách nhân viên tổ cám")
+        title.setFont(QFont("Arial", 16, QFont.Bold))
+        title.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                background: transparent;
+                padding: 5px 0px;
+            }
+        """)
+
+        # Enhanced add employee button
+        add_employee_btn = QPushButton("➕ Thêm nhân viên")
+        add_employee_btn.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        add_employee_btn.setMinimumHeight(40)
+        add_employee_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+                border: 2px solid #4CAF50;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+                border: 2px solid #2E7D32;
+            }
+        """)
+        add_employee_btn.clicked.connect(self.add_employee)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(add_employee_btn)
+        header_widget.setLayout(header_layout)
+
+        layout.addWidget(header_widget)
+
+        # Employee table with enhanced font sizes
+        self.employee_table = QTableWidget()
+        self.employee_table.setFont(QFont("Arial", 15, QFont.Medium))  # Increased to 15px
+        self.employee_table.setColumnCount(4)
+        self.employee_table.setHorizontalHeaderLabels(["ID", "Họ tên", "Vị trí", "Thao tác"])
+
+        # Set row height for better readability
+        self.employee_table.verticalHeader().setDefaultSectionSize(50)  # Increased height
+        self.employee_table.verticalHeader().setVisible(False)
+
+        # Set column widths
+        header = self.employee_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # ID
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Họ tên
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Vị trí
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Thao tác
+        header.setMinimumSectionSize(90)
+
+        # Enhanced table styling with larger fonts
+        self.employee_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                selection-background-color: #e3f2fd;
+            }
+            QTableWidget::item {
+                padding: 14px 16px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 16px 14px;
+                border: none;
+                border-bottom: 2px solid #4CAF50;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 16px;
+                color: #2e7d32;
+            }
+            QHeaderView::section:hover {
+                background-color: #e8f5e8;
+            }
+        """)
+
+        self.employee_table.setAlternatingRowColors(True)
+        self.employee_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.employee_table.setShowGrid(True)
+
+        layout.addWidget(self.employee_table)
+
+        # Load existing employees
+        self.load_employees()
+
+        tab_widget.setLayout(layout)
+
+    def setup_attendance_management_tab(self, tab_widget):
+        """Setup enhanced attendance management sub-tab"""
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Enhanced header section
+        header_widget = QWidget()
+        header_widget.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                margin-bottom: 15px;
+            }
+        """)
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        title = QLabel("📅 Quản lý chấm công và nghỉ phép")
+        title.setFont(QFont("Arial", 18, QFont.Bold))  # Increased font size
+        title.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                background: transparent;
+                padding: 5px 0px;
+            }
+        """)
+
+        # Add attendance statistics button
+        stats_btn = QPushButton("📊 Thống kê chấm công")
+        stats_btn.setFont(QFont("Arial", 14, QFont.Bold))
+        stats_btn.setMinimumHeight(40)
+        stats_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+                border: 2px solid #2196F3;
+            }
+            QPushButton:pressed {
+                background-color: #1565C0;
+                border: 2px solid #1976D2;
+            }
+        """)
+        stats_btn.clicked.connect(self.show_attendance_statistics)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(stats_btn)
+        header_widget.setLayout(header_layout)
+
+        layout.addWidget(header_widget)
+
+        # Main content layout
+        main_layout = QHBoxLayout()
+
+        # Left side - Employee selection and calendar
+        left_widget = QWidget()
+        left_layout = QVBoxLayout()
+
+        # Leave request section
+        leave_request_group = QGroupBox("📝 Đăng ký nghỉ phép")
+        leave_request_group.setFont(QFont("Arial", 16, QFont.Bold))
+        leave_request_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 10px 0 10px;
+                color: #2E7D32;
+                background-color: white;
+            }
+        """)
+        leave_request_layout = QVBoxLayout()
+        leave_request_layout.setContentsMargins(15, 20, 15, 15)
+
+        # Employee selection for leave
+        employee_select_layout = QHBoxLayout()
+        employee_select_layout.addWidget(QLabel("Nhân viên:"))
+        self.leave_employee_combo = QComboBox()
+        self.leave_employee_combo.setFont(QFont("Arial", 14))
+        self.leave_employee_combo.setMinimumHeight(35)
+        self.leave_employee_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 5px 10px;
+                background-color: white;
+            }
+            QComboBox:hover {
+                border-color: #4CAF50;
+            }
+        """)
+        employee_select_layout.addWidget(self.leave_employee_combo)
+        leave_request_layout.addLayout(employee_select_layout)
+
+        # Leave type selection
+        leave_type_layout = QHBoxLayout()
+        leave_type_layout.addWidget(QLabel("Loại nghỉ:"))
+        self.leave_type_combo = QComboBox()
+        self.leave_type_combo.setFont(QFont("Arial", 14))
+        self.leave_type_combo.setMinimumHeight(35)
+        self.leave_type_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 5px 10px;
+                background-color: white;
+            }
+            QComboBox:hover {
+                border-color: #4CAF50;
+            }
+        """)
+        leave_type_layout.addWidget(self.leave_type_combo)
+        leave_request_layout.addLayout(leave_type_layout)
+
+        # Date selection
+        date_layout = QHBoxLayout()
+        date_layout.addWidget(QLabel("Ngày nghỉ:"))
+        self.leave_date_edit = QDateEdit()
+        self.leave_date_edit.setFont(QFont("Arial", 14))
+        self.leave_date_edit.setMinimumHeight(35)
+        self.leave_date_edit.setDate(QDate.currentDate())
+        self.leave_date_edit.setCalendarPopup(True)
+        self.leave_date_edit.setStyleSheet("""
+            QDateEdit {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 5px 10px;
+                background-color: white;
+            }
+            QDateEdit:hover {
+                border-color: #4CAF50;
+            }
+        """)
+        date_layout.addWidget(self.leave_date_edit)
+        leave_request_layout.addLayout(date_layout)
+
+        # Reason field
+        leave_request_layout.addWidget(QLabel("Lý do:"))
+        self.leave_reason_edit = QTextEdit()
+        self.leave_reason_edit.setFont(QFont("Arial", 14))
+        self.leave_reason_edit.setMaximumHeight(80)
+        self.leave_reason_edit.setPlaceholderText("Nhập lý do nghỉ phép...")
+        self.leave_reason_edit.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 8px;
+                background-color: white;
+            }
+            QTextEdit:hover {
+                border-color: #4CAF50;
+            }
+            QTextEdit:focus {
+                border-color: #4CAF50;
+                border-width: 2px;
+            }
+        """)
+        leave_request_layout.addWidget(self.leave_reason_edit)
+
+        # Submit button
+        submit_leave_btn = QPushButton("📝 Đăng ký nghỉ phép")
+        submit_leave_btn.setFont(QFont("Arial", 14, QFont.Bold))
+        submit_leave_btn.setMinimumHeight(45)
+        submit_leave_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+                border: 2px solid #4CAF50;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+                border: 2px solid #2E7D32;
+            }
+        """)
+        submit_leave_btn.clicked.connect(self.submit_leave_request)
+        leave_request_layout.addWidget(submit_leave_btn)
+
+        leave_request_group.setLayout(leave_request_layout)
+        left_layout.addWidget(leave_request_group)
+
+        # Initialize combo boxes
+        self.populate_leave_employee_combo()
+        self.populate_leave_type_combo()
+
+        # Enhanced calendar
+        calendar_group = QGroupBox("📅 Lịch nghỉ phép/ốm")
+        calendar_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE + 1, QFont.Bold))
+        calendar_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 10px 0 10px;
+                color: #2E7D32;
+                background-color: white;
+            }
+        """)
+        calendar_layout = QVBoxLayout()
+        calendar_layout.setContentsMargins(15, 20, 15, 15)
+
+        self.attendance_calendar = QCalendarWidget()
+        self.attendance_calendar.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        self.attendance_calendar.setStyleSheet("""
+            QCalendarWidget {
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                background-color: white;
+                font-size: 13px;
+            }
+            QCalendarWidget QToolButton {
+                height: 35px;
+                width: 70px;
+                color: #2E7D32;
+                font-size: 13px;
+                font-weight: bold;
+                icon-size: 20px;
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                margin: 2px;
+            }
+            QCalendarWidget QToolButton:hover {
+                background-color: #e8f5e8;
+                border-color: #4CAF50;
+            }
+            QCalendarWidget QMenu {
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+            }
+            QCalendarWidget QSpinBox {
+                font-size: 13px;
+                color: #2E7D32;
+                background-color: white;
+                selection-background-color: #4CAF50;
+                border: 1px solid #e0e0e0;
+                border-radius: 4px;
+                padding: 3px;
+            }
+            QCalendarWidget QAbstractItemView:enabled {
+                font-size: 12px;
+                color: #333;
+                background-color: white;
+                selection-background-color: #4CAF50;
+                gridline-color: #f0f0f0;
+            }
+            QCalendarWidget QAbstractItemView::item {
+                padding: 8px;
+            }
+            QCalendarWidget QAbstractItemView::item:hover {
+                background-color: #e8f5e8;
+            }
+        """)
+
+        # Connect calendar click event
+        self.attendance_calendar.clicked.connect(self.on_calendar_date_clicked)
+
+        calendar_layout.addWidget(self.attendance_calendar)
+        calendar_group.setLayout(calendar_layout)
+        left_layout.addWidget(calendar_group)
+
+        left_widget.setLayout(left_layout)
+        main_layout.addWidget(left_widget, 1)
+
+        # Right side - Absence type and management
+        right_widget = QWidget()
+        right_layout = QVBoxLayout()
+
+        # Absence type selection
+        type_group = QGroupBox("Loại nghỉ")
+        type_group.setFont(DEFAULT_FONT)
+        type_layout = QVBoxLayout()
+
+        self.absence_type_combo = QComboBox()
+        self.absence_type_combo.setFont(DEFAULT_FONT)
+        self.absence_type_combo.addItems([
+            "Nghỉ phép",
+            "Nghỉ ốm",
+            "Nghỉ việc riêng",
+            "Nghỉ không phép"
+        ])
+        self.absence_type_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #d0d0d0;
+                border-radius: 4px;
+                padding: 8px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+
+        type_layout.addWidget(self.absence_type_combo)
+        type_group.setLayout(type_layout)
+        right_layout.addWidget(type_group)
+
+        # Action buttons
+        button_layout = QVBoxLayout()
+
+        mark_absent_btn = QPushButton("📝 Đánh dấu nghỉ")
+        mark_absent_btn.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        mark_absent_btn.setMinimumHeight(45)
+        mark_absent_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+                border: 2px solid #FF9800;
+            }
+            QPushButton:pressed {
+                background-color: #EF6C00;
+                border: 2px solid #E65100;
+            }
+        """)
+        mark_absent_btn.clicked.connect(self.mark_employee_absent)
+
+        remove_absent_btn = QPushButton("❌ Xóa đánh dấu")
+        remove_absent_btn.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        remove_absent_btn.setMinimumHeight(45)
+        remove_absent_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+                border: 2px solid #f44336;
+            }
+            QPushButton:pressed {
+                background-color: #c62828;
+                border: 2px solid #b71c1c;
+            }
+        """)
+        remove_absent_btn.clicked.connect(self.remove_employee_absent)
+
+        button_layout.addWidget(mark_absent_btn)
+        button_layout.addWidget(remove_absent_btn)
+        button_layout.addStretch()
+
+        right_layout.addLayout(button_layout)
+
+        # Absence history
+        history_group = QGroupBox("Lịch sử nghỉ")
+        history_group.setFont(DEFAULT_FONT)
+        history_layout = QVBoxLayout()
+
+        self.absence_history_list = QListWidget()
+        self.absence_history_list.setFont(DEFAULT_FONT)
+        self.absence_history_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #d0d0d0;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QListWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        """)
+
+        history_layout.addWidget(self.absence_history_list)
+        history_group.setLayout(history_layout)
+        right_layout.addWidget(history_group)
+
+        right_widget.setLayout(right_layout)
+        main_layout.addWidget(right_widget, 1)
+
+        layout.addLayout(main_layout)
+
+        # Connect signals
+        self.attendance_calendar.clicked.connect(self.on_calendar_date_clicked)
+
+        # Load data
+        self.load_attendance_employees()
+        self.load_attendance_data()
+
+        tab_widget.setLayout(layout)
+
+    def setup_import_tracking_tab(self, tab_widget):
+        """Setup import tracking sub-tab"""
+        layout = QVBoxLayout()
+
+        # Header section
+        header_layout = QHBoxLayout()
+
+        title = QLabel("Theo dõi hoạt động nhập kho")
+        title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setStyleSheet("color: #2E7D32; margin-bottom: 10px;")
+
+        # Refresh button
+        refresh_btn = QPushButton("Làm mới dữ liệu")
+        refresh_btn.setFont(DEFAULT_FONT)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        refresh_btn.clicked.connect(self.refresh_import_tracking_data)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(refresh_btn)
+
+        layout.addLayout(header_layout)
+
+        # Filter section
+        filter_group = QGroupBox("Bộ lọc")
+        filter_group.setFont(DEFAULT_FONT)
+        filter_layout = QHBoxLayout()
+
+        # Date range filter
+        filter_layout.addWidget(QLabel("Từ ngày:"))
+        self.import_tracking_from_date = QDateEdit()
+        self.import_tracking_from_date.setFont(DEFAULT_FONT)
+        self.import_tracking_from_date.setCalendarPopup(True)
+        self.import_tracking_from_date.setDisplayFormat("dd/MM/yyyy")
+        self.import_tracking_from_date.setDate(QDate.currentDate().addDays(-30))
+        filter_layout.addWidget(self.import_tracking_from_date)
+
+        filter_layout.addWidget(QLabel("Đến ngày:"))
+        self.import_tracking_to_date = QDateEdit()
+        self.import_tracking_to_date.setFont(DEFAULT_FONT)
+        self.import_tracking_to_date.setCalendarPopup(True)
+        self.import_tracking_to_date.setDisplayFormat("dd/MM/yyyy")
+        self.import_tracking_to_date.setDate(QDate.currentDate())
+        filter_layout.addWidget(self.import_tracking_to_date)
+
+        # Material type filter
+        filter_layout.addWidget(QLabel("Loại nguyên liệu:"))
+        self.import_material_filter = QComboBox()
+        self.import_material_filter.setFont(DEFAULT_FONT)
+        self.import_material_filter.addItems([
+            "Tất cả",
+            "Bắp",
+            "Nành",
+            "Đá hạt",
+            "Cám gạo",
+            "Khác"
+        ])
+        filter_layout.addWidget(self.import_material_filter)
+
+        # Filter button
+        filter_btn = QPushButton("Lọc")
+        filter_btn.setFont(DEFAULT_FONT)
+        filter_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        filter_btn.clicked.connect(self.filter_import_tracking_data)
+        filter_layout.addWidget(filter_btn)
+
+        filter_layout.addStretch()
+        filter_group.setLayout(filter_layout)
+        layout.addWidget(filter_group)
+
+        # Enhanced import tracking table with larger fonts
+        self.import_tracking_table = QTableWidget()
+        self.import_tracking_table.setFont(QFont("Arial", 15, QFont.Medium))
+        self.import_tracking_table.setColumnCount(6)
+        self.import_tracking_table.setHorizontalHeaderLabels([
+            "📅 Ngày", "🏷️ Loại nguyên liệu", "⚖️ Số lượng (kg)",
+            "👥 Nhân viên tham gia", "📝 Ghi chú", "⚙️ Thao tác"
+        ])
+
+        # Enhanced row height and styling
+        self.import_tracking_table.verticalHeader().setDefaultSectionSize(55)  # Increased height
+        self.import_tracking_table.verticalHeader().setVisible(False)
+
+        # Set column widths with optimized date column width
+        header = self.import_tracking_table.horizontalHeader()
+
+        # Set minimum width for date column to accommodate full timestamp "YYYY-MM-DD HH:MM:SS"
+        header.setSectionResizeMode(0, QHeaderView.Fixed)  # Ngày - Fixed width for timestamp
+        header.resizeSection(0, 180)  # Set fixed width of 180px for full timestamp visibility
+
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Loại nguyên liệu
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Số lượng
+        header.setSectionResizeMode(3, QHeaderView.Stretch)  # Nhân viên tham gia
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Ghi chú
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Thao tác
+        header.setMinimumSectionSize(110)
+
+        # Enhanced table styling with larger fonts
+        self.import_tracking_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                selection-background-color: #e3f2fd;
+            }
+            QTableWidget::item {
+                padding: 16px 14px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 16px 14px;
+                border: none;
+                border-bottom: 2px solid #FF9800;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 17px;
+                color: #e65100;
+            }
+            QHeaderView::section:hover {
+                background-color: #fff3e0;
+            }
+        """)
+
+        self.import_tracking_table.setAlternatingRowColors(True)
+        self.import_tracking_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.import_tracking_table.setShowGrid(True)
+
+        layout.addWidget(self.import_tracking_table)
+
+        # Load initial data
+        self.load_import_tracking_data()
+
+        tab_widget.setLayout(layout)
+
+    def setup_salary_calculation_tab(self, tab_widget):
+        """Setup salary calculation sub-tab"""
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Enhanced header section
+        header_widget = QWidget()
+        header_widget.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                margin-bottom: 15px;
+            }
+        """)
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(20, 15, 20, 15)
+
+        title = QLabel("💰 Tính lương tháng")
+        title.setFont(QFont("Arial", 18, QFont.Bold))  # Increased font size
+        title.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                background: transparent;
+                padding: 5px 0px;
+            }
+        """)
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_widget.setLayout(header_layout)
+
+        layout.addWidget(header_widget)
+
+        # Salary rates section
+        rates_group = QGroupBox("💼 Lương cơ bản theo vị trí (VNĐ/tháng)")
+        rates_group.setFont(QFont("Arial", 16, QFont.Bold))  # Increased font size
+        rates_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 10px 0 10px;
+                color: #2E7D32;
+                background-color: white;
+            }
+        """)
+        rates_layout = QVBoxLayout()
+        rates_layout.setContentsMargins(15, 20, 15, 15)
+
+        # Current rates display
+        current_rates_layout = QGridLayout()
+
+        # Load current salary rates
+        salary_config = self.load_salary_rates()
+        position_salaries = salary_config.get("position_salaries", {})
+
+        positions = ["Tổ trưởng", "Phó tổ trưởng", "Kỹ thuật viên", "Thủ kho", "Công nhân"]
+        self.salary_rate_labels = {}
+
+        for i, position in enumerate(positions):
+            row = i // 2
+            col = (i % 2) * 2
+
+            current_rates_layout.addWidget(QLabel(f"{position}:"), row, col)
+
+            salary_label = QLabel(f"{position_salaries.get(position, 5500000):,} VNĐ")
+            salary_label.setFont(QFont("Arial", 15, QFont.Bold))  # Increased font size
+            salary_label.setStyleSheet("color: #1976d2; font-weight: bold;")
+            self.salary_rate_labels[position] = salary_label
+            current_rates_layout.addWidget(salary_label, row, col + 1)
+
+        rates_layout.addLayout(current_rates_layout)
+
+        # Settings button
+        settings_btn_layout = QHBoxLayout()
+        settings_btn_layout.addStretch()
+
+        salary_settings_btn = QPushButton("⚙️ Cài đặt lương cơ bản")
+        salary_settings_btn.setFont(QFont("Arial", 14, QFont.Bold))  # Increased font size
+        salary_settings_btn.setMinimumHeight(45)
+        salary_settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+                border: 2px solid #FF9800;
+            }
+            QPushButton:pressed {
+                background-color: #EF6C00;
+                border: 2px solid #E65100;
+            }
+        """)
+        salary_settings_btn.clicked.connect(self.show_salary_settings_dialog)
+        settings_btn_layout.addWidget(salary_settings_btn)
+
+        rates_layout.addLayout(settings_btn_layout)
+        rates_group.setLayout(rates_layout)
+        layout.addWidget(rates_group)
+
+        # Month/Year selection section
+        selection_group = QGroupBox("📅 Chọn tháng tính lương")
+        selection_group.setFont(QFont("Arial", 16, QFont.Bold))  # Increased font size
+        selection_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 10px 0 10px;
+                color: #2E7D32;
+                background-color: white;
+            }
+        """)
+        selection_layout = QHBoxLayout()
+        selection_layout.setContentsMargins(15, 20, 15, 15)
+
+        selection_layout.addWidget(QLabel("Tháng:"))
+        self.salary_month_combo = QComboBox()
+        self.salary_month_combo.setFont(QFont("Arial", 14))  # Increased font size
+        self.salary_month_combo.setMinimumHeight(35)
+        for i in range(1, 13):
+            self.salary_month_combo.addItem(f"Tháng {i:02d}", i)
+        self.salary_month_combo.setCurrentIndex(QDate.currentDate().month() - 1)
+        selection_layout.addWidget(self.salary_month_combo)
+
+        selection_layout.addWidget(QLabel("Năm:"))
+        self.salary_year_combo = QComboBox()
+        self.salary_year_combo.setFont(QFont("Arial", 14))  # Increased font size
+        self.salary_year_combo.setMinimumHeight(35)
+        current_year = QDate.currentDate().year()
+        for year in range(current_year - 2, current_year + 1):
+            self.salary_year_combo.addItem(str(year), year)
+        self.salary_year_combo.setCurrentText(str(current_year))
+        selection_layout.addWidget(self.salary_year_combo)
+
+        # Calculate button
+        calculate_salary_btn = QPushButton("💰 Tính lương tháng")
+        calculate_salary_btn.setFont(QFont("Arial", 14, QFont.Bold))  # Increased font size
+        calculate_salary_btn.setMinimumHeight(45)
+        calculate_salary_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+                border: 2px solid #4CAF50;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+                border: 2px solid #2E7D32;
+            }
+        """)
+        calculate_salary_btn.clicked.connect(self.calculate_monthly_salary)
+        selection_layout.addWidget(calculate_salary_btn)
+
+        selection_layout.addStretch()
+        selection_group.setLayout(selection_layout)
+        layout.addWidget(selection_group)
+
+        # Results table
+        results_group = QGroupBox("📊 Kết quả tính lương")
+        results_group.setFont(QFont("Arial", 16, QFont.Bold))  # Increased font size
+        results_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e0e0e0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 15px;
+                padding: 0 10px 0 10px;
+                color: #2E7D32;
+                background-color: white;
+            }
+        """)
+        results_layout = QVBoxLayout()
+        results_layout.setContentsMargins(15, 20, 15, 15)
+
+        self.salary_results_table = QTableWidget()
+        self.salary_results_table.setFont(QFont("Arial", 15, QFont.Medium))  # Increased font size
+        self.salary_results_table.setColumnCount(7)
+        self.salary_results_table.setHorizontalHeaderLabels([
+            "👤 Nhân viên", "💼 Vị trí", "💵 Lương cơ bản", "📅 Ngày làm việc",
+            "🏠 Ngày nghỉ", "🎁 Tiền thưởng", "💰 Tổng lương"
+        ])
+
+        # Enhanced row height and styling
+        self.salary_results_table.verticalHeader().setDefaultSectionSize(55)
+        self.salary_results_table.verticalHeader().setVisible(False)
+
+        # Set column widths
+        header = self.salary_results_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Nhân viên
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Vị trí
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Lương cơ bản
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Ngày làm việc
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Ngày nghỉ
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Tiền thưởng
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # Tổng lương
+        header.setMinimumSectionSize(120)
+
+        # Enhanced table styling
+        self.salary_results_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                selection-background-color: #e8f5e8;
+            }
+            QTableWidget::item {
+                padding: 16px 14px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f5e8;
+                color: #2E7D32;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 16px 14px;
+                border: none;
+                border-bottom: 2px solid #4CAF50;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 17px;
+                color: #2E7D32;
+            }
+            QHeaderView::section:hover {
+                background-color: #e8f5e8;
+            }
+        """)
+
+        self.salary_results_table.setAlternatingRowColors(True)
+        self.salary_results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.salary_results_table.setShowGrid(True)
+
+        results_layout.addWidget(self.salary_results_table)
+        results_group.setLayout(results_layout)
+        layout.addWidget(results_group)
+
+        tab_widget.setLayout(layout)
+
+    def setup_bonus_calculation_tab(self, tab_widget):
+        """Setup bonus calculation sub-tab"""
+        layout = QVBoxLayout()
+
+        # Header section
+        header_layout = QHBoxLayout()
+
+        title = QLabel("Tính toán tiền thưởng cuối tháng")
+        title.setFont(QFont("Arial", 14, QFont.Bold))
+        title.setStyleSheet("color: #2E7D32; margin-bottom: 10px;")
+
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+
+        # Bonus rates section
+        rates_group = QGroupBox("Mức thưởng cố định (VNĐ/tháng)")
+        rates_group.setFont(DEFAULT_FONT)
+        rates_layout = QVBoxLayout()
+
+        # Current rates display
+        current_rates_layout = QGridLayout()
+
+        # Load current rates
+        bonus_config = self.load_bonus_rates()
+        default_rates = bonus_config.get("default_rates", {})
+
+        current_rates_layout.addWidget(QLabel("Bắp:"), 0, 0)
+        self.bap_rate_label = QLabel(f"{default_rates.get('Bắp', 400000):,} VNĐ")
+        current_rates_layout.addWidget(self.bap_rate_label, 0, 1)
+
+        current_rates_layout.addWidget(QLabel("Nành:"), 0, 2)
+        self.nanh_rate_label = QLabel(f"{default_rates.get('Nành', 400000):,} VNĐ")
+        current_rates_layout.addWidget(self.nanh_rate_label, 0, 3)
+
+        current_rates_layout.addWidget(QLabel("Cám gạo:"), 1, 0)
+        self.cam_gao_rate_label = QLabel(f"{default_rates.get('Cám gạo', 270000):,} VNĐ")
+        current_rates_layout.addWidget(self.cam_gao_rate_label, 1, 1)
+
+        current_rates_layout.addWidget(QLabel("Khác:"), 1, 2)
+        self.khac_rate_label = QLabel(f"{default_rates.get('Khác', 350000):,} VNĐ")
+        current_rates_layout.addWidget(self.khac_rate_label, 1, 3)
+
+        rates_layout.addLayout(current_rates_layout)
+
+        # Settings button
+        settings_btn_layout = QHBoxLayout()
+        settings_btn_layout.addStretch()
+
+        settings_btn = QPushButton("Cài đặt mức thưởng")
+        settings_btn.setFont(DEFAULT_FONT)
+        settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
+        settings_btn.clicked.connect(self.show_bonus_settings_dialog)
+        settings_btn_layout.addWidget(settings_btn)
+
+        rates_layout.addLayout(settings_btn_layout)
+        rates_group.setLayout(rates_layout)
+        layout.addWidget(rates_group)
+
+        # Month/Year selection section
+        selection_group = QGroupBox("Chọn tháng tính thưởng")
+        selection_group.setFont(DEFAULT_FONT)
+        selection_layout = QHBoxLayout()
+
+        selection_layout.addWidget(QLabel("Tháng:"))
+        self.bonus_month_combo = QComboBox()
+        self.bonus_month_combo.setFont(DEFAULT_FONT)
+        for i in range(1, 13):
+            self.bonus_month_combo.addItem(f"Tháng {i:02d}", i)
+        self.bonus_month_combo.setCurrentIndex(QDate.currentDate().month() - 1)
+        selection_layout.addWidget(self.bonus_month_combo)
+
+        selection_layout.addWidget(QLabel("Năm:"))
+        self.bonus_year_combo = QComboBox()
+        self.bonus_year_combo.setFont(DEFAULT_FONT)
+        current_year = QDate.currentDate().year()
+        for year in range(current_year - 2, current_year + 1):
+            self.bonus_year_combo.addItem(str(year), year)
+        self.bonus_year_combo.setCurrentText(str(current_year))
+        selection_layout.addWidget(self.bonus_year_combo)
+
+        # Calculate button
+        calculate_btn = QPushButton("Tính toán tiền thưởng")
+        calculate_btn.setFont(DEFAULT_FONT)
+        calculate_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        calculate_btn.clicked.connect(self.calculate_monthly_bonus)
+        selection_layout.addWidget(calculate_btn)
+
+        selection_layout.addStretch()
+        selection_group.setLayout(selection_layout)
+        layout.addWidget(selection_group)
+
+        # Results table
+        results_group = QGroupBox("Kết quả tính thưởng")
+        results_group.setFont(DEFAULT_FONT)
+        results_layout = QVBoxLayout()
+
+        self.bonus_results_table = QTableWidget()
+        self.bonus_results_table.setFont(QFont("Arial", 15, QFont.Medium))
+        self.bonus_results_table.setColumnCount(7)
+        self.bonus_results_table.setHorizontalHeaderLabels([
+            "👤 Nhân viên", "💼 Vị trí", "🌽 Bắp", "🫘 Nành", "🌾 Cám gạo", "🔧 Khác", "💰 Tổng thưởng"
+        ])
+
+        # Enhanced row height and styling
+        self.bonus_results_table.verticalHeader().setDefaultSectionSize(55)  # Increased height
+        self.bonus_results_table.verticalHeader().setVisible(False)
+
+        # Set column widths
+        header = self.bonus_results_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Nhân viên
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Vị trí
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Bắp
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Nành
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Cám gạo
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Khác
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # Tổng thưởng
+        header.setMinimumSectionSize(110)
+
+        # Enhanced table styling with larger fonts
+        self.bonus_results_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                alternate-background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 500;
+                selection-background-color: #e8f5e8;
+            }
+            QTableWidget::item {
+                padding: 16px 14px;
+                border-bottom: 1px solid #e8e8e8;
+                border-right: 1px solid #f0f0f0;
+                color: #2c2c2c;
+                font-weight: 500;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f5e8;
+                color: #2E7D32;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 16px 14px;
+                border: none;
+                border-bottom: 2px solid #4CAF50;
+                border-right: 1px solid #e0e0e0;
+                font-weight: bold;
+                font-size: 17px;
+                color: #2E7D32;
+            }
+            QHeaderView::section:hover {
+                background-color: #e8f5e8;
+            }
+        """)
+
+        self.bonus_results_table.setAlternatingRowColors(True)
+        self.bonus_results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.bonus_results_table.setShowGrid(True)
+
+        results_layout.addWidget(self.bonus_results_table)
+
+        # Export button
+        export_layout = QHBoxLayout()
+        export_layout.addStretch()
+
+        export_btn = QPushButton("Xuất báo cáo Excel")
+        export_btn.setFont(DEFAULT_FONT)
+        export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        export_btn.clicked.connect(self.export_bonus_report)
+        export_layout.addWidget(export_btn)
+
+        results_layout.addLayout(export_layout)
+        results_group.setLayout(results_layout)
+        layout.addWidget(results_group)
+
+        tab_widget.setLayout(layout)
+
+    def load_employees(self):
+        """Load employees from JSON file"""
+        try:
+            employees_file = "src/data/employees.json"
+            if os.path.exists(employees_file):
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+            else:
+                employees_data = []
+
+            # Clear table
+            self.employee_table.setRowCount(0)
+
+            # Populate table
+            for employee in employees_data:
+                self.add_employee_to_table(employee)
+
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể tải danh sách nhân viên: {str(e)}")
+
+    def add_employee_to_table(self, employee):
+        """Add an employee to the table"""
+        row = self.employee_table.rowCount()
+        self.employee_table.insertRow(row)
+
+        # ID
+        id_item = QTableWidgetItem(str(employee.get('id', '')))
+        id_item.setFlags(id_item.flags() & ~Qt.ItemIsEditable)  # Read-only
+        self.employee_table.setItem(row, 0, id_item)
+
+        # Name
+        name_item = QTableWidgetItem(employee.get('name', ''))
+        self.employee_table.setItem(row, 1, name_item)
+
+        # Position
+        position_item = QTableWidgetItem(employee.get('position', ''))
+        self.employee_table.setItem(row, 2, position_item)
+
+        # Action buttons
+        action_widget = QWidget()
+        action_layout = QHBoxLayout()
+        action_layout.setContentsMargins(5, 2, 5, 2)
+
+        edit_btn = QPushButton("✏️ Sửa")
+        edit_btn.setMinimumHeight(32)
+        edit_btn.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1, QFont.Bold))
+        edit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+                border: 2px solid #2196F3;
+            }
+            QPushButton:pressed {
+                background-color: #1565C0;
+                border: 2px solid #1976D2;
+            }
+        """)
+        edit_btn.clicked.connect(lambda: self.edit_employee(row))
+
+        delete_btn = QPushButton("🗑️ Xóa")
+        delete_btn.setMinimumHeight(32)
+        delete_btn.setFont(QFont("Arial", DEFAULT_FONT_SIZE - 1, QFont.Bold))
+        delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+                border: 2px solid #f44336;
+            }
+            QPushButton:pressed {
+                background-color: #c62828;
+                border: 2px solid #b71c1c;
+            }
+        """)
+        delete_btn.clicked.connect(lambda: self.delete_employee(row))
+
+        action_layout.addWidget(edit_btn)
+        action_layout.addWidget(delete_btn)
+        action_widget.setLayout(action_layout)
+
+        self.employee_table.setCellWidget(row, 3, action_widget)
+
+    def add_employee(self):
+        """Add new employee dialog"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Thêm nhân viên mới")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+
+        layout = QVBoxLayout()
+
+        # Form fields
+        form_layout = QGridLayout()
+
+        # Name field
+        form_layout.addWidget(QLabel("Họ tên:"), 0, 0)
+        name_edit = QLineEdit()
+        name_edit.setFont(DEFAULT_FONT)
+        form_layout.addWidget(name_edit, 0, 1)
+
+        # Position field
+        form_layout.addWidget(QLabel("Vị trí:"), 1, 0)
+        position_combo = QComboBox()
+        position_combo.setFont(DEFAULT_FONT)
+        position_combo.addItems([
+            "Công nhân",
+            "Tổ trưởng",
+            "Phó tổ trưởng",
+            "Kỹ thuật viên",
+            "Thủ kho"
+        ])
+        form_layout.addWidget(position_combo, 1, 1)
+
+        layout.addLayout(form_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(lambda: self.save_new_employee(dialog, name_edit.text(), position_combo.currentText()))
+
+        dialog.exec_()
+
+    def save_new_employee(self, dialog, name, position):
+        """Save new employee to file and table"""
+        if not name.strip():
+            QMessageBox.warning(dialog, "Lỗi", "Vui lòng nhập họ tên nhân viên!")
+            return
+
+        try:
+            # Load existing employees
+            employees_file = "src/data/employees.json"
+            if os.path.exists(employees_file):
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+            else:
+                employees_data = []
+
+            # Generate new ID
+            if employees_data:
+                new_id = max(emp.get('id', 0) for emp in employees_data) + 1
+            else:
+                new_id = 1
+
+            # Create new employee
+            new_employee = {
+                'id': new_id,
+                'name': name.strip(),
+                'position': position,
+                'created_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            # Add to list
+            employees_data.append(new_employee)
+
+            # Save to file
+            os.makedirs(os.path.dirname(employees_file), exist_ok=True)
+            with open(employees_file, 'w', encoding='utf-8') as f:
+                json.dump(employees_data, f, ensure_ascii=False, indent=2)
+
+            # Add to table
+            self.add_employee_to_table(new_employee)
+
+            dialog.accept()
+            QMessageBox.information(self, "Thành công", f"Đã thêm nhân viên: {name}")
+
+        except Exception as e:
+            QMessageBox.critical(dialog, "Lỗi", f"Không thể lưu nhân viên: {str(e)}")
+
+    def edit_employee(self, row):
+        """Edit employee information"""
+        # Get current data
+        id_item = self.employee_table.item(row, 0)
+        name_item = self.employee_table.item(row, 1)
+        position_item = self.employee_table.item(row, 2)
+
+        if not all([id_item, name_item, position_item]):
+            return
+
+        employee_id = int(id_item.text())
+        current_name = name_item.text()
+        current_position = position_item.text()
+
+        # Create edit dialog
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Sửa thông tin nhân viên - ID: {employee_id}")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+
+        layout = QVBoxLayout()
+
+        # Form fields
+        form_layout = QGridLayout()
+
+        # Name field
+        form_layout.addWidget(QLabel("Họ tên:"), 0, 0)
+        name_edit = QLineEdit(current_name)
+        name_edit.setFont(DEFAULT_FONT)
+        form_layout.addWidget(name_edit, 0, 1)
+
+        # Position field
+        form_layout.addWidget(QLabel("Vị trí:"), 1, 0)
+        position_combo = QComboBox()
+        position_combo.setFont(DEFAULT_FONT)
+        positions = ["Công nhân", "Tổ trưởng", "Phó tổ trưởng", "Kỹ thuật viên", "Thủ kho"]
+        position_combo.addItems(positions)
+
+        # Set current position
+        if current_position in positions:
+            position_combo.setCurrentText(current_position)
+
+        form_layout.addWidget(position_combo, 1, 1)
+
+        layout.addLayout(form_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(lambda: self.save_edited_employee(dialog, employee_id, name_edit.text(), position_combo.currentText(), row))
+
+        dialog.exec_()
+
+    def save_edited_employee(self, dialog, employee_id, name, position, row):
+        """Save edited employee information"""
+        if not name.strip():
+            QMessageBox.warning(dialog, "Lỗi", "Vui lòng nhập họ tên nhân viên!")
+            return
+
+        try:
+            # Load existing employees
+            employees_file = "src/data/employees.json"
+            with open(employees_file, 'r', encoding='utf-8') as f:
+                employees_data = json.load(f)
+
+            # Find and update employee
+            for employee in employees_data:
+                if employee.get('id') == employee_id:
+                    employee['name'] = name.strip()
+                    employee['position'] = position
+                    employee['updated_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    break
+
+            # Save to file
+            with open(employees_file, 'w', encoding='utf-8') as f:
+                json.dump(employees_data, f, ensure_ascii=False, indent=2)
+
+            # Update table
+            self.employee_table.item(row, 1).setText(name.strip())
+            self.employee_table.item(row, 2).setText(position)
+
+            dialog.accept()
+            QMessageBox.information(self, "Thành công", f"Đã cập nhật thông tin nhân viên: {name}")
+
+        except Exception as e:
+            QMessageBox.critical(dialog, "Lỗi", f"Không thể cập nhật nhân viên: {str(e)}")
+
+    def delete_employee(self, row):
+        """Delete employee"""
+        # Get employee info
+        id_item = self.employee_table.item(row, 0)
+        name_item = self.employee_table.item(row, 1)
+
+        if not all([id_item, name_item]):
+            return
+
+        employee_id = int(id_item.text())
+        employee_name = name_item.text()
+
+        # Confirm deletion
+        reply = QMessageBox.question(
+            self,
+            "Xác nhận xóa",
+            f"Bạn có chắc chắn muốn xóa nhân viên:\n{employee_name} (ID: {employee_id})?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                # Load existing employees
+                employees_file = "src/data/employees.json"
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+
+                # Remove employee
+                employees_data = [emp for emp in employees_data if emp.get('id') != employee_id]
+
+                # Save to file
+                with open(employees_file, 'w', encoding='utf-8') as f:
+                    json.dump(employees_data, f, ensure_ascii=False, indent=2)
+
+                # Remove from table
+                self.employee_table.removeRow(row)
+
+                QMessageBox.information(self, "Thành công", f"Đã xóa nhân viên: {employee_name}")
+
+            except Exception as e:
+                QMessageBox.critical(self, "Lỗi", f"Không thể xóa nhân viên: {str(e)}")
+
+    def load_attendance_employees(self):
+        """Load employees for attendance management"""
+        try:
+            # This method is now handled by populate_leave_employee_combo()
+            # Keep for backward compatibility but redirect to new method
+            pass
+        except Exception as e:
+            print(f"Lỗi khi tải danh sách nhân viên: {str(e)}")
+
+    def load_attendance_data(self):
+        """Load attendance data and update calendar"""
+        try:
+            attendance_file = "src/data/attendance.json"
+            if os.path.exists(attendance_file):
+                with open(attendance_file, 'r', encoding='utf-8') as f:
+                    self.attendance_data = json.load(f)
+            else:
+                self.attendance_data = {}
+
+            self.update_calendar_display()
+
+        except Exception as e:
+            print(f"Lỗi khi tải dữ liệu nghỉ phép: {str(e)}")
+            self.attendance_data = {}
+
+    def update_calendar_display(self):
+        """Update calendar to show absence days"""
+        # Reset calendar format
+        self.attendance_calendar.setDateTextFormat(QDate(), self.attendance_calendar.dateTextFormat(QDate()))
+
+        # Get selected employee from combo
+        employee_text = self.leave_employee_combo.currentText()
+        if not employee_text:
+            return
+
+        employee_id = employee_text.split(" - ")[0] if " - " in employee_text else "1"
+
+        # Get employee's absence data
+        employee_absences = self.attendance_data.get(str(employee_id), {})
+
+        # Format absence days on calendar
+        for date_str, absence_info in employee_absences.items():
+            try:
+                date_parts = date_str.split('-')
+                if len(date_parts) == 3:
+                    year, month, day = map(int, date_parts)
+                    qdate = QDate(year, month, day)
+
+                    # Set color based on absence type
+                    format = self.attendance_calendar.dateTextFormat(qdate)
+                    absence_type = absence_info.get('type', '')
+
+                    if absence_type == 'Nghỉ ốm':
+                        format.setBackground(QBrush(QColor(255, 152, 0)))  # Orange
+                    elif absence_type == 'Nghỉ phép':
+                        format.setBackground(QBrush(QColor(76, 175, 80)))  # Green
+                    elif absence_type == 'Nghỉ việc riêng':
+                        format.setBackground(QBrush(QColor(33, 150, 243)))  # Blue
+                    else:  # Nghỉ không phép
+                        format.setBackground(QBrush(QColor(244, 67, 54)))  # Red
+
+                    format.setForeground(QBrush(QColor(255, 255, 255)))  # White text
+                    self.attendance_calendar.setDateTextFormat(qdate, format)
+
+            except Exception as e:
+                print(f"Lỗi khi format ngày {date_str}: {str(e)}")
+
+    def on_employee_selection_changed(self, current, previous):
+        """Handle employee selection change"""
+        if current:
+            self.update_calendar_display()
+            # Update absence history for currently selected date
+            selected_date = self.attendance_calendar.selectedDate()
+            self.update_absence_history(selected_date)
+
+    def on_calendar_date_clicked(self, date):
+        """Handle calendar date click"""
+        # Update absence history for selected date
+        self.update_absence_history(date)
+
+    def update_absence_history(self, date):
+        """Update absence history list for selected date"""
+        self.absence_history_list.clear()
+
+        date_str = date.toString('yyyy-MM-dd')
+
+        # Show all employees' absence status for this date
+        try:
+            employees_file = "src/data/employees.json"
+            if os.path.exists(employees_file):
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+
+                for employee in employees_data:
+                    employee_id = str(employee.get('id', ''))
+                    employee_name = employee.get('name', '')
+
+                    # Check if employee was absent on this date
+                    if employee_id in self.attendance_data:
+                        if date_str in self.attendance_data[employee_id]:
+                            absence_info = self.attendance_data[employee_id][date_str]
+                            absence_type = absence_info.get('type', '')
+                            note = absence_info.get('note', '')
+
+                            item_text = f"{employee_name}: {absence_type}"
+                            if note:
+                                item_text += f" - {note}"
+
+                            item = QListWidgetItem(item_text)
+
+                            # Set color based on absence type
+                            if absence_type == 'Nghỉ ốm':
+                                item.setBackground(QColor(255, 152, 0, 50))
+                            elif absence_type == 'Nghỉ phép':
+                                item.setBackground(QColor(76, 175, 80, 50))
+                            elif absence_type == 'Nghỉ việc riêng':
+                                item.setBackground(QColor(33, 150, 243, 50))
+                            else:  # Nghỉ không phép
+                                item.setBackground(QColor(244, 67, 54, 50))
+
+                            self.absence_history_list.addItem(item)
+                        else:
+                            # Employee was present
+                            item = QListWidgetItem(f"{employee_name}: Có mặt")
+                            item.setBackground(QColor(200, 255, 200, 50))
+                            self.absence_history_list.addItem(item)
+                    else:
+                        # No data for this employee
+                        item = QListWidgetItem(f"{employee_name}: Có mặt")
+                        item.setBackground(QColor(200, 255, 200, 50))
+                        self.absence_history_list.addItem(item)
+
+        except Exception as e:
+            print(f"Lỗi khi cập nhật lịch sử nghỉ: {str(e)}")
+
+    def mark_employee_absent(self):
+        """Mark selected employee as absent on selected date"""
+        # Get selected employee from combo
+        employee_text = self.leave_employee_combo.currentText()
+        if not employee_text:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn nhân viên!")
+            return
+
+        employee_id = employee_text.split(" - ")[0] if " - " in employee_text else "1"
+        employee_name = employee_text.split(' - ')[1] if " - " in employee_text else "Unknown"
+
+        # Get selected date
+        selected_date = self.attendance_calendar.selectedDate()
+        date_str = selected_date.toString('yyyy-MM-dd')
+
+        # Get absence type
+        absence_type = self.absence_type_combo.currentText()
+
+        # Ask for note (optional)
+        note, ok = QInputDialog.getText(
+            self,
+            "Ghi chú",
+            f"Ghi chú cho {employee_name} nghỉ {absence_type} ngày {selected_date.toString('dd/MM/yyyy')}:",
+            text=""
+        )
+
+        if ok:
+            try:
+                # Update attendance data
+                if employee_id not in self.attendance_data:
+                    self.attendance_data[employee_id] = {}
+
+                self.attendance_data[employee_id][date_str] = {
+                    'type': absence_type,
+                    'note': note.strip(),
+                    'marked_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+
+                # Save to file
+                attendance_file = "src/data/attendance.json"
+                os.makedirs(os.path.dirname(attendance_file), exist_ok=True)
+                with open(attendance_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
+
+                # Update display
+                self.update_calendar_display()
+                self.update_absence_history(selected_date)
+
+                QMessageBox.information(
+                    self,
+                    "Thành công",
+                    f"Đã đánh dấu {employee_name} {absence_type} ngày {selected_date.toString('dd/MM/yyyy')}"
+                )
+
+            except Exception as e:
+                QMessageBox.critical(self, "Lỗi", f"Không thể lưu dữ liệu nghỉ phép: {str(e)}")
+
+    def remove_employee_absent(self):
+        """Remove absence mark for selected employee on selected date"""
+        # Get selected employee from combo
+        employee_text = self.leave_employee_combo.currentText()
+        if not employee_text:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn nhân viên!")
+            return
+
+        employee_id = employee_text.split(" - ")[0] if " - " in employee_text else "1"
+        employee_name = employee_text.split(' - ')[1] if " - " in employee_text else "Unknown"
+
+        # Get selected date
+        selected_date = self.attendance_calendar.selectedDate()
+        date_str = selected_date.toString('yyyy-MM-dd')
+
+        # Check if employee has absence record for this date
+        if employee_id not in self.attendance_data or date_str not in self.attendance_data[employee_id]:
+            QMessageBox.information(self, "Thông báo", f"{employee_name} không có đánh dấu nghỉ ngày {selected_date.toString('dd/MM/yyyy')}")
+            return
+
+        # Confirm removal
+        reply = QMessageBox.question(
+            self,
+            "Xác nhận",
+            f"Bạn có chắc chắn muốn xóa đánh dấu nghỉ của {employee_name} ngày {selected_date.toString('dd/MM/yyyy')}?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            try:
+                # Remove absence record
+                del self.attendance_data[employee_id][date_str]
+
+                # Clean up empty employee records
+                if not self.attendance_data[employee_id]:
+                    del self.attendance_data[employee_id]
+
+                # Save to file
+                attendance_file = "src/data/attendance.json"
+                with open(attendance_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
+
+                # Update display
+                self.update_calendar_display()
+                self.update_absence_history(selected_date)
+
+                QMessageBox.information(
+                    self,
+                    "Thành công",
+                    f"Đã xóa đánh dấu nghỉ của {employee_name} ngày {selected_date.toString('dd/MM/yyyy')}"
+                )
+
+            except Exception as e:
+                QMessageBox.critical(self, "Lỗi", f"Không thể xóa dữ liệu nghỉ phép: {str(e)}")
+
+    def load_import_tracking_data(self):
+        """Load import tracking data from existing import files"""
+        try:
+            self.import_tracking_table.setRowCount(0)
+
+            # Load participation data
+            participation_file = "src/data/import_participation.json"
+            if os.path.exists(participation_file):
+                with open(participation_file, 'r', encoding='utf-8') as f:
+                    participation_data = json.load(f)
+            else:
+                participation_data = {}
+
+            all_imports = []
+
+            # Process import files from imports directory
+            imports_dir = "src/data/imports"
+            if os.path.exists(imports_dir):
+                for filename in os.listdir(imports_dir):
+                    if filename.startswith('import_') and filename.endswith('.json'):
+                        file_path = os.path.join(imports_dir, filename)
+
+                        # Extract date from filename (import_YYYY-MM-DD.json)
+                        try:
+                            date_part = filename.replace('import_', '').replace('.json', '')
+                            import_date = date_part  # Keep as YYYY-MM-DD format
+                        except:
+                            continue
+
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                import_entries = json.load(f)
+
+                            for entry in import_entries:
+                                ingredient = entry.get('ingredient', '')
+                                amount = entry.get('amount', 0)
+                                import_type = entry.get('type', '')
+                                timestamp = entry.get('timestamp', '')
+                                note = entry.get('note', '')
+
+                                if amount > 0 and ingredient:
+                                    # Determine material type
+                                    material_type = self.categorize_material(ingredient)
+
+                                    # Create unique import key
+                                    import_key = f"{import_date}_{timestamp}_{ingredient}_{amount}"
+
+                                    # Get participation info
+                                    participants = participation_data.get(import_key, {}).get('participants', [])
+                                    participant_names = [p.get('name', '') for p in participants]
+
+                                    all_imports.append({
+                                        'date': import_date,
+                                        'timestamp': timestamp,
+                                        'material_type': material_type,
+                                        'ingredient': ingredient,
+                                        'amount': amount,
+                                        'type': import_type,
+                                        'participants': participant_names,
+                                        'import_key': import_key,
+                                        'note': note
+                                    })
+                        except Exception as e:
+                            print(f"Lỗi khi đọc file {filename}: {str(e)}")
+                            continue
+
+            # Sort by timestamp (newest first) - timestamp already contains full date and time
+            all_imports.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+
+            # Populate table
+            for import_data in all_imports:
+                self.add_import_tracking_row(import_data)
+
+            print(f"Đã tải {len(all_imports)} bản ghi nhập kho")
+
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể tải dữ liệu nhập kho: {str(e)}")
+            print(f"Chi tiết lỗi: {str(e)}")
+
+    def categorize_material(self, ingredient_name):
+        """Categorize ingredient into material types"""
+        ingredient_lower = ingredient_name.lower()
+
+        # Bắp (Corn)
+        if 'bắp' in ingredient_lower or 'corn' in ingredient_lower:
+            return 'Bắp'
+
+        # Nành (Soybean)
+        elif 'nành' in ingredient_lower or 'soybean' in ingredient_lower or 'đậu nành' in ingredient_lower:
+            return 'Nành'
+
+        # Đá hạt (Stone/Gravel)
+        elif 'đá hạt' in ingredient_lower or 'stone' in ingredient_lower or 'gravel' in ingredient_lower:
+            return 'Đá hạt'
+
+        # Cám gạo (Rice bran)
+        elif 'cám gạo' in ingredient_lower or 'rice bran' in ingredient_lower or 'cám' in ingredient_lower:
+            return 'Cám gạo'
+
+        # Các nguyên liệu khác (amino acids, vitamins, etc.)
+        else:
+            return 'Khác'
+
+    def add_import_tracking_row(self, import_data):
+        """Add a row to import tracking table"""
+        row = self.import_tracking_table.rowCount()
+        self.import_tracking_table.insertRow(row)
+
+        # Date with timestamp - create styled display with faded time part
+        date_display = ""
+        if 'timestamp' in import_data and import_data['timestamp']:
+            timestamp = import_data['timestamp']
+            if ' ' in timestamp:
+                # Split date and time parts
+                date_part, time_part = timestamp.split(' ', 1)
+                # Create HTML formatted text with faded time
+                date_display = f'<span style="color: #2c2c2c; font-weight: 600;">{date_part}</span> <span style="color: #888888; font-weight: 400;">{time_part}</span>'
+            else:
+                date_display = timestamp
+        else:
+            # Fallback to date if timestamp is not available
+            date_display = import_data.get('date', '')
+
+        date_item = QTableWidgetItem()
+        date_item.setFlags(date_item.flags() & ~Qt.ItemIsEditable)
+
+        # Create a custom widget for rich text display with optimized font size
+        date_widget = QLabel()
+        date_widget.setFont(QFont("Arial", 14, QFont.Medium))  # Increased to 14px for better readability
+        date_widget.setText(date_display)
+        date_widget.setAlignment(Qt.AlignCenter)
+        date_widget.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                padding: 4px 6px;
+                border: none;
+                font-size: 14px;
+            }
+        """)
+
+        # Set the widget in the table
+        self.import_tracking_table.setItem(row, 0, date_item)
+        self.import_tracking_table.setCellWidget(row, 0, date_widget)
+
+        # Material type with ingredient name
+        material_display = f"{import_data['material_type']}"
+        if import_data['ingredient'] != import_data['material_type']:
+            material_display += f" ({import_data['ingredient']})"
+
+        material_item = QTableWidgetItem(material_display)
+        material_item.setFlags(material_item.flags() & ~Qt.ItemIsEditable)
+
+        # Color code by material type
+        if import_data['material_type'] == 'Bắp':
+            material_item.setBackground(QColor(255, 235, 59, 50))  # Yellow
+        elif import_data['material_type'] == 'Nành':
+            material_item.setBackground(QColor(139, 195, 74, 50))  # Light Green
+        elif import_data['material_type'] == 'Cám gạo':
+            material_item.setBackground(QColor(255, 152, 0, 50))   # Orange
+        elif import_data['material_type'] == 'Đá hạt':
+            material_item.setBackground(QColor(158, 158, 158, 50))  # Gray
+        else:  # Khác
+            material_item.setBackground(QColor(156, 39, 176, 50))   # Purple
+
+        self.import_tracking_table.setItem(row, 1, material_item)
+
+        # Amount
+        amount_item = QTableWidgetItem(f"{import_data['amount']:,.1f} kg")
+        amount_item.setFlags(amount_item.flags() & ~Qt.ItemIsEditable)
+        self.import_tracking_table.setItem(row, 2, amount_item)
+
+        # Participants
+        participants_text = ", ".join(import_data['participants']) if import_data['participants'] else "Chưa ghi nhận"
+        participants_item = QTableWidgetItem(participants_text)
+        participants_item.setFlags(participants_item.flags() & ~Qt.ItemIsEditable)
+
+        # Color code participants
+        if import_data['participants']:
+            participants_item.setBackground(QColor(200, 255, 200, 100))  # Light green
+        else:
+            participants_item.setBackground(QColor(255, 200, 200, 100))  # Light red
+
+        self.import_tracking_table.setItem(row, 3, participants_item)
+
+        # Note
+        note_text = import_data.get('note', '')
+        if import_data.get('type'):
+            note_text = f"[{import_data['type'].upper()}] {note_text}".strip()
+
+        note_item = QTableWidgetItem(note_text)
+        note_item.setFlags(note_item.flags() & ~Qt.ItemIsEditable)
+        self.import_tracking_table.setItem(row, 4, note_item)
+
+        # Action button
+        action_widget = QWidget()
+        action_layout = QHBoxLayout()
+        action_layout.setContentsMargins(5, 2, 5, 2)
+
+        manage_btn = QPushButton("Quản lý NV")
+        manage_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 4px 8px;
+                border-radius: 3px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        manage_btn.clicked.connect(lambda: self.manage_import_participants(import_data))
+
+        action_layout.addWidget(manage_btn)
+        action_widget.setLayout(action_layout)
+
+        self.import_tracking_table.setCellWidget(row, 5, action_widget)
+
+    def refresh_import_tracking_data(self):
+        """Refresh import tracking data"""
+        self.load_import_tracking_data()
+        QMessageBox.information(self, "Thành công", "Đã làm mới dữ liệu nhập kho!")
+
+    def filter_import_tracking_data(self):
+        """Filter import tracking data based on date range and material type"""
+        from_date = self.import_tracking_from_date.date()
+        to_date = self.import_tracking_to_date.date()
+        material_filter = self.import_material_filter.currentText()
+
+        # Hide/show rows based on filter
+        for row in range(self.import_tracking_table.rowCount()):
+            show_row = True
+
+            # Check date range
+            date_widget = self.import_tracking_table.cellWidget(row, 0)
+            if date_widget:
+                try:
+                    # Extract date from the widget's text (which may contain HTML)
+                    timestamp_text = date_widget.text()
+                    # Remove HTML tags if present
+                    import re
+                    clean_text = re.sub(r'<[^>]+>', '', timestamp_text)
+
+                    if ' ' in clean_text:
+                        date_part = clean_text.split(' ')[0]  # Get date part only
+                    else:
+                        date_part = clean_text
+
+                    row_date = QDate.fromString(date_part, "yyyy-MM-dd")
+                    if row_date.isValid():
+                        if row_date < from_date or row_date > to_date:
+                            show_row = False
+                except:
+                    pass
+
+            # Check material type
+            if material_filter != "Tất cả":
+                material_item = self.import_tracking_table.item(row, 1)
+                if material_item and material_filter not in material_item.text():
+                    show_row = False
+
+            self.import_tracking_table.setRowHidden(row, not show_row)
+
+    def manage_import_participants(self, import_data):
+        """Manage employees participating in import activity"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Quản lý nhân viên tham gia nhập kho")
+        dialog.setModal(True)
+        dialog.resize(600, 500)
+
+        layout = QVBoxLayout()
+
+        # Info section
+        info_layout = QGridLayout()
+        info_layout.addWidget(QLabel("Ngày:"), 0, 0)
+        info_layout.addWidget(QLabel(import_data['date']), 0, 1)
+        info_layout.addWidget(QLabel("Nguyên liệu:"), 1, 0)
+        info_layout.addWidget(QLabel(f"{import_data['material_type']} ({import_data['ingredient']})"), 1, 1)
+        info_layout.addWidget(QLabel("Số lượng:"), 2, 0)
+        info_layout.addWidget(QLabel(f"{import_data['amount']:,.0f} kg"), 2, 1)
+
+        info_group = QGroupBox("Thông tin nhập kho")
+        info_group.setLayout(info_layout)
+        layout.addWidget(info_group)
+
+        # Employee selection section
+        employee_group = QGroupBox("Chọn nhân viên tham gia")
+        employee_layout = QVBoxLayout()
+
+        # Get available employees (exclude those on leave)
+        available_employees = self.get_available_employees(import_data['date'])
+
+        # Create checkboxes for each employee
+        self.participant_checkboxes = {}
+
+        if available_employees:
+            for employee in available_employees:
+                checkbox = QCheckBox(f"{employee['name']} - {employee['position']} (ID: {employee['id']})")
+                checkbox.setFont(DEFAULT_FONT)
+
+                # Check if employee was already selected
+                if employee['name'] in import_data['participants']:
+                    checkbox.setChecked(True)
+
+                self.participant_checkboxes[employee['id']] = {
+                    'checkbox': checkbox,
+                    'employee': employee
+                }
+                employee_layout.addWidget(checkbox)
+        else:
+            no_employees_label = QLabel("Không có nhân viên nào có mặt trong ngày này")
+            no_employees_label.setStyleSheet("color: #666666; font-style: italic;")
+            employee_layout.addWidget(no_employees_label)
+
+        employee_group.setLayout(employee_layout)
+
+        # Scroll area for employee list
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(employee_group)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(300)
+        layout.addWidget(scroll_area)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(lambda: self.save_import_participants(dialog, import_data))
+
+        dialog.exec_()
+
+    def get_available_employees(self, date_str):
+        """Get employees available on a specific date (not on leave)"""
+        try:
+            # Load all employees
+            employees_file = "src/data/employees.json"
+            if not os.path.exists(employees_file):
+                return []
+
+            with open(employees_file, 'r', encoding='utf-8') as f:
+                all_employees = json.load(f)
+
+            # Load attendance data
+            attendance_file = "src/data/attendance.json"
+            if os.path.exists(attendance_file):
+                with open(attendance_file, 'r', encoding='utf-8') as f:
+                    attendance_data = json.load(f)
+            else:
+                attendance_data = {}
+
+            # Filter available employees
+            available_employees = []
+
+            for employee in all_employees:
+                employee_id = str(employee.get('id', ''))
+
+                # Check if employee was absent on this date
+                is_absent = False
+                if employee_id in attendance_data:
+                    if date_str in attendance_data[employee_id]:
+                        absence_type = attendance_data[employee_id][date_str].get('type', '')
+                        # Exclude sick leave, but allow other types to participate
+                        if absence_type == 'Nghỉ ốm':
+                            is_absent = True
+
+                if not is_absent:
+                    available_employees.append(employee)
+
+            return available_employees
+
+        except Exception as e:
+            print(f"Lỗi khi lấy danh sách nhân viên có mặt: {str(e)}")
+            return []
+
+    def save_import_participants(self, dialog, import_data):
+        """Save selected participants for import activity"""
+        try:
+            # Get selected participants
+            selected_participants = []
+
+            for employee_id, data in self.participant_checkboxes.items():
+                if data['checkbox'].isChecked():
+                    selected_participants.append({
+                        'id': employee_id,
+                        'name': data['employee']['name'],
+                        'position': data['employee']['position']
+                    })
+
+            # Load existing participation data
+            participation_file = "src/data/import_participation.json"
+            if os.path.exists(participation_file):
+                with open(participation_file, 'r', encoding='utf-8') as f:
+                    participation_data = json.load(f)
+            else:
+                participation_data = {}
+
+            # Save participation data
+            import_key = import_data['import_key']
+            participation_data[import_key] = {
+                'date': import_data['date'],
+                'material_type': import_data['material_type'],
+                'ingredient': import_data['ingredient'],
+                'amount': import_data['amount'],
+                'participants': selected_participants,
+                'updated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            # Save to file
+            os.makedirs(os.path.dirname(participation_file), exist_ok=True)
+            with open(participation_file, 'w', encoding='utf-8') as f:
+                json.dump(participation_data, f, ensure_ascii=False, indent=2)
+
+            # Refresh table
+            self.load_import_tracking_data()
+
+            dialog.accept()
+            QMessageBox.information(
+                self,
+                "Thành công",
+                f"Đã lưu danh sách {len(selected_participants)} nhân viên tham gia nhập kho!"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(dialog, "Lỗi", f"Không thể lưu dữ liệu tham gia: {str(e)}")
+
+    def calculate_monthly_bonus(self):
+        """Calculate monthly bonus for all employees"""
+        try:
+            selected_month = self.bonus_month_combo.currentData()
+            selected_year = self.bonus_year_combo.currentData()
+
+            print(f"Tính thưởng cho tháng {selected_month}/{selected_year}")
+
+            # Load bonus rates from config
+            bonus_config = self.load_bonus_rates()
+            bonus_rates = bonus_config.get("default_rates", {
+                'Bắp': 400000,
+                'Nành': 400000,
+                'Cám gạo': 270000,
+                'Khác': 350000
+            })
+
+            # Load participation data
+            participation_file = "src/data/import_participation.json"
+            if not os.path.exists(participation_file):
+                QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu tham gia nhập kho!")
+                return
+
+            with open(participation_file, 'r', encoding='utf-8') as f:
+                participation_data = json.load(f)
+
+            # Load employees data
+            employees_file = "src/data/employees.json"
+            if not os.path.exists(employees_file):
+                QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu nhân viên!")
+                return
+
+            with open(employees_file, 'r', encoding='utf-8') as f:
+                employees_data = json.load(f)
+
+            # Load attendance data to exclude sick leave
+            attendance_file = "src/data/attendance.json"
+            if os.path.exists(attendance_file):
+                with open(attendance_file, 'r', encoding='utf-8') as f:
+                    attendance_data = json.load(f)
+            else:
+                attendance_data = {}
+
+            # Calculate participation counts for each material type
+            material_participation = {}  # {material_type: {employee_id: count}}
+
+            for import_key, import_info in participation_data.items():
+                import_date = import_info.get('date', '')
+                material_type = import_info.get('material_type', '')
+                participants = import_info.get('participants', [])
+
+                # Check if import is in selected month/year
+                try:
+                    date_parts = import_date.split('-')
+                    if len(date_parts) == 3:
+                        year, month, day = map(int, date_parts)
+                        if year == selected_year and month == selected_month:
+                            # Count participation for each employee
+                            if material_type not in material_participation:
+                                material_participation[material_type] = {}
+
+                            for participant in participants:
+                                employee_id = str(participant.get('id', ''))
+
+                                # Check if employee was sick on this date
+                                is_sick = False
+                                if employee_id in attendance_data:
+                                    if import_date in attendance_data[employee_id]:
+                                        absence_type = attendance_data[employee_id][import_date].get('type', '')
+                                        if absence_type == 'Nghỉ ốm':
+                                            is_sick = True
+
+                                # Only count if not sick
+                                if not is_sick:
+                                    if employee_id not in material_participation[material_type]:
+                                        material_participation[material_type][employee_id] = 0
+                                    material_participation[material_type][employee_id] += 1
+                except:
+                    continue
+
+            # Calculate bonus for each employee
+            employee_bonuses = {}  # {employee_id: {material_type: bonus_amount}}
+
+            for material_type, participants in material_participation.items():
+                if participants:  # If there are participants for this material
+                    total_bonus = bonus_rates.get(material_type, 0)
+                    bonus_per_person = total_bonus / len(participants)
+
+                    for employee_id in participants:
+                        if employee_id not in employee_bonuses:
+                            employee_bonuses[employee_id] = {}
+                        employee_bonuses[employee_id][material_type] = bonus_per_person
+
+            # Display results
+            self.display_bonus_results(employees_data, employee_bonuses, selected_month, selected_year)
+
+            # Save results
+            self.save_bonus_calculation(employee_bonuses, selected_month, selected_year)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể tính toán tiền thưởng: {str(e)}")
+
+    def display_bonus_results(self, employees_data, employee_bonuses, month, year):
+        """Display bonus calculation results in table"""
+        self.bonus_results_table.setRowCount(0)
+
+        # Create employee lookup
+        employee_lookup = {str(emp.get('id', '')): emp for emp in employees_data}
+
+        # Get all employees who have bonuses
+        bonus_employee_ids = set(employee_bonuses.keys())
+
+        # Add all employees to table (even those with 0 bonus)
+        all_employee_ids = set(str(emp.get('id', '')) for emp in employees_data)
+
+        for employee_id in all_employee_ids:
+            employee = employee_lookup.get(employee_id, {})
+            bonuses = employee_bonuses.get(employee_id, {})
+
+            row = self.bonus_results_table.rowCount()
+            self.bonus_results_table.insertRow(row)
+
+            # Employee name
+            name_item = QTableWidgetItem(employee.get('name', ''))
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+            self.bonus_results_table.setItem(row, 0, name_item)
+
+            # Position
+            position_item = QTableWidgetItem(employee.get('position', ''))
+            position_item.setFlags(position_item.flags() & ~Qt.ItemIsEditable)
+            self.bonus_results_table.setItem(row, 1, position_item)
+
+            # Material bonuses
+            material_types = ['Bắp', 'Nành', 'Cám gạo', 'Khác']
+            total_bonus = 0
+
+            for i, material_type in enumerate(material_types):
+                bonus_amount = bonuses.get(material_type, 0)
+                total_bonus += bonus_amount
+
+                bonus_item = QTableWidgetItem(f"{bonus_amount:,.0f}")
+                bonus_item.setFlags(bonus_item.flags() & ~Qt.ItemIsEditable)
+
+                # Color code based on amount
+                if bonus_amount > 0:
+                    bonus_item.setBackground(QColor(200, 255, 200))  # Light green
+
+                self.bonus_results_table.setItem(row, 2 + i, bonus_item)
+
+            # Total bonus
+            total_item = QTableWidgetItem(f"{total_bonus:,.0f}")
+            total_item.setFlags(total_item.flags() & ~Qt.ItemIsEditable)
+            total_item.setBackground(QColor(255, 255, 200))  # Light yellow
+            total_item.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+            self.bonus_results_table.setItem(row, 6, total_item)
+
+        QMessageBox.information(
+            self,
+            "Thành công",
+            f"Đã tính toán tiền thưởng cho tháng {month:02d}/{year}!\n"
+            f"Tổng số nhân viên: {len(all_employee_ids)}\n"
+            f"Nhân viên có thưởng: {len(bonus_employee_ids)}"
+        )
+
+    def save_bonus_calculation(self, employee_bonuses, month, year):
+        """Save bonus calculation results to file"""
+        try:
+            bonus_file = "src/data/bonus_calculation.json"
+
+            # Load existing data
+            if os.path.exists(bonus_file):
+                with open(bonus_file, 'r', encoding='utf-8') as f:
+                    bonus_data = json.load(f)
+            else:
+                bonus_data = {}
+
+            # Save calculation for this month/year
+            period_key = f"{year}-{month:02d}"
+            bonus_data[period_key] = {
+                'year': year,
+                'month': month,
+                'employee_bonuses': employee_bonuses,
+                'calculated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            # Save to file
+            os.makedirs(os.path.dirname(bonus_file), exist_ok=True)
+            with open(bonus_file, 'w', encoding='utf-8') as f:
+                json.dump(bonus_data, f, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            print(f"Lỗi khi lưu kết quả tính thưởng: {str(e)}")
+
+    def export_bonus_report(self):
+        """Export bonus report to Excel"""
+        try:
+            # Check if there's data to export
+            if self.bonus_results_table.rowCount() == 0:
+                QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu để xuất báo cáo!")
+                return
+
+            # Get file path
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Lưu báo cáo Excel",
+                f"BaoCaoTienThuong_{QDate.currentDate().toString('yyyyMMdd')}.xlsx",
+                "Excel Files (*.xlsx)"
+            )
+
+            if file_path:
+                self.create_excel_report(file_path)
+                QMessageBox.information(self, "Thành công", f"Đã xuất báo cáo Excel: {file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể xuất báo cáo Excel: {str(e)}")
+
+    def create_excel_report(self, file_path):
+        """Create comprehensive Excel report with multiple sheets"""
+        try:
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                # Sheet 1: Employee List
+                self.create_employee_sheet(writer)
+
+                # Sheet 2: Attendance Data
+                self.create_attendance_sheet(writer)
+
+                # Sheet 3: Import Tracking
+                self.create_import_tracking_sheet(writer)
+
+                # Sheet 4: Bonus Calculation
+                self.create_bonus_sheet(writer)
+
+        except Exception as e:
+            raise Exception(f"Lỗi khi tạo file Excel: {str(e)}")
+
+    def create_employee_sheet(self, writer):
+        """Create employee list sheet"""
+        try:
+            employees_file = "src/data/employees.json"
+            if os.path.exists(employees_file):
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+
+                # Convert to DataFrame
+                df_employees = pd.DataFrame(employees_data)
+                if not df_employees.empty:
+                    # Reorder columns
+                    columns_order = ['id', 'name', 'position', 'created_date']
+                    df_employees = df_employees.reindex(columns=[col for col in columns_order if col in df_employees.columns])
+
+                    # Rename columns to Vietnamese
+                    df_employees.columns = ['ID', 'Họ tên', 'Vị trí', 'Ngày tạo']
+
+                    df_employees.to_excel(writer, sheet_name='Nhân viên', index=False)
+
+        except Exception as e:
+            print(f"Lỗi khi tạo sheet nhân viên: {str(e)}")
+
+    def create_attendance_sheet(self, writer):
+        """Create attendance data sheet"""
+        try:
+            attendance_file = "src/data/attendance.json"
+            employees_file = "src/data/employees.json"
+
+            if os.path.exists(attendance_file) and os.path.exists(employees_file):
+                with open(attendance_file, 'r', encoding='utf-8') as f:
+                    attendance_data = json.load(f)
+
+                with open(employees_file, 'r', encoding='utf-8') as f:
+                    employees_data = json.load(f)
+
+                # Create employee lookup
+                employee_lookup = {str(emp.get('id', '')): emp.get('name', '') for emp in employees_data}
+
+                # Convert attendance data to list
+                attendance_list = []
+                for employee_id, dates in attendance_data.items():
+                    employee_name = employee_lookup.get(employee_id, f"ID: {employee_id}")
+                    for date_str, absence_info in dates.items():
+                        attendance_list.append({
+                            'Nhân viên': employee_name,
+                            'Ngày': date_str,
+                            'Loại nghỉ': absence_info.get('type', ''),
+                            'Ghi chú': absence_info.get('note', ''),
+                            'Ngày đánh dấu': absence_info.get('marked_date', '')
+                        })
+
+                if attendance_list:
+                    df_attendance = pd.DataFrame(attendance_list)
+                    df_attendance = df_attendance.sort_values(['Nhân viên', 'Ngày'])
+                    df_attendance.to_excel(writer, sheet_name='Nghỉ phép', index=False)
+
+        except Exception as e:
+            print(f"Lỗi khi tạo sheet nghỉ phép: {str(e)}")
+
+    def create_import_tracking_sheet(self, writer):
+        """Create import tracking sheet"""
+        try:
+            participation_file = "src/data/import_participation.json"
+
+            if os.path.exists(participation_file):
+                with open(participation_file, 'r', encoding='utf-8') as f:
+                    participation_data = json.load(f)
+
+                # Convert to list
+                import_list = []
+                for import_key, import_info in participation_data.items():
+                    participants = import_info.get('participants', [])
+                    participant_names = [p.get('name', '') for p in participants]
+
+                    import_list.append({
+                        'Ngày': import_info.get('date', ''),
+                        'Loại nguyên liệu': import_info.get('material_type', ''),
+                        'Tên nguyên liệu': import_info.get('ingredient', ''),
+                        'Số lượng (kg)': import_info.get('amount', 0),
+                        'Nhân viên tham gia': ', '.join(participant_names),
+                        'Số lượng NV': len(participants),
+                        'Cập nhật lần cuối': import_info.get('updated_date', '')
+                    })
+
+                if import_list:
+                    df_import = pd.DataFrame(import_list)
+                    df_import = df_import.sort_values(['Ngày', 'Loại nguyên liệu'])
+                    df_import.to_excel(writer, sheet_name='Nhập kho', index=False)
+
+        except Exception as e:
+            print(f"Lỗi khi tạo sheet nhập kho: {str(e)}")
+
+    def create_bonus_sheet(self, writer):
+        """Create bonus calculation sheet"""
+        try:
+            # Get data from current table
+            bonus_list = []
+
+            for row in range(self.bonus_results_table.rowCount()):
+                employee_name = self.bonus_results_table.item(row, 0).text() if self.bonus_results_table.item(row, 0) else ""
+                position = self.bonus_results_table.item(row, 1).text() if self.bonus_results_table.item(row, 1) else ""
+                bap_bonus = self.bonus_results_table.item(row, 2).text() if self.bonus_results_table.item(row, 2) else "0"
+                nanh_bonus = self.bonus_results_table.item(row, 3).text() if self.bonus_results_table.item(row, 3) else "0"
+                cam_gao_bonus = self.bonus_results_table.item(row, 4).text() if self.bonus_results_table.item(row, 4) else "0"
+                khac_bonus = self.bonus_results_table.item(row, 5).text() if self.bonus_results_table.item(row, 5) else "0"
+                total_bonus = self.bonus_results_table.item(row, 6).text() if self.bonus_results_table.item(row, 6) else "0"
+
+                # Convert comma-separated numbers to integers
+                try:
+                    bap_bonus = int(bap_bonus.replace(',', ''))
+                    nanh_bonus = int(nanh_bonus.replace(',', ''))
+                    cam_gao_bonus = int(cam_gao_bonus.replace(',', ''))
+                    khac_bonus = int(khac_bonus.replace(',', ''))
+                    total_bonus = int(total_bonus.replace(',', ''))
+                except:
+                    bap_bonus = nanh_bonus = cam_gao_bonus = khac_bonus = total_bonus = 0
+
+                bonus_list.append({
+                    'Nhân viên': employee_name,
+                    'Vị trí': position,
+                    'Thưởng Bắp (VNĐ)': bap_bonus,
+                    'Thưởng Nành (VNĐ)': nanh_bonus,
+                    'Thưởng Cám gạo (VNĐ)': cam_gao_bonus,
+                    'Thưởng Khác (VNĐ)': khac_bonus,
+                    'Tổng thưởng (VNĐ)': total_bonus
+                })
+
+            if bonus_list:
+                df_bonus = pd.DataFrame(bonus_list)
+
+                # Add summary row
+                summary_row = {
+                    'Nhân viên': 'TỔNG CỘNG',
+                    'Vị trí': '',
+                    'Thưởng Bắp (VNĐ)': df_bonus['Thưởng Bắp (VNĐ)'].sum(),
+                    'Thưởng Nành (VNĐ)': df_bonus['Thưởng Nành (VNĐ)'].sum(),
+                    'Thưởng Cám gạo (VNĐ)': df_bonus['Thưởng Cám gạo (VNĐ)'].sum(),
+                    'Thưởng Khác (VNĐ)': df_bonus['Thưởng Khác (VNĐ)'].sum(),
+                    'Tổng thưởng (VNĐ)': df_bonus['Tổng thưởng (VNĐ)'].sum()
+                }
+
+                df_bonus = pd.concat([df_bonus, pd.DataFrame([summary_row])], ignore_index=True)
+                df_bonus.to_excel(writer, sheet_name='Tiền thưởng', index=False)
+
+                # Add bonus rates info
+                rates_info = pd.DataFrame([
+                    {'Loại nguyên liệu': 'Bắp', 'Mức thưởng (VNĐ/tháng)': 400000},
+                    {'Loại nguyên liệu': 'Nành', 'Mức thưởng (VNĐ/tháng)': 400000},
+                    {'Loại nguyên liệu': 'Cám gạo', 'Mức thưởng (VNĐ/tháng)': 270000},
+                    {'Loại nguyên liệu': 'Khác', 'Mức thưởng (VNĐ/tháng)': 350000}
+                ])
+
+                # Write to a separate area in the same sheet
+                startrow = len(df_bonus) + 3
+                rates_info.to_excel(writer, sheet_name='Tiền thưởng', startrow=startrow, index=False)
+
+        except Exception as e:
+            print(f"Lỗi khi tạo sheet tiền thưởng: {str(e)}")
+
+    def load_bonus_rates(self):
+        """Load bonus rates from config file"""
+        try:
+            bonus_rates_file = "src/data/config/bonus_rates.json"
+            if os.path.exists(bonus_rates_file):
+                with open(bonus_rates_file, 'r', encoding='utf-8') as f:
+                    bonus_config = json.load(f)
+                return bonus_config
+            else:
+                # Create default config if not exists
+                default_config = {
+                    "default_rates": {
+                        "Bắp": 400000,
+                        "Nành": 400000,
+                        "Cám gạo": 270000,
+                        "Khác": 350000
+                    },
+                    "specific_rates": {},
+                    "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "updated_by": "System"
+                }
+                self.save_bonus_rates(default_config)
+                return default_config
+        except Exception as e:
+            print(f"Error loading bonus rates: {str(e)}")
+            return {
+                "default_rates": {"Bắp": 400000, "Nành": 400000, "Cám gạo": 270000, "Khác": 350000},
+                "specific_rates": {}
+            }
+
+    def save_bonus_rates(self, bonus_config):
+        """Save bonus rates to config file"""
+        try:
+            bonus_rates_file = "src/data/config/bonus_rates.json"
+            os.makedirs(os.path.dirname(bonus_rates_file), exist_ok=True)
+
+            bonus_config["last_updated"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            with open(bonus_rates_file, 'w', encoding='utf-8') as f:
+                json.dump(bonus_config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error saving bonus rates: {str(e)}")
+            return False
+
+    def get_bonus_rate_for_ingredient(self, ingredient):
+        """Get bonus rate for specific ingredient"""
+        bonus_config = self.load_bonus_rates()
+
+        # First check specific rates
+        specific_rates = bonus_config.get("specific_rates", {})
+        if ingredient in specific_rates:
+            return specific_rates[ingredient]
+
+        # Then check default rates by material type
+        material_type = self.categorize_material(ingredient)
+        default_rates = bonus_config.get("default_rates", {})
+        return default_rates.get(material_type, 350000)  # Default to "Khác" rate
+
+    def show_employee_selection_dialog(self, import_date, ingredient, amount, import_type):
+        """Show dialog to select employees for import participation"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Chọn nhân viên tham gia xuống hàng")
+        dialog.setModal(True)
+        dialog.resize(500, 400)
+
+        layout = QVBoxLayout()
+
+        # Info section
+        info_group = QGroupBox("Thông tin nhập kho")
+        info_layout = QGridLayout()
+        info_layout.addWidget(QLabel("Ngày:"), 0, 0)
+        info_layout.addWidget(QLabel(import_date), 0, 1)
+        info_layout.addWidget(QLabel("Nguyên liệu:"), 1, 0)
+        info_layout.addWidget(QLabel(ingredient), 1, 1)
+        info_layout.addWidget(QLabel("Số lượng:"), 2, 0)
+        info_layout.addWidget(QLabel(f"{amount:,.1f} kg"), 2, 1)
+        info_layout.addWidget(QLabel("Loại:"), 3, 0)
+        info_layout.addWidget(QLabel("Cám" if import_type == "feed" else "Mix"), 3, 1)
+        info_group.setLayout(info_layout)
+        layout.addWidget(info_group)
+
+        # Employee selection
+        employee_group = QGroupBox("Chọn nhân viên tham gia")
+        employee_layout = QVBoxLayout()
+
+        # Get available employees (exclude those on sick leave)
+        available_employees = self.get_available_employees(import_date)
+
+        self.import_employee_checkboxes = {}
+
+        if available_employees:
+            for employee in available_employees:
+                checkbox = QCheckBox(f"{employee['name']} - {employee['position']} (ID: {employee['id']})")
+                checkbox.setFont(DEFAULT_FONT)
+                checkbox.setChecked(True)  # Default to all selected
+
+                self.import_employee_checkboxes[employee['id']] = {
+                    'checkbox': checkbox,
+                    'employee': employee
+                }
+                employee_layout.addWidget(checkbox)
+        else:
+            no_employees_label = QLabel("Không có nhân viên nào có mặt trong ngày này")
+            no_employees_label.setStyleSheet("color: #666666; font-style: italic;")
+            employee_layout.addWidget(no_employees_label)
+
+        employee_group.setLayout(employee_layout)
+
+        # Scroll area for employee list
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(employee_group)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMaximumHeight(200)
+        layout.addWidget(scroll_area)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        select_all_btn = QPushButton("Chọn tất cả")
+        select_all_btn.clicked.connect(lambda: self.toggle_all_employees(True))
+
+        deselect_all_btn = QPushButton("Bỏ chọn tất cả")
+        deselect_all_btn.clicked.connect(lambda: self.toggle_all_employees(False))
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addWidget(select_all_btn)
+        button_layout.addWidget(deselect_all_btn)
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(dialog.accept)
+
+        return dialog.exec_() == QDialog.Accepted
+
+    def toggle_all_employees(self, select_all):
+        """Toggle all employee checkboxes"""
+        for data in self.import_employee_checkboxes.values():
+            data['checkbox'].setChecked(select_all)
+
+    def get_selected_employees(self):
+        """Get list of selected employees from dialog"""
+        selected_employees = []
+
+        for employee_id, data in self.import_employee_checkboxes.items():
+            if data['checkbox'].isChecked():
+                selected_employees.append({
+                    'id': employee_id,
+                    'name': data['employee']['name'],
+                    'position': data['employee']['position']
+                })
+
+        return selected_employees
+
+    def save_employee_participation(self, import_type, ingredient, amount, date, note, selected_employees):
+        """Save employee participation data for import activity"""
+        try:
+            # Create unique import key
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            import_key = f"{date}_{timestamp}_{ingredient}_{amount}"
+
+            # Load existing participation data
+            participation_file = "src/data/import_participation.json"
+            if os.path.exists(participation_file):
+                with open(participation_file, 'r', encoding='utf-8') as f:
+                    participation_data = json.load(f)
+            else:
+                participation_data = {}
+
+            # Determine material type
+            material_type = self.categorize_material(ingredient)
+
+            # Save participation data
+            participation_data[import_key] = {
+                'date': date,
+                'timestamp': timestamp,
+                'material_type': material_type,
+                'ingredient': ingredient,
+                'amount': float(amount),
+                'import_type': import_type,
+                'note': note,
+                'participants': selected_employees,
+                'updated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            # Save to file
+            os.makedirs(os.path.dirname(participation_file), exist_ok=True)
+            with open(participation_file, 'w', encoding='utf-8') as f:
+                json.dump(participation_data, f, ensure_ascii=False, indent=2)
+
+            print(f"Saved participation for {len(selected_employees)} employees")
+
+        except Exception as e:
+            print(f"Error saving employee participation: {str(e)}")
+            QMessageBox.warning(self, "Cảnh báo", f"Không thể lưu thông tin nhân viên tham gia: {str(e)}")
+
+    def show_bonus_settings_dialog(self):
+        """Show dialog to configure bonus rates"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Cài đặt mức thưởng")
+        dialog.setModal(True)
+        dialog.resize(600, 500)
+
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("Cài đặt mức thưởng cho từng loại nguyên liệu")
+        header.setFont(QFont("Arial", 14, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("color: #2E7D32; margin-bottom: 15px;")
+        layout.addWidget(header)
+
+        # Default rates section
+        default_group = QGroupBox("Mức thưởng mặc định (VNĐ/tháng)")
+        default_layout = QGridLayout()
+
+        # Load current rates
+        bonus_config = self.load_bonus_rates()
+        default_rates = bonus_config.get("default_rates", {})
+
+        # Create input fields for default rates
+        self.bonus_inputs = {}
+
+        material_types = ["Bắp", "Nành", "Cám gạo", "Khác"]
+        for i, material_type in enumerate(material_types):
+            row = i // 2
+            col = (i % 2) * 2
+
+            default_layout.addWidget(QLabel(f"{material_type}:"), row, col)
+
+            input_field = QSpinBox()
+            input_field.setFont(DEFAULT_FONT)
+            input_field.setRange(0, 10000000)
+            input_field.setSingleStep(10000)
+            input_field.setValue(default_rates.get(material_type, 350000))
+            input_field.setSuffix(" VNĐ")
+
+            self.bonus_inputs[material_type] = input_field
+            default_layout.addWidget(input_field, row, col + 1)
+
+        default_group.setLayout(default_layout)
+        layout.addWidget(default_group)
+
+        # Specific rates section
+        specific_group = QGroupBox("Mức thưởng riêng cho nguyên liệu cụ thể")
+        specific_layout = QVBoxLayout()
+
+        # Table for specific rates
+        self.specific_rates_table = QTableWidget()
+        self.specific_rates_table.setColumnCount(3)
+        self.specific_rates_table.setHorizontalHeaderLabels(["Nguyên liệu", "Mức thưởng (VNĐ)", "Thao tác"])
+
+        # Set column widths
+        header = self.specific_rates_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+        # Load specific rates
+        specific_rates = bonus_config.get("specific_rates", {})
+        self.populate_specific_rates_table(specific_rates)
+
+        specific_layout.addWidget(self.specific_rates_table)
+
+        # Add specific rate button
+        add_specific_btn = QPushButton("Thêm mức thưởng riêng")
+        add_specific_btn.clicked.connect(self.add_specific_rate)
+        specific_layout.addWidget(add_specific_btn)
+
+        specific_group.setLayout(specific_layout)
+        layout.addWidget(specific_group)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(lambda: self.save_bonus_settings(dialog))
+
+        dialog.exec_()
+
+    def populate_specific_rates_table(self, specific_rates):
+        """Populate the specific rates table"""
+        self.specific_rates_table.setRowCount(len(specific_rates))
+
+        for row, (ingredient, rate) in enumerate(specific_rates.items()):
+            # Ingredient name
+            ingredient_item = QTableWidgetItem(ingredient)
+            self.specific_rates_table.setItem(row, 0, ingredient_item)
+
+            # Rate
+            rate_item = QTableWidgetItem(f"{rate:,}")
+            self.specific_rates_table.setItem(row, 1, rate_item)
+
+            # Delete button
+            delete_btn = QPushButton("Xóa")
+            delete_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f44336;
+                    color: white;
+                    border: none;
+                    padding: 4px 8px;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #d32f2f;
+                }
+            """)
+            delete_btn.clicked.connect(lambda checked, r=row: self.delete_specific_rate(r))
+            self.specific_rates_table.setCellWidget(row, 2, delete_btn)
+
+    def add_specific_rate(self):
+        """Add a new specific rate"""
+        ingredient, ok = QInputDialog.getText(self, "Thêm mức thưởng riêng", "Tên nguyên liệu:")
+        if ok and ingredient:
+            rate, ok = QInputDialog.getInt(self, "Thêm mức thưởng riêng", "Mức thưởng (VNĐ):", 350000, 0, 10000000)
+            if ok:
+                row = self.specific_rates_table.rowCount()
+                self.specific_rates_table.insertRow(row)
+
+                # Ingredient name
+                ingredient_item = QTableWidgetItem(ingredient)
+                self.specific_rates_table.setItem(row, 0, ingredient_item)
+
+                # Rate
+                rate_item = QTableWidgetItem(f"{rate:,}")
+                self.specific_rates_table.setItem(row, 1, rate_item)
+
+                # Delete button
+                delete_btn = QPushButton("Xóa")
+                delete_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #f44336;
+                        color: white;
+                        border: none;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                    }
+                    QPushButton:hover {
+                        background-color: #d32f2f;
+                    }
+                """)
+                delete_btn.clicked.connect(lambda checked, r=row: self.delete_specific_rate(r))
+                self.specific_rates_table.setCellWidget(row, 2, delete_btn)
+
+    def delete_specific_rate(self, row):
+        """Delete a specific rate"""
+        self.specific_rates_table.removeRow(row)
+        # Reconnect delete buttons for remaining rows
+        for r in range(self.specific_rates_table.rowCount()):
+            delete_btn = self.specific_rates_table.cellWidget(r, 2)
+            if delete_btn:
+                delete_btn.clicked.disconnect()
+                delete_btn.clicked.connect(lambda checked, row_num=r: self.delete_specific_rate(row_num))
+
+    def save_bonus_settings(self, dialog):
+        """Save bonus settings"""
+        try:
+            # Get default rates
+            default_rates = {}
+            for material_type, input_field in self.bonus_inputs.items():
+                default_rates[material_type] = input_field.value()
+
+            # Get specific rates
+            specific_rates = {}
+            for row in range(self.specific_rates_table.rowCount()):
+                ingredient_item = self.specific_rates_table.item(row, 0)
+                rate_item = self.specific_rates_table.item(row, 1)
+
+                if ingredient_item and rate_item:
+                    ingredient = ingredient_item.text()
+                    rate_text = rate_item.text().replace(',', '')
+                    try:
+                        rate = int(rate_text)
+                        specific_rates[ingredient] = rate
+                    except ValueError:
+                        continue
+
+            # Create config
+            bonus_config = {
+                "default_rates": default_rates,
+                "specific_rates": specific_rates,
+                "updated_by": "User"
+            }
+
+            # Save config
+            if self.save_bonus_rates(bonus_config):
+                # Update display labels
+                self.update_bonus_rate_labels()
+                dialog.accept()
+                QMessageBox.information(self, "Thành công", "Đã lưu cài đặt mức thưởng!")
+            else:
+                QMessageBox.critical(self, "Lỗi", "Không thể lưu cài đặt!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể lưu cài đặt: {str(e)}")
+
+    def update_bonus_rate_labels(self):
+        """Update bonus rate labels in the main interface"""
+        try:
+            bonus_config = self.load_bonus_rates()
+            default_rates = bonus_config.get("default_rates", {})
+
+            self.bap_rate_label.setText(f"{default_rates.get('Bắp', 400000):,} VNĐ")
+            self.nanh_rate_label.setText(f"{default_rates.get('Nành', 400000):,} VNĐ")
+            self.cam_gao_rate_label.setText(f"{default_rates.get('Cám gạo', 270000):,} VNĐ")
+            self.khac_rate_label.setText(f"{default_rates.get('Khác', 350000):,} VNĐ")
+        except Exception as e:
+            print(f"Error updating bonus rate labels: {str(e)}")
+
+    def load_salary_rates(self):
+        """Load salary rates from config file"""
+        try:
+            salary_rates_file = "src/data/config/salary_rates.json"
+            if os.path.exists(salary_rates_file):
+                with open(salary_rates_file, 'r', encoding='utf-8') as f:
+                    salary_config = json.load(f)
+                return salary_config
+            else:
+                # Create default config if not exists
+                default_config = {
+                    "position_salaries": {
+                        "Tổ trưởng": 8000000,
+                        "Phó tổ trưởng": 7000000,
+                        "Kỹ thuật viên": 6500000,
+                        "Thủ kho": 6000000,
+                        "Công nhân": 5500000
+                    },
+                    "working_days_per_month": 30,
+                    "allowances": {},
+                    "last_updated": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    "updated_by": "System"
+                }
+                self.save_salary_rates(default_config)
+                return default_config
+        except Exception as e:
+            print(f"Error loading salary rates: {str(e)}")
+            return {
+                "position_salaries": {
+                    "Tổ trưởng": 8000000,
+                    "Phó tổ trưởng": 7000000,
+                    "Kỹ thuật viên": 6500000,
+                    "Thủ kho": 6000000,
+                    "Công nhân": 5500000
+                },
+                "working_days_per_month": 30
+            }
+
+    def save_salary_rates(self, salary_config):
+        """Save salary rates to config file"""
+        try:
+            salary_rates_file = "src/data/config/salary_rates.json"
+            os.makedirs(os.path.dirname(salary_rates_file), exist_ok=True)
+
+            salary_config["last_updated"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            with open(salary_rates_file, 'w', encoding='utf-8') as f:
+                json.dump(salary_config, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error saving salary rates: {str(e)}")
+            return False
+
+    def show_salary_settings_dialog(self):
+        """Show dialog to configure salary rates"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Cài đặt lương cơ bản")
+        dialog.setModal(True)
+        dialog.resize(500, 400)
+
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("Cài đặt lương cơ bản theo vị trí")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("color: #2E7D32; margin-bottom: 15px;")
+        layout.addWidget(header)
+
+        # Salary rates section
+        rates_group = QGroupBox("Lương cơ bản (VNĐ/tháng)")
+        rates_layout = QGridLayout()
+
+        # Load current rates
+        salary_config = self.load_salary_rates()
+        position_salaries = salary_config.get("position_salaries", {})
+
+        # Create input fields for salary rates
+        self.salary_inputs = {}
+
+        positions = ["Tổ trưởng", "Phó tổ trưởng", "Kỹ thuật viên", "Thủ kho", "Công nhân"]
+        for i, position in enumerate(positions):
+            rates_layout.addWidget(QLabel(f"{position}:"), i, 0)
+
+            input_field = QSpinBox()
+            input_field.setFont(QFont("Arial", 14))
+            input_field.setRange(1000000, 50000000)
+            input_field.setSingleStep(100000)
+            input_field.setValue(position_salaries.get(position, 5500000))
+            input_field.setSuffix(" VNĐ")
+            input_field.setMinimumHeight(35)
+
+            self.salary_inputs[position] = input_field
+            rates_layout.addWidget(input_field, i, 1)
+
+        rates_group.setLayout(rates_layout)
+        layout.addWidget(rates_group)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        save_btn = QPushButton("Lưu")
+        save_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+
+        button_layout.addStretch()
+        button_layout.addWidget(save_btn)
+        button_layout.addWidget(cancel_btn)
+
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+
+        # Connect buttons
+        cancel_btn.clicked.connect(dialog.reject)
+        save_btn.clicked.connect(lambda: self.save_salary_settings(dialog))
+
+        dialog.exec_()
+
+    def save_salary_settings(self, dialog):
+        """Save salary settings"""
+        try:
+            # Get salary rates
+            position_salaries = {}
+            for position, input_field in self.salary_inputs.items():
+                position_salaries[position] = input_field.value()
+
+            # Create config
+            salary_config = self.load_salary_rates()
+            salary_config["position_salaries"] = position_salaries
+            salary_config["updated_by"] = "User"
+
+            # Save config
+            if self.save_salary_rates(salary_config):
+                # Update display labels
+                self.update_salary_rate_labels()
+                dialog.accept()
+                QMessageBox.information(self, "Thành công", "Đã lưu cài đặt lương cơ bản!")
+            else:
+                QMessageBox.critical(self, "Lỗi", "Không thể lưu cài đặt!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể lưu cài đặt: {str(e)}")
+
+    def update_salary_rate_labels(self):
+        """Update salary rate labels in the main interface"""
+        try:
+            salary_config = self.load_salary_rates()
+            position_salaries = salary_config.get("position_salaries", {})
+
+            for position, label in self.salary_rate_labels.items():
+                salary = position_salaries.get(position, 5500000)
+                label.setText(f"{salary:,} VNĐ")
+        except Exception as e:
+            print(f"Error updating salary rate labels: {str(e)}")
+
+    def calculate_monthly_salary(self):
+        """Calculate monthly salary for all employees"""
+        try:
+            # Get selected month and year
+            month = self.salary_month_combo.currentData()
+            year = self.salary_year_combo.currentData()
+
+            # Load employees
+            employees = self.load_employees()
+            if not employees:
+                QMessageBox.warning(self, "Cảnh báo", "Không có dữ liệu nhân viên!")
+                return
+
+            # Load salary rates
+            salary_config = self.load_salary_rates()
+            position_salaries = salary_config.get("position_salaries", {})
+            working_days_per_month = salary_config.get("working_days_per_month", 30)
+
+            # Calculate days in month
+            days_in_month = QDate(year, month, 1).daysInMonth()
+
+            # Load attendance data for the month
+            attendance_data = self.load_attendance_data_for_salary(month, year)
+
+            # Load bonus data for the month
+            bonus_data = self.get_bonus_data_for_month(month, year)
+
+            # Calculate salary for each employee
+            salary_results = []
+
+            for employee in employees:
+                employee_id = str(employee.get('id', ''))
+                employee_name = employee.get('name', '')
+                position = employee.get('position', 'Công nhân')
+
+                # Get base salary for position
+                base_salary = position_salaries.get(position, 5500000)
+
+                # Calculate working days
+                absent_days = self.count_absent_days(employee_id, month, year, attendance_data)
+                working_days = days_in_month - absent_days
+
+                # Calculate base salary for working days
+                daily_salary = base_salary / working_days_per_month
+                working_salary = daily_salary * working_days
+
+                # Get bonus for this employee
+                employee_bonus = bonus_data.get(employee_id, 0)
+
+                # Calculate total salary
+                total_salary = working_salary + employee_bonus
+
+                salary_results.append({
+                    'employee_name': employee_name,
+                    'position': position,
+                    'base_salary': base_salary,
+                    'working_days': working_days,
+                    'absent_days': absent_days,
+                    'bonus': employee_bonus,
+                    'total_salary': total_salary
+                })
+
+            # Display results in table
+            self.display_salary_results(salary_results)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể tính lương: {str(e)}")
+            print(f"Error calculating salary: {str(e)}")
+
+    def count_absent_days(self, employee_id, month, year, attendance_data):
+        """Count absent days for an employee in a specific month"""
+        try:
+            absent_days = 0
+
+            # Check attendance data for the month
+            for date_str, absent_employees in attendance_data.items():
+                try:
+                    # Parse date
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    if date_obj.month == month and date_obj.year == year:
+                        if employee_id in absent_employees:
+                            absent_days += 1
+                except:
+                    continue
+
+            return absent_days
+        except Exception as e:
+            print(f"Error counting absent days: {str(e)}")
+            return 0
+
+    def load_attendance_data_for_salary(self, month, year):
+        """Load attendance data for salary calculation"""
+        try:
+            attendance_file = "src/data/attendance.json"
+            if os.path.exists(attendance_file):
+                with open(attendance_file, 'r', encoding='utf-8') as f:
+                    attendance_data = json.load(f)
+                return attendance_data
+            return {}
+        except Exception as e:
+            print(f"Error loading attendance data: {str(e)}")
+            return {}
+
+    def get_bonus_data_for_month(self, month, year):
+        """Get bonus data for employees for a specific month"""
+        try:
+            # This would integrate with the bonus calculation system
+            # For now, return empty dict - will be enhanced later
+            bonus_data = {}
+
+            # Try to get bonus data from recent calculations
+            # This is a placeholder - actual implementation would depend on
+            # how bonus data is stored and retrieved
+
+            return bonus_data
+        except Exception as e:
+            print(f"Error getting bonus data: {str(e)}")
+            return {}
+
+    def display_salary_results(self, salary_results):
+        """Display salary calculation results in the table"""
+        try:
+            self.salary_results_table.setRowCount(len(salary_results))
+
+            for row, result in enumerate(salary_results):
+                # Employee name
+                name_item = QTableWidgetItem(result['employee_name'])
+                name_item.setFont(QFont("Arial", 15, QFont.Medium))
+                self.salary_results_table.setItem(row, 0, name_item)
+
+                # Position
+                position_item = QTableWidgetItem(result['position'])
+                position_item.setFont(QFont("Arial", 15, QFont.Medium))
+                position_item.setTextAlignment(Qt.AlignCenter)
+                self.salary_results_table.setItem(row, 1, position_item)
+
+                # Base salary
+                base_salary_item = QTableWidgetItem(f"{result['base_salary']:,}")
+                base_salary_item.setFont(QFont("Arial", 15, QFont.Bold))
+                base_salary_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                base_salary_item.setForeground(QColor("#1976d2"))
+                self.salary_results_table.setItem(row, 2, base_salary_item)
+
+                # Working days
+                working_days_item = QTableWidgetItem(str(result['working_days']))
+                working_days_item.setFont(QFont("Arial", 15, QFont.Medium))
+                working_days_item.setTextAlignment(Qt.AlignCenter)
+                self.salary_results_table.setItem(row, 3, working_days_item)
+
+                # Absent days
+                absent_days_item = QTableWidgetItem(str(result['absent_days']))
+                absent_days_item.setFont(QFont("Arial", 15, QFont.Medium))
+                absent_days_item.setTextAlignment(Qt.AlignCenter)
+                if result['absent_days'] > 0:
+                    absent_days_item.setForeground(QColor("#f44336"))
+                self.salary_results_table.setItem(row, 4, absent_days_item)
+
+                # Bonus
+                bonus_item = QTableWidgetItem(f"{result['bonus']:,}")
+                bonus_item.setFont(QFont("Arial", 15, QFont.Bold))
+                bonus_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                bonus_item.setForeground(QColor("#4CAF50"))
+                self.salary_results_table.setItem(row, 5, bonus_item)
+
+                # Total salary
+                total_salary_item = QTableWidgetItem(f"{result['total_salary']:,.0f}")
+                total_salary_item.setFont(QFont("Arial", 15, QFont.Bold))
+                total_salary_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                total_salary_item.setForeground(QColor("#2E7D32"))
+                total_salary_item.setBackground(QColor("#e8f5e8"))
+                self.salary_results_table.setItem(row, 6, total_salary_item)
+
+            # Auto-resize columns to content
+            self.salary_results_table.resizeColumnsToContents()
+
+        except Exception as e:
+            print(f"Error displaying salary results: {str(e)}")
+
+    def load_leave_types(self):
+        """Load leave types configuration"""
+        try:
+            leave_types_file = "src/data/config/leave_types.json"
+            if os.path.exists(leave_types_file):
+                with open(leave_types_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                return config
+            return {}
+        except Exception as e:
+            print(f"Error loading leave types: {str(e)}")
+            return {}
+
+    def show_attendance_statistics(self):
+        """Show attendance statistics dialog"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Thống kê chấm công")
+        dialog.setModal(True)
+        dialog.resize(800, 600)
+
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("📊 Thống kê chấm công nhân viên")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("color: #2E7D32; margin-bottom: 15px;")
+        layout.addWidget(header)
+
+        # Placeholder content
+        content = QLabel("Chức năng thống kê đang được phát triển...")
+        content.setFont(QFont("Arial", 14))
+        content.setAlignment(Qt.AlignCenter)
+        content.setStyleSheet("color: #666; padding: 50px;")
+        layout.addWidget(content)
+
+        # Close button
+        close_btn = QPushButton("Đóng")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9E9E9E;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #757575;
+            }
+        """)
+        close_btn.clicked.connect(dialog.accept)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_btn)
+        layout.addLayout(button_layout)
+
+        dialog.setLayout(layout)
+        dialog.exec_()
+
+    def submit_leave_request(self):
+        """Submit leave request"""
+        try:
+            # Get form data
+            employee_text = self.leave_employee_combo.currentText()
+            if not employee_text:
+                QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn nhân viên!")
+                return
+
+            leave_type = self.leave_type_combo.currentData()
+            if not leave_type:
+                QMessageBox.warning(self, "Cảnh báo", "Vui lòng chọn loại nghỉ!")
+                return
+
+            leave_date = self.leave_date_edit.date().toString("yyyy-MM-dd")
+            reason = self.leave_reason_edit.toPlainText().strip()
+
+            if not reason:
+                QMessageBox.warning(self, "Cảnh báo", "Vui lòng nhập lý do nghỉ!")
+                return
+
+            # Extract employee ID from combo text
+            employee_id = employee_text.split(" - ")[0] if " - " in employee_text else "1"
+
+            # Create leave request data
+            leave_data = {
+                "employee_id": employee_id,
+                "leave_type": leave_type,
+                "leave_date": leave_date,
+                "reason": reason,
+                "half_day": self.half_day_checkbox.isChecked(),
+                "status": "pending",
+                "submitted_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            # Save leave request (placeholder)
+            QMessageBox.information(self, "Thành công", "Đã gửi yêu cầu nghỉ phép!")
+
+            # Clear form
+            self.leave_reason_edit.clear()
+            self.half_day_checkbox.setChecked(False)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể gửi yêu cầu: {str(e)}")
+
+    def populate_leave_employee_combo(self):
+        """Populate employee combo for leave requests"""
+        try:
+            self.leave_employee_combo.clear()
+            employees = self.load_employees()
+
+            if employees:  # Check if employees is not None
+                for employee in employees:
+                    employee_id = employee.get('id', '')
+                    employee_name = employee.get('name', '')
+                    display_text = f"{employee_id} - {employee_name}"
+                    self.leave_employee_combo.addItem(display_text, employee_id)
+            else:
+                # Add a default item if no employees found
+                self.leave_employee_combo.addItem("Không có nhân viên", "")
+
+        except Exception as e:
+            print(f"Error populating employee combo: {str(e)}")
+
+    def populate_leave_type_combo(self):
+        """Populate leave type combo"""
+        try:
+            self.leave_type_combo.clear()
+            leave_config = self.load_leave_types()
+            leave_types = leave_config.get("leave_types", {})
+
+            for leave_key, leave_info in leave_types.items():
+                icon = leave_info.get("icon", "")
+                name = leave_info.get("name", "")
+                display_text = f"{icon} {name}"
+                self.leave_type_combo.addItem(display_text, leave_key)
+
+        except Exception as e:
+            print(f"Error populating leave type combo: {str(e)}")
+
+
 def main():
     import sys
     from PyQt5.QtWidgets import QApplication

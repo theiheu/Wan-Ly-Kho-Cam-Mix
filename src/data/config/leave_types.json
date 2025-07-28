@@ -1,0 +1,89 @@
+{
+  "leave_types": {
+    "sick_leave": {
+      "name": "Nghỉ ốm",
+      "code": "SICK",
+      "paid": true,
+      "max_days_per_month": 5,
+      "max_days_per_year": 30,
+      "requires_approval": false,
+      "color": "#f44336",
+      "icon": "🤒"
+    },
+    "personal_leave": {
+      "name": "Nghỉ phép",
+      "code": "PERSONAL",
+      "paid": true,
+      "max_days_per_month": 3,
+      "max_days_per_year": 12,
+      "requires_approval": true,
+      "color": "#2196F3",
+      "icon": "🏖️"
+    },
+    "family_leave": {
+      "name": "Nghỉ việc riêng",
+      "code": "FAMILY",
+      "paid": false,
+      "max_days_per_month": 2,
+      "max_days_per_year": 10,
+      "requires_approval": true,
+      "color": "#FF9800",
+      "icon": "👨‍👩‍👧‍👦"
+    },
+    "emergency_leave": {
+      "name": "Nghỉ khẩn cấp",
+      "code": "EMERGENCY",
+      "paid": true,
+      "max_days_per_month": 2,
+      "max_days_per_year": 6,
+      "requires_approval": false,
+      "color": "#9C27B0",
+      "icon": "🚨"
+    },
+    "maternity_leave": {
+      "name": "Nghỉ thai sản",
+      "code": "MATERNITY",
+      "paid": true,
+      "max_days_per_month": 30,
+      "max_days_per_year": 180,
+      "requires_approval": true,
+      "color": "#E91E63",
+      "icon": "🤱"
+    },
+    "unpaid_leave": {
+      "name": "Nghỉ không lương",
+      "code": "UNPAID",
+      "paid": false,
+      "max_days_per_month": 5,
+      "max_days_per_year": 30,
+      "requires_approval": true,
+      "color": "#607D8B",
+      "icon": "⏸️"
+    }
+  },
+  "approval_statuses": {
+    "pending": {
+      "name": "Chờ duyệt",
+      "color": "#FF9800",
+      "icon": "⏳"
+    },
+    "approved": {
+      "name": "Đã duyệt",
+      "color": "#4CAF50",
+      "icon": "✅"
+    },
+    "rejected": {
+      "name": "Từ chối",
+      "color": "#f44336",
+      "icon": "❌"
+    }
+  },
+  "working_days_config": {
+    "standard_working_days_per_month": 26,
+    "weekend_work": false,
+    "holiday_work": false,
+    "overtime_calculation": true
+  },
+  "last_updated": "2025-07-28 15:00:00",
+  "updated_by": "System"
+}
