@@ -654,47 +654,96 @@ class ChickenFarmApp(QMainWindow):
         history_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
         history_layout = QVBoxLayout()
 
-        # Thêm Date Range Picker cho lọc lịch sử cám
-        date_filter_group = QGroupBox("Lọc theo khoảng thời gian")
-        date_filter_group.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        # Tạo layout cho Date Range Picker (không dùng GroupBox)
+        date_filter_container = QWidget()
+        date_filter_main_layout = QHBoxLayout()
+        date_filter_main_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Tạo widget con chứa Date Range Picker (chiếm 50% chiều rộng)
+        date_filter_widget = QWidget()
+        date_filter_widget.setMaximumWidth(600)  # Giới hạn chiều rộng
+        date_filter_widget.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 5px;
+            }
+        """)
         date_filter_layout = QGridLayout()
+        date_filter_layout.setSpacing(10)
+        date_filter_layout.setContentsMargins(15, 10, 15, 10)
 
         # Label và DateEdit cho "Từ ngày"
         from_date_label = QLabel("Từ ngày:")
-        from_date_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        from_date_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        from_date_label.setStyleSheet("color: #495057;")
+
         self.history_from_date = QDateEdit()
         self.history_from_date.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
         self.history_from_date.setCalendarPopup(True)
         self.history_from_date.setDisplayFormat("dd/MM/yyyy")
+        self.history_from_date.setMinimumWidth(120)
+        self.history_from_date.setStyleSheet("""
+            QDateEdit {
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 5px 8px;
+                background-color: white;
+            }
+            QDateEdit:focus {
+                border-color: #4CAF50;
+                outline: none;
+            }
+        """)
         # Mặc định: 7 ngày trước
         self.history_from_date.setDate(QDate.currentDate().addDays(-7))
 
         # Label và DateEdit cho "Đến ngày"
         to_date_label = QLabel("Đến ngày:")
-        to_date_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
+        to_date_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE, QFont.Bold))
+        to_date_label.setStyleSheet("color: #495057;")
+
         self.history_to_date = QDateEdit()
         self.history_to_date.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
         self.history_to_date.setCalendarPopup(True)
         self.history_to_date.setDisplayFormat("dd/MM/yyyy")
+        self.history_to_date.setMinimumWidth(120)
+        self.history_to_date.setStyleSheet("""
+            QDateEdit {
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                padding: 5px 8px;
+                background-color: white;
+            }
+            QDateEdit:focus {
+                border-color: #4CAF50;
+                outline: none;
+            }
+        """)
         # Mặc định: hôm nay
         self.history_to_date.setDate(QDate.currentDate())
-
-
 
         # Label hiển thị số lượng kết quả
         self.history_result_label = QLabel("Tìm thấy 0 báo cáo")
         self.history_result_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
-        self.history_result_label.setStyleSheet("color: #666666;")
+        self.history_result_label.setStyleSheet("color: #666666; font-style: italic;")
 
-        # Sắp xếp layout
+        # Sắp xếp Date Range Picker trong grid layout
         date_filter_layout.addWidget(from_date_label, 0, 0)
         date_filter_layout.addWidget(self.history_from_date, 0, 1)
         date_filter_layout.addWidget(to_date_label, 0, 2)
         date_filter_layout.addWidget(self.history_to_date, 0, 3)
         date_filter_layout.addWidget(self.history_result_label, 1, 0, 1, 4)
 
-        date_filter_group.setLayout(date_filter_layout)
-        history_layout.addWidget(date_filter_group)
+        date_filter_widget.setLayout(date_filter_layout)
+
+        # Thêm widget vào layout chính với căn trái
+        date_filter_main_layout.addWidget(date_filter_widget)
+        date_filter_main_layout.addStretch()  # Đẩy về bên trái
+
+        date_filter_container.setLayout(date_filter_main_layout)
+        history_layout.addWidget(date_filter_container)
 
         # Kết nối sự kiện thay đổi ngày để tự động lọc
         self.history_from_date.dateChanged.connect(self.filter_feed_usage_history)
