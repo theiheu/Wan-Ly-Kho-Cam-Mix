@@ -724,17 +724,13 @@ class ChickenFarmApp(QMainWindow):
         # Mặc định: hôm nay
         self.history_to_date.setDate(QDate.currentDate())
 
-        # Label hiển thị số lượng kết quả
-        self.history_result_label = QLabel("Tìm thấy 0 báo cáo")
-        self.history_result_label.setFont(QFont("Arial", DEFAULT_FONT_SIZE))
-        self.history_result_label.setStyleSheet("color: #666666; font-style: italic;")
+
 
         # Sắp xếp Date Range Picker trong grid layout
         date_filter_layout.addWidget(from_date_label, 0, 0)
         date_filter_layout.addWidget(self.history_from_date, 0, 1)
         date_filter_layout.addWidget(to_date_label, 0, 2)
         date_filter_layout.addWidget(self.history_to_date, 0, 3)
-        date_filter_layout.addWidget(self.history_result_label, 1, 0, 1, 4)
 
         date_filter_widget.setLayout(date_filter_layout)
 
@@ -6504,17 +6500,7 @@ class ChickenFarmApp(QMainWindow):
             # Lưu đường dẫn file báo cáo vào data của item
             date_item.setData(Qt.UserRole, data["report_file"])
 
-        # Cập nhật label hiển thị số lượng kết quả
-        if hasattr(self, 'history_result_label'):
-            result_count = len(history_data)
-            if filter_from_date and filter_to_date:
-                from_str = filter_from_date.toString("dd/MM/yyyy")
-                to_str = filter_to_date.toString("dd/MM/yyyy")
-                self.history_result_label.setText(f"Tìm thấy {result_count} báo cáo từ {from_str} đến {to_str}")
-                print(f"📊 Hiển thị {result_count} báo cáo từ {from_str} đến {to_str}")
-            else:
-                self.history_result_label.setText(f"Tìm thấy {result_count} báo cáo")
-                print(f"📊 Hiển thị {result_count} báo cáo")
+
 
         # Hiển thị thông báo
         if show_message:
