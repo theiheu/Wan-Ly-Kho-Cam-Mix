@@ -147,8 +147,8 @@ class ChickenFarmApp(QMainWindow):
 
         # Apply optimized scaling for perfect display compatibility
         if self.screen_width < 1366:
-            # For small screens, maintain readability and fit
-            self.scale_factor = max(0.70, min(0.90, self.scale_factor))
+            # For small screens, extremely compact scaling with 0.10 target
+            self.scale_factor = max(0.08, min(0.12, self.scale_factor))
         elif self.screen_width == 1366:
             # Ultra-compact for 1366x768 - 0.30 scale factor for maximum density
             self.scale_factor = max(0.25, min(0.35, self.scale_factor))
@@ -166,8 +166,9 @@ class ChickenFarmApp(QMainWindow):
 
         # Calculate responsive dimensions for perfect display compatibility
         if self.is_small_screen:
-            self.responsive_dialog_width_ratio = 0.90
-            self.responsive_dialog_height_ratio = 0.85
+            # Extremely compact ratios for small screens with 0.10 scale factor
+            self.responsive_dialog_width_ratio = 0.95
+            self.responsive_dialog_height_ratio = 0.92
         elif self.is_medium_screen:
             if self.screen_width == 1366:
                 # Optimized ratios for 1366x768 - perfect fit without cutoff
@@ -180,18 +181,25 @@ class ChickenFarmApp(QMainWindow):
             self.responsive_dialog_width_ratio = 0.80
             self.responsive_dialog_height_ratio = 0.80
 
-        # Enhanced debug information for ultra-compact 0.30 scale factor
+        # Enhanced debug information for optimized scale factors
         screen_category = "Small" if self.is_small_screen else "Medium" if self.is_medium_screen else "Large"
-        ultra_compact = " (ULTRA-COMPACT-0.30)" if self.screen_width == 1366 else ""
-        print(f"Screen: {self.screen_width}x{self.screen_height} ({screen_category}{ultra_compact})")
+
+        if self.screen_width < 1366:
+            compact_info = " (EXTREME-COMPACT-0.10)"
+        elif self.screen_width == 1366:
+            compact_info = " (ULTRA-COMPACT-0.30)"
+        else:
+            compact_info = ""
+
+        print(f"Screen: {self.screen_width}x{self.screen_height} ({screen_category}{compact_info})")
         print(f"Scale Factor: {self.scale_factor:.3f}")
         print(f"Dialog Ratios: {self.responsive_dialog_width_ratio:.2f}w x {self.responsive_dialog_height_ratio:.2f}h")
         dialog_w, dialog_h = self.get_responsive_dialog_size()
         print(f"Dialog Size: {dialog_w}x{dialog_h}px")
-        print(f"Ultra-Compact Font: 12px → {self.get_responsive_font_size(12)}px")
-        print(f"Ultra-Compact Row: 30px → {self.get_responsive_row_height(30)}px")
-        print(f"Ultra-Compact Table: 500px → {self.get_responsive_table_height(500)}px")
-        print("Ultra-Compact Design: 0.30 scale factor for maximum information density")
+        print(f"Extreme-Compact Font: 12px → {self.get_responsive_font_size(12)}px")
+        print(f"Extreme-Compact Row: 30px → {self.get_responsive_row_height(30)}px")
+        print(f"Extreme-Compact Table: 500px → {self.get_responsive_table_height(500)}px")
+        print("Extreme-Compact Design: 0.10 scale factor for maximum information density")
 
     def setup_responsive_main_window(self):
         """Setup main window with responsive sizing"""
@@ -220,7 +228,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Apply balanced screen-specific font size constraints
         if self.is_small_screen:
-            return max(9, min(11, scaled_size))   # Readable fonts for small screens
+            return max(7, min(9, scaled_size))   # Extremely compact fonts for small screens with 0.10 scale
         elif self.is_medium_screen:
             # Ultra-compact handling for 1366x768 with 0.30 scale factor
             if self.screen_width == 1366:
@@ -240,7 +248,13 @@ class ChickenFarmApp(QMainWindow):
         height = int(self.screen_height * self.responsive_dialog_height_ratio)
 
         # Apply screen-specific constraints for perfect fit
-        if self.screen_width == 1366:
+        if self.screen_width < 1366:
+            # Special constraints for small screens with 0.10 scale factor
+            min_width = 400
+            max_width = 1100  # Extremely compact fit for small screens
+            min_height = 300
+            max_height = 550   # Extremely compact height for small screens
+        elif self.screen_width == 1366:
             # Special constraints for 1366x768 - ensure perfect fit
             min_width = 600
             max_width = 1300  # Leave margin for window decorations
@@ -262,8 +276,8 @@ class ChickenFarmApp(QMainWindow):
         """Get responsive table height optimized for perfect display compatibility"""
         # Balanced heights for optimal fit and usability
         if self.is_small_screen:
-            # Balanced tables for small screens
-            return max(250, int(base_height * 0.65))
+            # Extremely compact tables for small screens with 0.10 scale factor
+            return max(180, int(base_height * 0.45))
         elif self.is_medium_screen:
             # Ultra-compact handling for 1366x768 with 0.30 scale factor
             if self.screen_width == 1366:
@@ -283,7 +297,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Apply balanced screen-specific constraints
         if self.is_small_screen:
-            return max(30, min(38, scaled_height))  # Usable rows for small screens
+            return max(15, min(22, scaled_height))  # Extremely compact rows for small screens with 0.10 scale
         elif self.is_medium_screen:
             # Ultra-compact handling for 1366x768 with 0.30 scale factor
             if self.screen_width == 1366:
@@ -5128,7 +5142,7 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula = preset_formula
             self.update_mix_formula_table()
 
-    def fill_table_from_report(self, date_text):
+    def fill_table_from_report(self, date_text, update_default_formula=True):
         """Điền bảng cám từ báo cáo theo ngày đã chọn"""
         try:
             # Tải dữ liệu báo cáo
@@ -5142,12 +5156,16 @@ class ChickenFarmApp(QMainWindow):
             feed_usage = report_data.get("feed_usage", {})
             formula_usage = report_data.get("formula_usage", {})
 
-            # Nếu báo cáo có chứa thông tin về công thức mặc định, cập nhật combo box
-            if "default_formula" in report_data and report_data["default_formula"]:
+            # Chỉ cập nhật default formula khi user chọn báo cáo, không phải khi auto-load
+            if update_default_formula and "default_formula" in report_data and report_data["default_formula"]:
                 default_formula = report_data["default_formula"]
+                print(f"[DEBUG] Updating default formula from report: '{default_formula}' (update_default_formula={update_default_formula})")
                 # Cập nhật UI và lưu vào cấu hình
                 self.default_formula_combo.setCurrentText(default_formula)
                 self.formula_manager.save_default_feed_formula(default_formula)
+                print(f"[SUCCESS] Default formula updated and saved: '{default_formula}'")
+            elif "default_formula" in report_data and report_data["default_formula"]:
+                print(f"[DEBUG] Skipping default formula update from report: '{report_data['default_formula']}' (update_default_formula={update_default_formula})")
 
             # Xóa dữ liệu hiện tại trong bảng
             for col in range(self.feed_table.columnCount()):
@@ -5340,9 +5358,9 @@ class ChickenFarmApp(QMainWindow):
                     self.load_history_data(show_warnings=False)
                     print(f"Đã tìm thấy và tải báo cáo cho ngày hiện tại: {today}")
 
-                    # Tự động điền vào bảng cám
-                    self.fill_table_from_report(today)
-                    print(f"Đã điền bảng cám với dữ liệu ngày {today}")
+                    # Tự động điền vào bảng cám (không cập nhật default formula)
+                    self.fill_table_from_report(today, update_default_formula=False)
+                    print(f"Đã điền bảng cám với dữ liệu ngày {today} (giữ nguyên default formula)")
                 except Exception as e:
                     print(f"Lỗi khi tải dữ liệu báo cáo ngày hiện tại: {str(e)}")
                     import traceback
@@ -6459,16 +6477,20 @@ class ChickenFarmApp(QMainWindow):
     def load_default_formula(self):
         """Tải công thức mặc định khi khởi động app"""
         if self.default_formula_loaded:
+            print("[DEBUG] Default formula already loaded, skipping...")
             return
 
         default_formula = self.formula_manager.get_default_feed_formula()
-        print(f"Tải công thức mặc định: {default_formula}")
+        print(f"[DEBUG] Loading default formula from config: '{default_formula}'")
 
         # Chỉ thiết lập khi có công thức mặc định
         if default_formula:
             self.default_formula_combo.setCurrentText(default_formula)
+            print(f"[SUCCESS] Đã tải và áp dụng công thức mặc định: {default_formula}")
             # KHÔNG áp dụng công thức mặc định cho tất cả các ô khi khởi động
             # Chỉ lưu thông tin công thức mặc định để sử dụng khi người dùng nhập mẻ mới
+        else:
+            print("[INFO] Không có công thức mặc định được lưu, sử dụng mặc định")
 
         self.default_formula_loaded = True
 
