@@ -534,6 +534,7 @@ class ChickenFarmApp(QMainWindow):
         self.setup_team_management_tab()  # Thiết lập tab quản lý tổ cám
 
         # Tải công thức mặc định và tải báo cáo mới nhất khi khởi động
+        QTimer.singleShot(100, self.refresh_formula_combo)
         QTimer.singleShot(200, self.load_default_formula)
         QTimer.singleShot(500, self.load_latest_report)
 
@@ -668,10 +669,7 @@ class ChickenFarmApp(QMainWindow):
         self.default_formula_combo.setMinimumWidth(200)
         self.default_formula_combo.currentIndexChanged.connect(self.apply_default_formula)
 
-        # Thêm các công thức cám vào combo box
-        feed_presets = self.formula_manager.get_feed_presets()
-        for preset in feed_presets:
-            self.default_formula_combo.addItem(preset)
+        # Combo box sẽ được populate bởi refresh_formula_combo() sau khi khởi tạo
 
         default_formula_layout.addWidget(self.default_formula_combo)
         default_formula_layout.addStretch()
@@ -778,6 +776,7 @@ class ChickenFarmApp(QMainWindow):
                         formula_combo.setVisible(False)  # Ẩn combo box
 
                         # Thêm các công thức cám vào combo box
+                        feed_presets = self.formula_manager.get_feed_presets()
                         for preset in feed_presets:
                             formula_combo.addItem(preset)
 
@@ -6483,16 +6482,67 @@ class ChickenFarmApp(QMainWindow):
         default_formula = self.formula_manager.get_default_feed_formula()
         print(f"[DEBUG] Loading default formula from config: '{default_formula}'")
 
+        # Debug: Kiểm tra các item trong combo box
+        combo_items = [self.default_formula_combo.itemText(i) for i in range(self.default_formula_combo.count())]
+        print(f"[DEBUG] Available combo items: {combo_items}")
+
         # Chỉ thiết lập khi có công thức mặc định
         if default_formula:
-            self.default_formula_combo.setCurrentText(default_formula)
-            print(f"[SUCCESS] Đã tải và áp dụng công thức mặc định: {default_formula}")
+            # Kiểm tra xem công thức có tồn tại trong combo box không
+            if default_formula in combo_items:
+                # Tạm thời ngắt kết nối signal để tránh trigger apply_default_formula
+                self.default_formula_combo.currentIndexChanged.disconnect()
+                self.default_formula_combo.setCurrentText(default_formula)
+                # Kết nối lại signal
+                self.default_formula_combo.currentIndexChanged.connect(self.apply_default_formula)
+                print(f"[SUCCESS] Đã tải và áp dụng công thức mặc định: {default_formula}")
+            else:
+                print(f"[WARNING] Công thức mặc định '{default_formula}' không tồn tại trong danh sách preset")
+                # Reset về trống nếu công thức không tồn tại
+                self.formula_manager.save_default_feed_formula("")
             # KHÔNG áp dụng công thức mặc định cho tất cả các ô khi khởi động
             # Chỉ lưu thông tin công thức mặc định để sử dụng khi người dùng nhập mẻ mới
         else:
             print("[INFO] Không có công thức mặc định được lưu, sử dụng mặc định")
 
         self.default_formula_loaded = True
+
+    def refresh_formula_combo(self):
+        """Refresh combo box công thức mặc định với các preset mới nhất"""
+        try:
+            # Lưu lại giá trị hiện tại
+            current_text = self.default_formula_combo.currentText()
+
+            # Ngắt kết nối signal tạm thời
+            self.default_formula_combo.currentIndexChanged.disconnect()
+
+            # Xóa tất cả items
+            self.default_formula_combo.clear()
+
+            # Thêm item trống đầu tiên
+            self.default_formula_combo.addItem("")
+
+            # Thêm các công thức cám vào combo box
+            feed_presets = self.formula_manager.get_feed_presets()
+            for preset in sorted(feed_presets):  # Sắp xếp theo thứ tự alphabet
+                self.default_formula_combo.addItem(preset)
+
+            # Khôi phục giá trị cũ nếu có
+            if current_text:
+                self.default_formula_combo.setCurrentText(current_text)
+
+            # Kết nối lại signal
+            self.default_formula_combo.currentIndexChanged.connect(self.apply_default_formula)
+
+            print(f"[DEBUG] Refreshed formula combo with {len(feed_presets)} presets")
+
+        except Exception as e:
+            print(f"[ERROR] Error refreshing formula combo: {e}")
+            # Kết nối lại signal trong trường hợp lỗi
+            try:
+                self.default_formula_combo.currentIndexChanged.connect(self.apply_default_formula)
+            except:
+                pass
 
     def on_feed_table_cell_clicked(self, row, column):
         """Xử lý sự kiện khi người dùng click vào một ô trong bảng"""
@@ -6781,12 +6831,18 @@ class ChickenFarmApp(QMainWindow):
     def apply_default_formula(self):
         """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng khi thay đổi công thức mặc định"""
         default_formula = self.default_formula_combo.currentText()
+        print(f"[DEBUG] apply_default_formula called with: '{default_formula}'")
 
         # Lưu công thức mặc định để khi khởi động lại app không bị mất
-        self.formula_manager.save_default_feed_formula(default_formula)
+        success = self.formula_manager.save_default_feed_formula(default_formula)
+        if success:
+            print(f"[SUCCESS] Đã lưu công thức mặc định: '{default_formula}'")
+        else:
+            print(f"[ERROR] Không thể lưu công thức mặc định: '{default_formula}'")
 
         # Nếu không có công thức mặc định, chỉ lưu và không áp dụng
         if not default_formula:
+            print("[INFO] Không có công thức mặc định để áp dụng")
             return
 
         # Kiểm tra xem feed_table đã được tạo chưa
