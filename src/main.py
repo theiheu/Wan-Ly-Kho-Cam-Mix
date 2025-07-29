@@ -112,6 +112,7 @@ class ChickenFarmApp(QMainWindow):
         # Biến cờ để kiểm soát việc tải báo cáo
         self.report_loaded = False
         self.default_formula_loaded = False
+        self.data_loading_in_progress = False  # Flag để kiểm soát việc update display
 
         # Initialize responsive design utilities
         self.init_responsive_design()
@@ -538,7 +539,7 @@ class ChickenFarmApp(QMainWindow):
         # Tải công thức mặc định và tải báo cáo mới nhất khi khởi động
         QTimer.singleShot(100, self.refresh_formula_combo)
         QTimer.singleShot(200, self.load_default_formula)
-        QTimer.singleShot(500, self.load_latest_report)
+        QTimer.singleShot(800, self.load_latest_report)  # Tăng delay để đảm bảo default formula đã load xong
 
     def create_menu_bar(self):
         """Create the menu bar"""
@@ -5430,6 +5431,9 @@ class ChickenFarmApp(QMainWindow):
     def fill_table_from_report(self, date_text, update_default_formula=True):
         """Điền bảng cám từ báo cáo theo ngày đã chọn"""
         try:
+            # Đánh dấu đang trong quá trình loading data
+            self.data_loading_in_progress = True
+            print(f"[DEBUG] Starting data loading for {date_text}...")
             # Tải dữ liệu báo cáo
             report_data = self.load_report_data(date_text)
 
@@ -5501,23 +5505,45 @@ class ChickenFarmApp(QMainWindow):
                                         cell_widget.spin_box.setValue(value)
                                     if hasattr(cell_widget, 'formula_combo') and formula:
                                         cell_widget.formula_combo.setCurrentText(formula)
-                                        # Cập nhật hiển thị công thức
+                                        # Cập nhật hiển thị công thức với logic chính xác
                                         if hasattr(cell_widget, 'formula_label'):
-                                            default_formula = self.default_formula_combo.currentText()
+                                            # Lấy default formula từ formula manager để đảm bảo chính xác
+                                            default_formula_from_combo = self.default_formula_combo.currentText()
+                                            default_formula_from_manager = self.formula_manager.get_default_feed_formula()
+
+                                            # Ưu tiên sử dụng từ manager nếu combo chưa được update
+                                            default_formula = default_formula_from_combo if default_formula_from_combo else default_formula_from_manager
+
+                                            print(f"[DEBUG] Data loading - Formula: '{formula}', Default (combo): '{default_formula_from_combo}', Default (manager): '{default_formula_from_manager}', Using: '{default_formula}'")
+
+                                            # Chỉ hiển thị label nếu công thức KHÁC với công thức mặc định
                                             if formula and formula != default_formula:
                                                 cell_widget.formula_label.setText(formula)
                                                 cell_widget.formula_label.setVisible(True)
                                                 cell_widget.layout().setStretch(0, 60)
                                                 cell_widget.layout().setStretch(1, 40)
+                                                print(f"[DEBUG] Showing formula label: '{formula}' (different from default)")
                                             else:
+                                                # Ẩn label cho công thức mặc định hoặc công thức trống
+                                                cell_widget.formula_label.setText("")
                                                 cell_widget.formula_label.setVisible(False)
                                                 cell_widget.layout().setStretch(0, 100)
                                                 cell_widget.layout().setStretch(1, 0)
+                                                print(f"[DEBUG] Hiding formula label: '{formula}' (same as default or empty)")
 
                     col_index += 1
 
             # Cập nhật hiển thị toàn bộ bảng sau khi điền dữ liệu
-            self.update_feed_table_display()
+            # Sử dụng delay để đảm bảo tất cả formula labels đã được thiết lập đúng trong quá trình loading
+            print("[DEBUG] Data loading completed, scheduling display update...")
+
+            # Kết thúc quá trình loading và schedule update
+            def finish_loading():
+                self.data_loading_in_progress = False
+                print("[DEBUG] Data loading finished, updating display...")
+                self.update_feed_table_display()
+
+            QTimer.singleShot(200, finish_loading)
 
             QMessageBox.information(self, "Thành công", f"Đã điền bảng cám theo dữ liệu ngày {date_text}")
 
@@ -5525,6 +5551,10 @@ class ChickenFarmApp(QMainWindow):
             QMessageBox.warning(self, "Lỗi", f"Không thể điền bảng cám: {str(e)}")
             import traceback
             traceback.print_exc()
+        finally:
+            # Đảm bảo flag được reset ngay cả khi có lỗi
+            self.data_loading_in_progress = False
+            print("[DEBUG] Data loading flag reset")
 
     def fill_table_from_custom_date(self, date_text):
         """Điền bảng cám với ngày tự chọn"""
@@ -7306,7 +7336,11 @@ class ChickenFarmApp(QMainWindow):
                 # Lấy giá trị và công thức
                 value = cell_widget.spin_box.value()
                 formula_text = cell_widget.formula_combo.currentText()
-                default_formula = self.default_formula_combo.currentText()
+
+                # Lấy default formula từ cả combo và manager để đảm bảo chính xác
+                default_formula_from_combo = self.default_formula_combo.currentText()
+                default_formula_from_manager = self.formula_manager.get_default_feed_formula()
+                default_formula = default_formula_from_combo if default_formula_from_combo else default_formula_from_manager
 
                 # Cập nhật hiển thị
                 if value == 0:
@@ -7339,6 +7373,7 @@ class ChickenFarmApp(QMainWindow):
                             cell_widget.layout().setStretch(1, 40)
                         else:
                             # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                            cell_widget.formula_label.setText("")
                             cell_widget.formula_label.setVisible(False)
                             # Mở rộng spinbox để chiếm toàn bộ không gian
                             cell_widget.layout().setStretch(0, 100)
