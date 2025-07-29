@@ -1,6 +1,7 @@
 import json
 import os
 from typing import Dict, Any, List, Tuple
+from datetime import datetime, timedelta
 
 class InventoryManager:
     """Class to manage inventory of feed and mix ingredients"""
@@ -127,3 +128,71 @@ class InventoryManager:
         # Sort by days remaining (ascending)
         low_stock.sort(key=lambda x: x[2])
         return low_stock
+
+    def analyze_consumption_patterns(self, days: int = 7) -> Dict[str, float]:
+        """
+        Analyze consumption patterns from recent reports
+        Returns dict with ingredient -> average daily usage
+        """
+        reports_dir = "src/data/reports"
+        end_date = datetime.now()
+
+        daily_usage = {}
+        valid_days = 0
+
+        # Get report files for the last N days
+        for i in range(days):
+            date = end_date - timedelta(days=i)
+            date_str = date.strftime("%Y%m%d")
+            report_file = os.path.join(reports_dir, f"report_{date_str}.json")
+
+            if os.path.exists(report_file):
+                try:
+                    with open(report_file, 'r', encoding='utf-8') as f:
+                        report_data = json.load(f)
+
+                    # Extract feed and mix ingredients
+                    feed_ingredients = report_data.get('feed_ingredients', {})
+                    mix_ingredients = report_data.get('mix_ingredients', {})
+
+                    # Combine all ingredients for this day
+                    all_ingredients = {**feed_ingredients, **mix_ingredients}
+
+                    # Add to daily usage tracking
+                    for ingredient, amount in all_ingredients.items():
+                        if isinstance(amount, (int, float)) and amount > 0:
+                            if ingredient not in daily_usage:
+                                daily_usage[ingredient] = []
+                            daily_usage[ingredient].append(amount)
+
+                    valid_days += 1
+
+                except Exception as e:
+                    print(f"Error reading report {report_file}: {e}")
+
+        # Calculate average daily usage for each ingredient
+        avg_daily_usage = {}
+        for ingredient, usage_list in daily_usage.items():
+            if usage_list:
+                avg_daily_usage[ingredient] = sum(usage_list) / len(usage_list)
+
+        print(f"[DEBUG] Analyzed {valid_days} days of reports, found usage for {len(avg_daily_usage)} ingredients")
+        return avg_daily_usage
+
+    def calculate_days_until_empty(self, avg_daily_usage: Dict[str, float]) -> Dict[str, float]:
+        """
+        Calculate days until empty for each ingredient
+        Returns dict with ingredient -> days remaining
+        """
+        days_remaining = {}
+
+        for ingredient, current_stock in self.inventory.items():
+            if ingredient in avg_daily_usage and avg_daily_usage[ingredient] > 0:
+                days = current_stock / avg_daily_usage[ingredient]
+                days_remaining[ingredient] = days
+            else:
+                # No usage data or zero usage - set to infinity
+                days_remaining[ingredient] = float('inf')
+
+        return days_remaining
+

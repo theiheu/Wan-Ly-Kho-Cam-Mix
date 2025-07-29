@@ -1227,10 +1227,18 @@ class ChickenFarmApp(QMainWindow):
 
         self.feed_inventory_table = QTableWidget()
         self.feed_inventory_table.setFont(TABLE_CELL_FONT)
-        self.feed_inventory_table.setColumnCount(4)
-        self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
+        self.feed_inventory_table.setColumnCount(6)  # Added status column
+        self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao", "Còn lại (ngày)", "Tình trạng"])
         self.feed_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.feed_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Set column resize modes - make the new columns fit content, others stretch
+        header = self.feed_inventory_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Ingredient name
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Stock
+        header.setSectionResizeMode(2, QHeaderView.Stretch)  # Bag size
+        header.setSectionResizeMode(3, QHeaderView.Stretch)  # Number of bags
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
         self.feed_inventory_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -1286,10 +1294,18 @@ class ChickenFarmApp(QMainWindow):
 
         self.mix_inventory_table = QTableWidget()
         self.mix_inventory_table.setFont(TABLE_CELL_FONT)
-        self.mix_inventory_table.setColumnCount(4)
-        self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
+        self.mix_inventory_table.setColumnCount(6)  # Added status column
+        self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao", "Còn lại (ngày)", "Tình trạng"])
         self.mix_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.mix_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # Set column resize modes - make the new columns fit content, others stretch
+        header = self.mix_inventory_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Ingredient name
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Stock
+        header.setSectionResizeMode(2, QHeaderView.Stretch)  # Bag size
+        header.setSectionResizeMode(3, QHeaderView.Stretch)  # Number of bags
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
         self.mix_inventory_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -3263,13 +3279,22 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula_table.setRowHeight(row, 40)
 
     def update_feed_inventory_table(self):
-        """Update the feed inventory table"""
+        """Update the feed inventory table with days until empty analysis"""
         # Get relevant ingredients from feed formula
         feed_ingredients = list(self.feed_formula.keys())
         self.feed_inventory_table.setRowCount(len(feed_ingredients))
 
         # Update inventory from manager
         self.inventory = self.inventory_manager.get_inventory()
+
+        # Get consumption analysis for days until empty calculation
+        try:
+            avg_daily_usage = self.inventory_manager.analyze_consumption_patterns(7)
+            days_remaining = self.inventory_manager.calculate_days_until_empty(avg_daily_usage)
+        except Exception as e:
+            print(f"Error analyzing consumption patterns: {e}")
+            avg_daily_usage = {}
+            days_remaining = {}
 
         for i, ingredient in enumerate(feed_ingredients):
             # Ingredient name
@@ -3295,17 +3320,73 @@ class ChickenFarmApp(QMainWindow):
             bags_item.setFont(TABLE_CELL_FONT)
             self.feed_inventory_table.setItem(i, 3, bags_item)
 
+            # Days until empty (column 4)
+            days = days_remaining.get(ingredient, float('inf'))
+            if days == float('inf'):
+                days_text = "N/A"
+                days_item = QTableWidgetItem(days_text)
+                days_item.setBackground(QColor("#f5f5f5"))  # Light gray for N/A
+            else:
+                days_text = f"{days:.1f}"
+                days_item = QTableWidgetItem(days_text)
+
+                # Color coding: green (>14 days), yellow (7-14 days), red (<7 days)
+                if days > 14:
+                    days_item.setBackground(QColor("#d4edda"))  # Light green
+                    days_item.setForeground(QColor("#155724"))  # Dark green
+                elif days >= 7:
+                    days_item.setBackground(QColor("#fff3cd"))  # Light yellow
+                    days_item.setForeground(QColor("#856404"))  # Dark yellow
+                else:
+                    days_item.setBackground(QColor("#f8d7da"))  # Light red
+                    days_item.setForeground(QColor("#721c24"))  # Dark red
+
+            days_item.setFont(TABLE_CELL_FONT)
+            days_item.setTextAlignment(Qt.AlignCenter)
+            self.feed_inventory_table.setItem(i, 4, days_item)
+
+            # Status column (column 5)
+            status_text, color_info = self.get_inventory_status_text(days)
+            status_item = QTableWidgetItem(status_text)
+            status_item.setFont(TABLE_CELL_FONT)
+            status_item.setTextAlignment(Qt.AlignCenter)
+
+            # Apply same color coding as days column
+            if color_info == "gray":
+                status_item.setBackground(QColor("#f5f5f5"))  # Light gray
+                status_item.setForeground(QColor("#6c757d"))  # Dark gray
+            elif color_info == "green":
+                status_item.setBackground(QColor("#d4edda"))  # Light green
+                status_item.setForeground(QColor("#155724"))  # Dark green
+            elif color_info == "yellow":
+                status_item.setBackground(QColor("#fff3cd"))  # Light yellow
+                status_item.setForeground(QColor("#856404"))  # Dark yellow
+            elif color_info == "red":
+                status_item.setBackground(QColor("#f8d7da"))  # Light red
+                status_item.setForeground(QColor("#721c24"))  # Dark red
+
+            self.feed_inventory_table.setItem(i, 5, status_item)
+
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.feed_inventory_table.rowCount()):
             self.feed_inventory_table.setRowHeight(row, 40)
 
     def update_mix_inventory_table(self):
-        """Update the mix inventory table"""
+        """Update the mix inventory table with days until empty analysis"""
         mix_ingredients = list(self.mix_formula.keys())
         self.mix_inventory_table.setRowCount(len(mix_ingredients))
 
         # Update inventory from manager
         self.inventory = self.inventory_manager.get_inventory()
+
+        # Get consumption analysis for days until empty calculation
+        try:
+            avg_daily_usage = self.inventory_manager.analyze_consumption_patterns(7)
+            days_remaining = self.inventory_manager.calculate_days_until_empty(avg_daily_usage)
+        except Exception as e:
+            print(f"Error analyzing consumption patterns: {e}")
+            avg_daily_usage = {}
+            days_remaining = {}
 
         for i, ingredient in enumerate(mix_ingredients):
             # Ingredient name
@@ -3330,6 +3411,53 @@ class ChickenFarmApp(QMainWindow):
             bags_item = QTableWidgetItem(format_number(bags))
             bags_item.setFont(TABLE_CELL_FONT)
             self.mix_inventory_table.setItem(i, 3, bags_item)
+
+            # Days until empty (column 4)
+            days = days_remaining.get(ingredient, float('inf'))
+            if days == float('inf'):
+                days_text = "N/A"
+                days_item = QTableWidgetItem(days_text)
+                days_item.setBackground(QColor("#f5f5f5"))  # Light gray for N/A
+            else:
+                days_text = f"{days:.1f}"
+                days_item = QTableWidgetItem(days_text)
+
+                # Color coding: green (>14 days), yellow (7-14 days), red (<7 days)
+                if days > 14:
+                    days_item.setBackground(QColor("#d4edda"))  # Light green
+                    days_item.setForeground(QColor("#155724"))  # Dark green
+                elif days >= 7:
+                    days_item.setBackground(QColor("#fff3cd"))  # Light yellow
+                    days_item.setForeground(QColor("#856404"))  # Dark yellow
+                else:
+                    days_item.setBackground(QColor("#f8d7da"))  # Light red
+                    days_item.setForeground(QColor("#721c24"))  # Dark red
+
+            days_item.setFont(TABLE_CELL_FONT)
+            days_item.setTextAlignment(Qt.AlignCenter)
+            self.mix_inventory_table.setItem(i, 4, days_item)
+
+            # Status column (column 5)
+            status_text, color_info = self.get_inventory_status_text(days)
+            status_item = QTableWidgetItem(status_text)
+            status_item.setFont(TABLE_CELL_FONT)
+            status_item.setTextAlignment(Qt.AlignCenter)
+
+            # Apply same color coding as days column
+            if color_info == "gray":
+                status_item.setBackground(QColor("#f5f5f5"))  # Light gray
+                status_item.setForeground(QColor("#6c757d"))  # Dark gray
+            elif color_info == "green":
+                status_item.setBackground(QColor("#d4edda"))  # Light green
+                status_item.setForeground(QColor("#155724"))  # Dark green
+            elif color_info == "yellow":
+                status_item.setBackground(QColor("#fff3cd"))  # Light yellow
+                status_item.setForeground(QColor("#856404"))  # Dark yellow
+            elif color_info == "red":
+                status_item.setBackground(QColor("#f8d7da"))  # Light red
+                status_item.setForeground(QColor("#721c24"))  # Dark red
+
+            self.mix_inventory_table.setItem(i, 5, status_item)
 
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.mix_inventory_table.rowCount()):
@@ -6507,6 +6635,24 @@ class ChickenFarmApp(QMainWindow):
 
         self.default_formula_loaded = True
 
+    def get_inventory_status_text(self, days_remaining):
+        """
+        Get Vietnamese status text based on days remaining
+        Returns tuple of (status_text, color_info)
+        """
+        if days_remaining == float('inf'):
+            return "Không có dữ liệu", "gray"
+        elif days_remaining > 14:
+            return "Đủ hàng", "green"
+        elif days_remaining >= 7:
+            return "Sắp hết", "yellow"
+        else:
+            return "Khẩn cấp", "red"
+
+
+
+
+
     def refresh_formula_combo(self):
         """Refresh combo box công thức mặc định với các preset mới nhất"""
         try:
@@ -6873,167 +7019,7 @@ class ChickenFarmApp(QMainWindow):
         # Cập nhật hiển thị bảng
         self.update_feed_table_display()
 
-    def setup_inventory_tab(self):
-        """Setup the inventory management tab"""
-        layout = QVBoxLayout()
 
-        # Create tabs for Feed and Mix inventory
-        inventory_tabs = QTabWidget()
-        inventory_tabs.setFont(DEFAULT_FONT)
-        inventory_tabs.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #cccccc;
-                background: white;
-            }
-            QTabWidget::tab-bar {
-                left: 5px;
-            }
-            QTabBar::tab {
-                background: #f0f0f0;
-                border: 1px solid #cccccc;
-                border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 8px 12px;
-                margin-right: 2px;
-            }
-            QTabBar::tab:selected {
-                background: #4CAF50;
-                color: white;
-            }
-            QTabBar::tab:!selected {
-                margin-top: 2px;
-            }
-        """)
-
-        feed_inventory_tab = QWidget()
-        mix_inventory_tab = QWidget()
-
-        inventory_tabs.addTab(feed_inventory_tab, "Kho Cám")
-        inventory_tabs.addTab(mix_inventory_tab, "Kho Mix")
-
-        # Setup Feed Inventory tab
-        feed_layout = QVBoxLayout()
-
-        # Thêm tiêu đề
-        feed_header = QLabel("Quản Lý Kho Cám")
-        feed_header.setFont(HEADER_FONT)
-        feed_header.setAlignment(Qt.AlignCenter)
-        feed_header.setStyleSheet("QLabel { padding: 10px; background-color: #e0f2f1; border-radius: 5px; }")
-        feed_layout.addWidget(feed_header)
-
-        self.feed_inventory_table = QTableWidget()
-        self.feed_inventory_table.setFont(TABLE_CELL_FONT)
-        self.feed_inventory_table.setColumnCount(4)
-        self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
-        self.feed_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.feed_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.feed_inventory_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-            QTableWidget::item {
-                padding: 4px;
-            }
-        """)
-        self.feed_inventory_table.setAlternatingRowColors(True)
-
-        # Populate feed inventory table
-        self.update_feed_inventory_table()
-
-        feed_layout.addWidget(self.feed_inventory_table)
-
-        # Add update button for feed inventory
-        update_feed_button = QPushButton("Cập Nhật Kho Cám")
-        update_feed_button.setFont(BUTTON_FONT)
-        update_feed_button.setMinimumHeight(40)
-        update_feed_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        update_feed_button.clicked.connect(lambda: self.update_inventory("feed"))
-        feed_layout.addWidget(update_feed_button)
-
-        feed_inventory_tab.setLayout(feed_layout)
-
-        # Setup Mix Inventory tab
-        mix_layout = QVBoxLayout()
-
-        # Thêm tiêu đề
-        mix_header = QLabel("Quản Lý Kho Mix")
-        mix_header.setFont(HEADER_FONT)
-        mix_header.setAlignment(Qt.AlignCenter)
-        mix_header.setStyleSheet("QLabel { padding: 10px; background-color: #e8f5e9; border-radius: 5px; }")
-        mix_layout.addWidget(mix_header)
-
-        self.mix_inventory_table = QTableWidget()
-        self.mix_inventory_table.setFont(TABLE_CELL_FONT)
-        self.mix_inventory_table.setColumnCount(4)
-        self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao"])
-        self.mix_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
-        self.mix_inventory_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.mix_inventory_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #8BC34A;
-                color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
-            }
-            QTableWidget::item {
-                padding: 4px;
-            }
-        """)
-        self.mix_inventory_table.setAlternatingRowColors(True)
-
-        # Populate mix inventory table
-        self.update_mix_inventory_table()
-
-        mix_layout.addWidget(self.mix_inventory_table)
-
-        # Add update button for mix inventory
-        update_mix_button = QPushButton("Cập Nhật Kho Mix")
-        update_mix_button.setFont(BUTTON_FONT)
-        update_mix_button.setMinimumHeight(40)
-        update_mix_button.setStyleSheet("""
-            QPushButton {
-                background-color: #8BC34A;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #7CB342;
-            }
-        """)
-        update_mix_button.clicked.connect(lambda: self.update_inventory("mix"))
-        mix_layout.addWidget(update_mix_button)
-
-        mix_inventory_tab.setLayout(mix_layout)
-
-        # Add tabs to layout
-        layout.addWidget(inventory_tabs)
-
-        self.inventory_tab.setLayout(layout)
 
     def filter_feed_usage_history(self):
         """Lọc lịch sử cám theo khoảng thời gian đã chọn"""
