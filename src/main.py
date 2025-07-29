@@ -460,9 +460,6 @@ class ChickenFarmApp(QMainWindow):
         # Áp dụng font mặc định cho toàn bộ ứng dụng
         self.setFont(DEFAULT_FONT)
 
-        # Initialize UI
-        self.init_ui()
-
         # Tự động tải báo cáo mới nhất khi khởi động
         QTimer.singleShot(100, self.load_latest_report)
         # Tải lịch sử cám với bộ lọc mặc định
@@ -857,25 +854,31 @@ class ChickenFarmApp(QMainWindow):
                                     # Kết nối lại sự kiện
                                     spin.valueChanged.connect(lambda v: on_value_changed(v, spin, combo, label))
 
-                                # Hiển thị tên công thức
-                                formula_text = combo.currentText()
-                                default_formula = self.default_formula_combo.currentText()
+                                # Cập nhật hiển thị công thức sau khi auto-select
+                                def update_formula_display():
+                                    # Hiển thị tên công thức
+                                    formula_text = combo.currentText()
+                                    default_formula = self.default_formula_combo.currentText()
 
-                                # Kiểm tra xem có phải công thức mặc định không
-                                if formula_text and formula_text != default_formula:
-                                    # Nếu không phải công thức mặc định, hiển thị tên
-                                    label.setText(formula_text)
-                                    label.setVisible(True)
-                                    # Giữ tỷ lệ ban đầu với số luôn ở trên
-                                    container.layout().setStretch(0, 60)
-                                    container.layout().setStretch(1, 40)
-                                else:
-                                    # Nếu là công thức mặc định hoặc không có công thức, ẩn label
-                                    label.setText("")
-                                    label.setVisible(False)
-                                    # Giữ số mẻ ở phía trên, để khoảng trống phía dưới
-                                    container.layout().setStretch(0, 60)
-                                    container.layout().setStretch(1, 40)
+                                    # Kiểm tra xem có phải công thức mặc định không
+                                    if formula_text and formula_text != default_formula:
+                                        # Nếu không phải công thức mặc định, hiển thị tên
+                                        label.setText(formula_text)
+                                        label.setVisible(True)
+                                        # Giữ tỷ lệ ban đầu với số luôn ở trên
+                                        container.layout().setStretch(0, 60)
+                                        container.layout().setStretch(1, 40)
+                                    else:
+                                        # Nếu là công thức mặc định hoặc không có công thức, ẩn label
+                                        label.setText("")
+                                        label.setVisible(False)
+                                        # Giữ số mẻ ở phía trên, để khoảng trống phía dưới
+                                        container.layout().setStretch(0, 60)
+                                        container.layout().setStretch(1, 40)
+
+                                # Gọi ngay lập tức và sau một khoảng thời gian ngắn để đảm bảo formula được cập nhật
+                                update_formula_display()
+                                QTimer.singleShot(50, update_formula_display)
 
                         # Thiết lập prefix ban đầu để ẩn số 0 nếu cần
                         if spin_box.value() == 0:
@@ -7391,6 +7394,9 @@ class ChickenFarmApp(QMainWindow):
                     pass  # Ignore if connection fails
 
                 print(f"[DEBUG] Auto-applied default formula '{default_formula}' for value {value}")
+
+                # Cập nhật hiển thị bảng ngay lập tức để đảm bảo formula label được hiển thị đúng
+                QTimer.singleShot(10, self.update_feed_table_display)
 
         elif value == 0:
             # Khi giá trị về 0, có thể giữ nguyên công thức hoặc xóa tùy theo yêu cầu

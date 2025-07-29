@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QGroupBox, QGridLayout, QMessageBox, QTabWidget,
                              QWidget, QTextEdit, QFrame, QComboBox, QSlider,
                              QTimeEdit, QLineEdit, QColorDialog, QTableWidget,
-                             QTableWidgetItem, QHeaderView)
+                             QTableWidgetItem, QHeaderView, QScrollArea)
 from PyQt5.QtCore import Qt, QTime
 from PyQt5.QtGui import QFont, QIcon, QColor
 
@@ -690,38 +690,758 @@ class ThresholdSettingsDialog(QDialog):
         self.tab_widget.addTab(tab, "🎨 Màu Sắc")
 
     def create_individual_threshold_tab(self):
-        """Tạo tab ngưỡng riêng biệt với layout cải thiện"""
+        """Tạo tab ngưỡng riêng biệt với giao diện gọn gàng, tập trung vào chức năng"""
         tab = QWidget()
-        layout = QVBoxLayout(tab)
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)
+        main_layout = QVBoxLayout(tab)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Header description với styling cải thiện
-        desc = QLabel("🎯 Cài đặt ngưỡng cảnh báo riêng biệt cho từng nguyên liệu\n"
-                     "Ngưỡng riêng biệt sẽ được ưu tiên hơn ngưỡng chung và áp dụng cho từng thành phần cụ thể.")
-        desc.setWordWrap(True)
-        desc.setStyleSheet("""
-            QLabel {
-                background-color: #fff3cd;
-                border: 2px solid #ffeaa7;
-                border-radius: 8px;
-                padding: 15px;
-                color: #856404;
-                font-weight: bold;
-                font-size: 11px;
-                line-height: 1.4;
+        # Main content trong scroll area để responsive tốt hơn
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background-color: #f0f0f0;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #c0c0c0;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #a0a0a0;
             }
         """)
-        layout.addWidget(desc)
 
-        # Control panel
-        self.create_individual_control_panel(layout)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(20)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Control panel với thiết kế card-based
+        self.create_individual_control_panel_improved(scroll_layout)
+
+        # Table với thiết kế cải thiện
+        self.create_individual_table_improved(scroll_layout)
+
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
+
+        self.tab_widget.addTab(tab, "🎯 Ngưỡng Riêng Biệt")
+
+    def create_individual_control_panel_improved(self, layout):
+        """Tạo panel điều khiển với thiết kế card-based cải thiện"""
+        # Main control card
+        control_card = QFrame()
+        control_card.setFrameShape(QFrame.Box)
+        control_card.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 2px solid #e9ecef;
+                border-radius: 15px;
+                padding: 20px;
+            }
+        """)
+
+        control_layout = QVBoxLayout(control_card)
+        control_layout.setSpacing(25)
+        control_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Header với mode indicator
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(15)
+
+        title_label = QLabel("🔧 Cài Đặt Ngưỡng")
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #2c3e50;
+                font-size: 18px;
+                font-weight: bold;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+        """)
+        header_layout.addWidget(title_label)
+
+        # Mode indicator
+        self.mode_indicator = QLabel("➕ Thêm mới")
+        self.mode_indicator.setStyleSheet("""
+            QLabel {
+                background-color: #28a745;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        header_layout.addWidget(self.mode_indicator)
+        header_layout.addStretch()
+
+        control_layout.addLayout(header_layout)
+
+        # Ingredient selection section
+        self.create_ingredient_selection_section(control_layout)
+
+        # Threshold settings section
+        self.create_threshold_settings_section(control_layout)
+
+        # Action buttons section
+        self.create_action_buttons_section(control_layout)
+
+        layout.addWidget(control_card)
+
+    def create_ingredient_selection_section(self, layout):
+        """Tạo section chọn nguyên liệu"""
+        section_frame = QFrame()
+        section_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+
+        section_layout = QVBoxLayout(section_frame)
+        section_layout.setSpacing(15)
+        section_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Section title
+        title = QLabel("📦 Chọn Nguyên Liệu")
+        title.setStyleSheet("""
+            QLabel {
+                color: #495057;
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
+        """)
+        section_layout.addWidget(title)
+
+        # Ingredient combo với search functionality
+        combo_layout = QHBoxLayout()
+        combo_layout.setSpacing(10)
+
+        self.individual_ingredient_combo = QComboBox()
+        self.individual_ingredient_combo.setEditable(True)
+        self.individual_ingredient_combo.setMinimumHeight(45)
+        self.individual_ingredient_combo.setStyleSheet("""
+            QComboBox {
+                padding: 12px 15px;
+                font-size: 14px;
+                border: 2px solid #ced4da;
+                border-radius: 8px;
+                background-color: white;
+                selection-background-color: #007bff;
+            }
+            QComboBox:focus {
+                border-color: #007bff;
+                outline: none;
+            }
+            QComboBox::drop-down {
+                width: 35px;
+                border: none;
+                background-color: #f8f9fa;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border: 2px solid #6c757d;
+                width: 8px;
+                height: 8px;
+                border-top: none;
+                border-left: none;
+                transform: rotate(45deg);
+            }
+        """)
+        combo_layout.addWidget(self.individual_ingredient_combo, 1)
+
+        # Clear button
+        clear_btn = QPushButton("🗑️")
+        clear_btn.setMinimumSize(45, 45)
+        clear_btn.setMaximumSize(45, 45)
+        clear_btn.setToolTip("Xóa lựa chọn")
+        clear_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+            QPushButton:pressed {
+                background-color: #545b62;
+            }
+        """)
+        clear_btn.clicked.connect(lambda: self.individual_ingredient_combo.setCurrentText(""))
+        combo_layout.addWidget(clear_btn)
+
+        section_layout.addLayout(combo_layout)
+
+        # Help text
+        help_text = QLabel("💡 Chọn từ danh sách hoặc nhập tên nguyên liệu mới")
+        help_text.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 12px;
+                font-style: italic;
+            }
+        """)
+        section_layout.addWidget(help_text)
+
+        layout.addWidget(section_frame)
+
+    def create_threshold_settings_section(self, layout):
+        """Tạo section cài đặt ngưỡng với thiết kế card"""
+        # Container cho 2 cards
+        cards_layout = QHBoxLayout()
+        cards_layout.setSpacing(20)
+
+        # Days threshold card
+        days_card = self.create_threshold_card(
+            "📅", "Ngưỡng Theo Ngày",
+            [
+                ("🔴 Khẩn cấp", "critical_days", "ngày", 0, 30, 7),
+                ("🟡 Sắp hết", "warning_days", "ngày", 1, 60, 14)
+            ]
+        )
+        cards_layout.addWidget(days_card)
+
+        # Stock threshold card
+        stock_card = self.create_threshold_card(
+            "📦", "Ngưỡng Theo Tồn Kho",
+            [
+                ("🔴 Khẩn cấp", "critical_stock", "kg", 0, 10000, 0),
+                ("🟡 Sắp hết", "warning_stock", "kg", 0, 10000, 100)
+            ]
+        )
+        cards_layout.addWidget(stock_card)
+
+        layout.addLayout(cards_layout)
+
+    def create_threshold_card(self, icon, title, fields):
+        """Tạo card cho một loại ngưỡng"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 2px solid #e9ecef;
+                border-radius: 12px;
+                padding: 15px;
+            }
+        """)
+
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(20)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Card header
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(10)
+
+        icon_label = QLabel(icon)
+        icon_label.setStyleSheet("font-size: 20px;")
+        header_layout.addWidget(icon_label)
+
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #495057;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+
+        card_layout.addLayout(header_layout)
+
+        # Fields
+        for label_text, field_name, suffix, min_val, max_val, default_val in fields:
+            field_layout = QVBoxLayout()
+            field_layout.setSpacing(8)
+
+            # Label
+            label = QLabel(label_text)
+            label.setStyleSheet("""
+                QLabel {
+                    color: #6c757d;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+            """)
+            field_layout.addWidget(label)
+
+            # Input
+            if "stock" in field_name:
+                spin_box = QDoubleSpinBox()
+                spin_box.setDecimals(1)
+            else:
+                spin_box = QSpinBox()
+
+            spin_box.setRange(min_val, max_val)
+            spin_box.setValue(default_val)
+            spin_box.setSuffix(f" {suffix}")
+            spin_box.setMinimumHeight(40)
+            spin_box.setStyleSheet("""
+                QSpinBox, QDoubleSpinBox {
+                    padding: 10px 12px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    border: 2px solid #ced4da;
+                    border-radius: 8px;
+                    background-color: white;
+                }
+                QSpinBox:focus, QDoubleSpinBox:focus {
+                    border-color: #007bff;
+                    outline: none;
+                }
+                QSpinBox::up-button, QDoubleSpinBox::up-button,
+                QSpinBox::down-button, QDoubleSpinBox::down-button {
+                    width: 25px;
+                    height: 15px;
+                    border: none;
+                    background-color: #f8f9fa;
+                }
+                QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+                QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+                    background-color: #e9ecef;
+                }
+            """)
+
+            # Store reference to spin box
+            setattr(self, f"individual_{field_name}_spin", spin_box)
+            field_layout.addWidget(spin_box)
+
+            card_layout.addLayout(field_layout)
+
+        return card
+
+    def create_action_buttons_section(self, layout):
+        """Tạo section các nút hành động"""
+        buttons_frame = QFrame()
+        buttons_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+
+        buttons_layout = QHBoxLayout(buttons_frame)
+        buttons_layout.setSpacing(15)
+        buttons_layout.setContentsMargins(20, 15, 20, 15)
+
+        # Primary action button
+        self.add_update_btn = QPushButton("➕ Thêm Ngưỡng")
+        self.add_update_btn.setMinimumHeight(45)
+        self.add_update_btn.setMinimumWidth(150)
+        self.add_update_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;
+                transform: translateY(0px);
+            }
+        """)
+        self.add_update_btn.clicked.connect(self.add_or_update_individual_threshold)
+        buttons_layout.addWidget(self.add_update_btn)
+
+        # Secondary buttons
+        remove_btn = QPushButton("🗑️ Xóa")
+        remove_btn.setMinimumHeight(45)
+        remove_btn.setMinimumWidth(100)
+        remove_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #bd2130;
+                transform: translateY(0px);
+            }
+        """)
+        remove_btn.clicked.connect(self.remove_individual_threshold)
+        buttons_layout.addWidget(remove_btn)
+
+        clear_all_btn = QPushButton("🗑️ Xóa Tất Cả")
+        clear_all_btn.setMinimumHeight(45)
+        clear_all_btn.setMinimumWidth(120)
+        clear_all_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #545b62;
+                transform: translateY(0px);
+            }
+        """)
+        clear_all_btn.clicked.connect(self.clear_all_individual_thresholds)
+        buttons_layout.addWidget(clear_all_btn)
+
+        # Reset button
+        reset_btn = QPushButton("🔄 Đặt Lại")
+        reset_btn.setMinimumHeight(45)
+        reset_btn.setMinimumWidth(100)
+        reset_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #117a8b;
+                transform: translateY(0px);
+            }
+        """)
+        reset_btn.clicked.connect(self.reset_individual_form)
+        buttons_layout.addWidget(reset_btn)
+
+        buttons_layout.addStretch()
+        layout.addWidget(buttons_frame)
+
+    def create_individual_table_improved(self, layout):
+        """Tạo bảng hiển thị với thiết kế cải thiện"""
+        table_card = QFrame()
+        table_card.setFrameShape(QFrame.Box)
+        table_card.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 2px solid #e9ecef;
+                border-radius: 15px;
+                padding: 20px;
+            }
+        """)
+
+        table_layout = QVBoxLayout(table_card)
+        table_layout.setSpacing(20)
+        table_layout.setContentsMargins(25, 25, 25, 25)
+
+        # Table header
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(15)
+
+        title = QLabel("📊 Danh Sách Ngưỡng Riêng Biệt")
+        title.setStyleSheet("""
+            QLabel {
+                color: #2c3e50;
+                font-size: 18px;
+                font-weight: bold;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+        """)
+        header_layout.addWidget(title)
+
+        # Search box
+        search_layout = QHBoxLayout()
+        search_layout.setSpacing(10)
+
+        search_icon = QLabel("🔍")
+        search_icon.setStyleSheet("font-size: 16px; color: #6c757d;")
+        search_layout.addWidget(search_icon)
+
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Tìm kiếm nguyên liệu...")
+        self.search_box.setMinimumHeight(35)
+        self.search_box.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                font-size: 14px;
+                border: 2px solid #ced4da;
+                border-radius: 8px;
+                background-color: white;
+            }
+            QLineEdit:focus {
+                border-color: #007bff;
+                outline: none;
+            }
+        """)
+        self.search_box.textChanged.connect(self.filter_individual_table)
+        search_layout.addWidget(self.search_box)
+
+        header_layout.addLayout(search_layout)
+        header_layout.addStretch()
+
+        table_layout.addLayout(header_layout)
 
         # Table
-        self.create_individual_table(layout)
+        self.individual_table = QTableWidget()
+        self.individual_table.setColumnCount(6)
+        self.individual_table.setHorizontalHeaderLabels([
+            "Thành phần", "🔴 Khẩn cấp\n(ngày)", "🟡 Sắp hết\n(ngày)",
+            "🔴 Khẩn cấp\n(kg)", "🟡 Sắp hết\n(kg)", "Trạng thái\nhiện tại"
+        ])
 
-        layout.addStretch()
-        self.tab_widget.addTab(tab, "🎯 Ngưỡng Riêng Biệt")
+        # Enhanced table styling
+        self.individual_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e9ecef;
+                selection-background-color: #e3f2fd;
+                alternate-background-color: #f8f9fa;
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                font-size: 13px;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QHeaderView::section {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #007bff, stop:1 #0056b3);
+                color: white;
+                padding: 12px 8px;
+                border: 1px solid #0056b3;
+                font-weight: bold;
+                font-size: 12px;
+                text-align: center;
+            }
+            QTableWidget::item {
+                padding: 12px 8px;
+                border-bottom: 1px solid #f1f3f4;
+                text-align: center;
+                font-size: 13px;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+                font-weight: 600;
+            }
+            QTableWidget::item:hover {
+                background-color: #f5f5f5;
+            }
+        """)
+
+        # Table configuration
+        header = self.individual_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)  # Ingredient name
+        header.setSectionResizeMode(1, QHeaderView.Fixed)    # Critical days
+        header.setSectionResizeMode(2, QHeaderView.Fixed)    # Warning days
+        header.setSectionResizeMode(3, QHeaderView.Fixed)    # Critical stock
+        header.setSectionResizeMode(4, QHeaderView.Fixed)    # Warning stock
+        header.setSectionResizeMode(5, QHeaderView.Fixed)    # Status
+
+        # Set column widths
+        self.individual_table.setColumnWidth(1, 110)
+        self.individual_table.setColumnWidth(2, 110)
+        self.individual_table.setColumnWidth(3, 110)
+        self.individual_table.setColumnWidth(4, 110)
+        self.individual_table.setColumnWidth(5, 130)
+
+        # Row configuration
+        self.individual_table.verticalHeader().setDefaultSectionSize(50)
+        self.individual_table.verticalHeader().setVisible(False)
+        self.individual_table.setMinimumHeight(300)
+        self.individual_table.setAlternatingRowColors(True)
+        self.individual_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.individual_table.itemSelectionChanged.connect(self.on_individual_table_selection_changed_improved)
+
+        table_layout.addWidget(self.individual_table)
+
+        # Table footer với thông tin
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(20)
+
+        self.table_info_label = QLabel("Tổng: 0 ngưỡng riêng biệt")
+        self.table_info_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 12px;
+                font-style: italic;
+            }
+        """)
+        footer_layout.addWidget(self.table_info_label)
+
+        footer_layout.addStretch()
+
+        # Export button
+        export_btn = QPushButton("📤 Xuất Excel")
+        export_btn.setMinimumHeight(35)
+        export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
+        export_btn.clicked.connect(self.export_individual_thresholds)
+        footer_layout.addWidget(export_btn)
+
+        table_layout.addLayout(footer_layout)
+        layout.addWidget(table_card)
+
+    def reset_individual_form(self):
+        """Đặt lại form về trạng thái mặc định"""
+        self.individual_ingredient_combo.setCurrentText("")
+        self.individual_critical_days_spin.setValue(7)
+        self.individual_warning_days_spin.setValue(14)
+        self.individual_critical_stock_spin.setValue(0)
+        self.individual_warning_stock_spin.setValue(100)
+
+        # Update mode indicator
+        self.mode_indicator.setText("➕ Thêm mới")
+        self.mode_indicator.setStyleSheet("""
+            QLabel {
+                background-color: #28a745;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        self.add_update_btn.setText("➕ Thêm Ngưỡng")
+
+    def filter_individual_table(self):
+        """Lọc bảng theo từ khóa tìm kiếm"""
+        search_text = self.search_box.text().lower()
+
+        for row in range(self.individual_table.rowCount()):
+            item = self.individual_table.item(row, 0)  # Ingredient name column
+            if item:
+                ingredient_name = item.text().lower()
+                should_show = search_text in ingredient_name
+                self.individual_table.setRowHidden(row, not should_show)
+
+    def export_individual_thresholds(self):
+        """Xuất danh sách ngưỡng riêng biệt ra Excel"""
+        try:
+            from PyQt5.QtWidgets import QFileDialog
+            import pandas as pd
+
+            # Get data from table
+            data = []
+            for row in range(self.individual_table.rowCount()):
+                if not self.individual_table.isRowHidden(row):
+                    row_data = []
+                    for col in range(self.individual_table.columnCount()):
+                        item = self.individual_table.item(row, col)
+                        row_data.append(item.text() if item else "")
+                    data.append(row_data)
+
+            if not data:
+                QMessageBox.information(self, "Thông báo", "Không có dữ liệu để xuất!")
+                return
+
+            # Create DataFrame
+            columns = ["Thành phần", "Khẩn cấp (ngày)", "Sắp hết (ngày)",
+                      "Khẩn cấp (kg)", "Sắp hết (kg)", "Trạng thái hiện tại"]
+            df = pd.DataFrame(data, columns=columns)
+
+            # Save file
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Xuất danh sách ngưỡng riêng biệt",
+                "nguong_rieng_biet.xlsx", "Excel files (*.xlsx)"
+            )
+
+            if file_path:
+                df.to_excel(file_path, index=False)
+                QMessageBox.information(self, "Thành công", f"Đã xuất dữ liệu ra {file_path}")
+
+        except ImportError:
+            QMessageBox.warning(self, "Lỗi", "Cần cài đặt pandas để xuất Excel!")
+        except Exception as e:
+            QMessageBox.warning(self, "Lỗi", f"Không thể xuất file: {str(e)}")
+
+    def on_individual_table_selection_changed_improved(self):
+        """Xử lý khi chọn hàng trong bảng với UI cải thiện"""
+        current_row = self.individual_table.currentRow()
+        if current_row >= 0:
+            # Load selected ingredient data to form
+            ingredient = self.individual_table.item(current_row, 0).text()
+            self.individual_ingredient_combo.setCurrentText(ingredient)
+
+            # Load thresholds
+            thresholds = self.threshold_manager.get_ingredient_thresholds(ingredient)
+            self.individual_critical_days_spin.setValue(thresholds.get('critical_days', 7))
+            self.individual_warning_days_spin.setValue(thresholds.get('warning_days', 14))
+            self.individual_critical_stock_spin.setValue(thresholds.get('critical_stock', 0))
+            self.individual_warning_stock_spin.setValue(thresholds.get('warning_stock', 100))
+
+            # Update mode indicator
+            self.mode_indicator.setText("✏️ Chỉnh sửa")
+            self.mode_indicator.setStyleSheet("""
+                QLabel {
+                    background-color: #ffc107;
+                    color: #212529;
+                    padding: 8px 15px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+            """)
+            self.add_update_btn.setText("💾 Cập Nhật")
+        else:
+            # Reset to add mode
+            self.reset_individual_form()
+
+    def update_table_info(self):
+        """Cập nhật thông tin bảng"""
+        total_rows = self.individual_table.rowCount()
+        visible_rows = sum(1 for row in range(total_rows) if not self.individual_table.isRowHidden(row))
+
+        if hasattr(self, 'table_info_label'):
+            if visible_rows == total_rows:
+                self.table_info_label.setText(f"Tổng: {total_rows} ngưỡng riêng biệt")
+            else:
+                self.table_info_label.setText(f"Hiển thị: {visible_rows}/{total_rows} ngưỡng riêng biệt")
+
+
 
     def create_individual_control_panel(self, layout):
         """Tạo panel điều khiển cho ngưỡng riêng biệt với layout cải thiện"""
@@ -1279,6 +1999,9 @@ class ThresholdSettingsDialog(QDialog):
 
                 row += 1
 
+            # Update table info
+            self.update_table_info()
+
         except Exception as e:
             print(f"[ERROR] Lỗi khi tải cài đặt ngưỡng riêng biệt: {e}")
 
@@ -1321,9 +2044,17 @@ class ThresholdSettingsDialog(QDialog):
         success &= self.threshold_manager.set_individual_threshold(ingredient, 'warning_stock', self.individual_warning_stock_spin.value())
 
         if success:
-            QMessageBox.information(self, "Thành công",
-                                  f"✅ Đã cài đặt ngưỡng riêng biệt cho '{ingredient}'!")
+            # Show success message with better styling
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Thành công")
+            msg.setText(f"✅ Đã cài đặt ngưỡng riêng biệt cho '{ingredient}'!")
+            msg.setDetailedText(f"Khẩn cấp: {critical_days} ngày, {self.individual_critical_stock_spin.value()} kg\n"
+                               f"Sắp hết: {warning_days} ngày, {self.individual_warning_stock_spin.value()} kg")
+            msg.exec_()
+
             self.load_individual_threshold_settings()
+            self.reset_individual_form()
         else:
             QMessageBox.warning(self, "Lỗi", "❌ Không thể cài đặt ngưỡng!")
 
@@ -1344,6 +2075,7 @@ class ThresholdSettingsDialog(QDialog):
                 QMessageBox.information(self, "Thành công",
                                       f"✅ Đã xóa ngưỡng riêng biệt cho '{ingredient}'!")
                 self.load_individual_threshold_settings()
+                self.reset_individual_form()
             else:
                 QMessageBox.warning(self, "Lỗi", "❌ Không thể xóa ngưỡng!")
 
@@ -1360,6 +2092,7 @@ class ThresholdSettingsDialog(QDialog):
                 QMessageBox.information(self, "Thành công",
                                       "✅ Đã xóa tất cả ngưỡng riêng biệt!")
                 self.load_individual_threshold_settings()
+                self.reset_individual_form()
             else:
                 QMessageBox.warning(self, "Lỗi", "❌ Không thể xóa ngưỡng!")
 
