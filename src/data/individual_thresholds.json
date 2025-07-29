@@ -1,0 +1,14 @@
+{
+  "Nành": {
+    "critical_days": 5,
+    "warning_days": 10,
+    "critical_stock": 50,
+    "warning_stock": 200
+  },
+  "Amox": {
+    "critical_days": 7,
+    "warning_days": 14,
+    "critical_stock": 0.0,
+    "warning_stock": 100.0
+  }
+}

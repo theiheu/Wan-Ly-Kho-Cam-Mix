@@ -18,14 +18,18 @@ from PyQt5.QtGui import QFont, QColor, QCursor, QBrush
 try:
     from src.core.formula_manager import FormulaManager
     from src.core.inventory_manager import InventoryManager
+    from src.core.threshold_manager import ThresholdManager
     from src.utils.default_formulas import PACKAGING_INFO
     from src.utils.app_icon import create_app_icon
+    from src.ui.threshold_settings_dialog import ThresholdSettingsDialog
 except ImportError:
     # Nếu không import được từ src, thử import trực tiếp
     from core.formula_manager import FormulaManager
     from core.inventory_manager import InventoryManager
+    from core.threshold_manager import ThresholdManager
     from utils.default_formulas import PACKAGING_INFO
     from utils.app_icon import create_app_icon
+    from ui.threshold_settings_dialog import ThresholdSettingsDialog
 
 # Constants
 AREAS = 5  # Number of areas
@@ -378,6 +382,7 @@ class ChickenFarmApp(QMainWindow):
         # Initialize managers
         self.formula_manager = FormulaManager()
         self.inventory_manager = InventoryManager()
+        self.threshold_manager = ThresholdManager()
 
         # Get formulas and inventory data
         self.feed_formula = self.formula_manager.get_feed_formula()
@@ -584,12 +589,34 @@ class ChickenFarmApp(QMainWindow):
         exit_action = file_menu.addAction("Thoát")
         exit_action.triggered.connect(self.close)
 
+        # Settings menu
+        settings_menu = menu_bar.addMenu("Cài đặt")
+
+        # Unified threshold settings action
+        threshold_action = settings_menu.addAction("⚙️ Cài Đặt Ngưỡng Tồn Kho")
+        threshold_action.triggered.connect(self.open_unified_threshold_settings)
+
         # Help menu
         help_menu = menu_bar.addMenu("Trợ giúp")
 
         # About action
         about_action = help_menu.addAction("Giới thiệu")
         about_action.triggered.connect(self.show_about_dialog)
+
+    def open_unified_threshold_settings(self):
+        """Open unified threshold settings dialog"""
+        try:
+            dialog = ThresholdSettingsDialog(self)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh inventory displays to apply new thresholds
+                if hasattr(self, 'update_feed_inventory_table'):
+                    self.update_feed_inventory_table()
+                if hasattr(self, 'update_mix_inventory_table'):
+                    self.update_mix_inventory_table()
+
+                print("[INFO] Unified threshold settings updated, inventory displays refreshed")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở cài đặt ngưỡng tồn kho: {str(e)}")
 
     def show_about_dialog(self):
         """Show the about dialog"""
@@ -3441,7 +3468,7 @@ class ChickenFarmApp(QMainWindow):
             self.feed_inventory_table.setItem(i, 4, days_item)
 
             # Status column (column 5) with enhanced formatting
-            status_text, color_info = self.get_inventory_status_text(days)
+            status_text, color_info = self.get_inventory_status_text(days, inventory_amount, ingredient)
 
             # Add appropriate emoji and formatting
             if color_info == "red":
@@ -3550,7 +3577,7 @@ class ChickenFarmApp(QMainWindow):
             self.mix_inventory_table.setItem(i, 4, days_item)
 
             # Status column (column 5) with enhanced formatting
-            status_text, color_info = self.get_inventory_status_text(days)
+            status_text, color_info = self.get_inventory_status_text(days, inventory_amount, ingredient)
 
             # Add appropriate emoji and formatting
             if color_info == "red":
@@ -6763,19 +6790,13 @@ class ChickenFarmApp(QMainWindow):
 
         self.default_formula_loaded = True
 
-    def get_inventory_status_text(self, days_remaining):
+    def get_inventory_status_text(self, days_remaining, stock_amount=0, ingredient=None):
         """
-        Get Vietnamese status text based on days remaining
+        Get Vietnamese status text based on configurable thresholds
+        Uses individual thresholds if available for the ingredient
         Returns tuple of (status_text, color_info)
         """
-        if days_remaining == float('inf'):
-            return "Không có dữ liệu", "gray"
-        elif days_remaining > 14:
-            return "Đủ hàng", "green"
-        elif days_remaining >= 7:
-            return "Sắp hết", "yellow"
-        else:
-            return "Khẩn cấp", "red"
+        return self.threshold_manager.get_inventory_status(days_remaining, stock_amount, ingredient)
 
     # REMOVED: Summary cards methods - commented out for streamlined interface
     # def create_inventory_summary_cards(self, layout):
