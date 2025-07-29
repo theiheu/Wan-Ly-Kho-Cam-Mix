@@ -1177,35 +1177,51 @@ class ChickenFarmApp(QMainWindow):
             self.update_feed_table_display()
 
     def setup_inventory_tab(self):
-        """Setup the inventory management tab"""
+        """Setup the streamlined inventory management tab"""
         layout = QVBoxLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
-        # Create tabs for Feed and Mix inventory
+        # Add control panel (search and filter)
+        self.create_enhanced_control_panel(layout)
+
+        # Create enhanced tabs for Feed and Mix inventory
         inventory_tabs = QTabWidget()
-        inventory_tabs.setFont(DEFAULT_FONT)
+        inventory_tabs.setFont(QFont("Arial", 12, QFont.Medium))
         inventory_tabs.setStyleSheet("""
             QTabWidget::pane {
-                border: 1px solid #cccccc;
+                border: 2px solid #e0e0e0;
                 background: white;
+                border-radius: 8px;
+                margin-top: 5px;
             }
             QTabWidget::tab-bar {
-                left: 5px;
+                left: 10px;
             }
             QTabBar::tab {
-                background: #f0f0f0;
-                border: 1px solid #cccccc;
-                border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 8px 12px;
-                margin-right: 2px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #f8f9fa, stop:1 #e9ecef);
+                border: 2px solid #dee2e6;
+                border-bottom-color: #e0e0e0;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                padding: 12px 20px;
+                margin-right: 3px;
+                font-weight: bold;
+                min-width: 120px;
             }
             QTabBar::tab:selected {
-                background: #4CAF50;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4CAF50, stop:1 #45a049);
                 color: white;
+                border-bottom-color: white;
+            }
+            QTabBar::tab:hover:!selected {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #e8f5e9, stop:1 #c8e6c9);
             }
             QTabBar::tab:!selected {
-                margin-top: 2px;
+                margin-top: 3px;
             }
         """)
 
@@ -1226,19 +1242,58 @@ class ChickenFarmApp(QMainWindow):
         feed_layout.addWidget(feed_header)
 
         self.feed_inventory_table = QTableWidget()
-        self.feed_inventory_table.setFont(TABLE_CELL_FONT)
+        self.feed_inventory_table.setFont(QFont("Arial", 11))
         self.feed_inventory_table.setColumnCount(6)  # Added status column
-        self.feed_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao", "Còn lại (ngày)", "Tình trạng"])
-        self.feed_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.feed_inventory_table.setHorizontalHeaderLabels([
+            "🌾 Thành phần", "📊 Tồn kho (kg)", "📦 Kích thước bao (kg)",
+            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng"
+        ])
+        self.feed_inventory_table.horizontalHeader().setFont(QFont("Arial", 12, QFont.Bold))
 
-        # Set column resize modes - make the new columns fit content, others stretch
+        # Enhanced table styling
+        self.feed_inventory_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                selection-background-color: #e3f2fd;
+                alternate-background-color: #fafafa;
+                background-color: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+            }
+            QHeaderView::section {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4CAF50, stop:1 #45a049);
+                color: white;
+                padding: 12px 8px;
+                border: 1px solid #45a049;
+                font-weight: bold;
+                text-align: center;
+            }
+            QHeaderView::section:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #66BB6A, stop:1 #4CAF50);
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #1976d2;
+            }
+        """)
+
+        # Set column resize modes and enable sorting
         header = self.feed_inventory_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Ingredient name
-        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Stock
-        header.setSectionResizeMode(2, QHeaderView.Stretch)  # Bag size
-        header.setSectionResizeMode(3, QHeaderView.Stretch)  # Number of bags
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Stock
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Bag size
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Number of bags
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
+
+        self.feed_inventory_table.setSortingEnabled(True)
+        self.feed_inventory_table.setAlternatingRowColors(True)
         self.feed_inventory_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -1293,19 +1348,58 @@ class ChickenFarmApp(QMainWindow):
         mix_layout.addWidget(mix_header)
 
         self.mix_inventory_table = QTableWidget()
-        self.mix_inventory_table.setFont(TABLE_CELL_FONT)
+        self.mix_inventory_table.setFont(QFont("Arial", 11))
         self.mix_inventory_table.setColumnCount(6)  # Added status column
-        self.mix_inventory_table.setHorizontalHeaderLabels(["Thành phần", "Tồn kho (kg)", "Kích thước bao (kg)", "Số bao", "Còn lại (ngày)", "Tình trạng"])
-        self.mix_inventory_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.mix_inventory_table.setHorizontalHeaderLabels([
+            "🧪 Thành phần", "📊 Tồn kho (kg)", "📦 Kích thước bao (kg)",
+            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng"
+        ])
+        self.mix_inventory_table.horizontalHeader().setFont(QFont("Arial", 12, QFont.Bold))
 
-        # Set column resize modes - make the new columns fit content, others stretch
+        # Enhanced table styling
+        self.mix_inventory_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                selection-background-color: #e8f5e9;
+                alternate-background-color: #fafafa;
+                background-color: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+            }
+            QHeaderView::section {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #8BC34A, stop:1 #7CB342);
+                color: white;
+                padding: 12px 8px;
+                border: 1px solid #7CB342;
+                font-weight: bold;
+                text-align: center;
+            }
+            QHeaderView::section:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #9CCC65, stop:1 #8BC34A);
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QTableWidget::item:selected {
+                background-color: #e8f5e9;
+                color: #388e3c;
+            }
+        """)
+
+        # Set column resize modes and enable sorting
         header = self.mix_inventory_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Ingredient name
-        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Stock
-        header.setSectionResizeMode(2, QHeaderView.Stretch)  # Bag size
-        header.setSectionResizeMode(3, QHeaderView.Stretch)  # Number of bags
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # Stock
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Bag size
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Number of bags
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
+
+        self.mix_inventory_table.setSortingEnabled(True)
+        self.mix_inventory_table.setAlternatingRowColors(True)
         self.mix_inventory_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #aaa;
@@ -3297,9 +3391,10 @@ class ChickenFarmApp(QMainWindow):
             days_remaining = {}
 
         for i, ingredient in enumerate(feed_ingredients):
-            # Ingredient name
-            ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(TABLE_CELL_FONT)
+            # Ingredient name with icon
+            ingredient_item = QTableWidgetItem(f"🌾 {ingredient}")
+            ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
+            ingredient_item.setToolTip(f"Nguyên liệu: {ingredient}")
             self.feed_inventory_table.setItem(i, 0, ingredient_item)
 
             # Current inventory
@@ -3345,25 +3440,41 @@ class ChickenFarmApp(QMainWindow):
             days_item.setTextAlignment(Qt.AlignCenter)
             self.feed_inventory_table.setItem(i, 4, days_item)
 
-            # Status column (column 5)
+            # Status column (column 5) with enhanced formatting
             status_text, color_info = self.get_inventory_status_text(days)
-            status_item = QTableWidgetItem(status_text)
-            status_item.setFont(TABLE_CELL_FONT)
-            status_item.setTextAlignment(Qt.AlignCenter)
 
-            # Apply same color coding as days column
+            # Add appropriate emoji and formatting
+            if color_info == "red":
+                display_text = f"🔴 {status_text}"
+                tooltip_text = f"KHẨN CẤP: {ingredient} cần nhập hàng ngay lập tức!"
+            elif color_info == "yellow":
+                display_text = f"🟡 {status_text}"
+                tooltip_text = f"CẢNH BÁO: {ingredient} sắp hết, cần theo dõi và chuẩn bị nhập hàng"
+            elif color_info == "green":
+                display_text = f"🟢 {status_text}"
+                tooltip_text = f"ỔN ĐỊNH: {ingredient} có đủ tồn kho"
+            else:
+                display_text = f"⚪ {status_text}"
+                tooltip_text = f"CHƯA RÕ: Không có dữ liệu sử dụng cho {ingredient}"
+
+            status_item = QTableWidgetItem(display_text)
+            status_item.setFont(QFont("Arial", 11, QFont.Bold))
+            status_item.setTextAlignment(Qt.AlignCenter)
+            status_item.setToolTip(tooltip_text)
+
+            # Apply enhanced color coding
             if color_info == "gray":
-                status_item.setBackground(QColor("#f5f5f5"))  # Light gray
+                status_item.setBackground(QColor("#f8f9fa"))  # Light gray
                 status_item.setForeground(QColor("#6c757d"))  # Dark gray
             elif color_info == "green":
-                status_item.setBackground(QColor("#d4edda"))  # Light green
-                status_item.setForeground(QColor("#155724"))  # Dark green
+                status_item.setBackground(QColor("#d1f2eb"))  # Light green
+                status_item.setForeground(QColor("#0d5345"))  # Dark green
             elif color_info == "yellow":
-                status_item.setBackground(QColor("#fff3cd"))  # Light yellow
-                status_item.setForeground(QColor("#856404"))  # Dark yellow
+                status_item.setBackground(QColor("#fef9e7"))  # Light yellow
+                status_item.setForeground(QColor("#7d6608"))  # Dark yellow
             elif color_info == "red":
-                status_item.setBackground(QColor("#f8d7da"))  # Light red
-                status_item.setForeground(QColor("#721c24"))  # Dark red
+                status_item.setBackground(QColor("#fadbd8"))  # Light red
+                status_item.setForeground(QColor("#641e16"))  # Dark red
 
             self.feed_inventory_table.setItem(i, 5, status_item)
 
@@ -3389,9 +3500,10 @@ class ChickenFarmApp(QMainWindow):
             days_remaining = {}
 
         for i, ingredient in enumerate(mix_ingredients):
-            # Ingredient name
-            ingredient_item = QTableWidgetItem(ingredient)
-            ingredient_item.setFont(TABLE_CELL_FONT)
+            # Ingredient name with icon
+            ingredient_item = QTableWidgetItem(f"🧪 {ingredient}")
+            ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
+            ingredient_item.setToolTip(f"Nguyên liệu mix: {ingredient}")
             self.mix_inventory_table.setItem(i, 0, ingredient_item)
 
             # Current inventory
@@ -3437,25 +3549,41 @@ class ChickenFarmApp(QMainWindow):
             days_item.setTextAlignment(Qt.AlignCenter)
             self.mix_inventory_table.setItem(i, 4, days_item)
 
-            # Status column (column 5)
+            # Status column (column 5) with enhanced formatting
             status_text, color_info = self.get_inventory_status_text(days)
-            status_item = QTableWidgetItem(status_text)
-            status_item.setFont(TABLE_CELL_FONT)
-            status_item.setTextAlignment(Qt.AlignCenter)
 
-            # Apply same color coding as days column
+            # Add appropriate emoji and formatting
+            if color_info == "red":
+                display_text = f"🔴 {status_text}"
+                tooltip_text = f"KHẨN CẤP: {ingredient} cần nhập hàng ngay lập tức!"
+            elif color_info == "yellow":
+                display_text = f"🟡 {status_text}"
+                tooltip_text = f"CẢNH BÁO: {ingredient} sắp hết, cần theo dõi và chuẩn bị nhập hàng"
+            elif color_info == "green":
+                display_text = f"🟢 {status_text}"
+                tooltip_text = f"ỔN ĐỊNH: {ingredient} có đủ tồn kho"
+            else:
+                display_text = f"⚪ {status_text}"
+                tooltip_text = f"CHƯA RÕ: Không có dữ liệu sử dụng cho {ingredient}"
+
+            status_item = QTableWidgetItem(display_text)
+            status_item.setFont(QFont("Arial", 11, QFont.Bold))
+            status_item.setTextAlignment(Qt.AlignCenter)
+            status_item.setToolTip(tooltip_text)
+
+            # Apply enhanced color coding
             if color_info == "gray":
-                status_item.setBackground(QColor("#f5f5f5"))  # Light gray
+                status_item.setBackground(QColor("#f8f9fa"))  # Light gray
                 status_item.setForeground(QColor("#6c757d"))  # Dark gray
             elif color_info == "green":
-                status_item.setBackground(QColor("#d4edda"))  # Light green
-                status_item.setForeground(QColor("#155724"))  # Dark green
+                status_item.setBackground(QColor("#d1f2eb"))  # Light green
+                status_item.setForeground(QColor("#0d5345"))  # Dark green
             elif color_info == "yellow":
-                status_item.setBackground(QColor("#fff3cd"))  # Light yellow
-                status_item.setForeground(QColor("#856404"))  # Dark yellow
+                status_item.setBackground(QColor("#fef9e7"))  # Light yellow
+                status_item.setForeground(QColor("#7d6608"))  # Dark yellow
             elif color_info == "red":
-                status_item.setBackground(QColor("#f8d7da"))  # Light red
-                status_item.setForeground(QColor("#721c24"))  # Dark red
+                status_item.setBackground(QColor("#fadbd8"))  # Light red
+                status_item.setForeground(QColor("#641e16"))  # Dark red
 
             self.mix_inventory_table.setItem(i, 5, status_item)
 
@@ -6649,9 +6777,272 @@ class ChickenFarmApp(QMainWindow):
         else:
             return "Khẩn cấp", "red"
 
+    # REMOVED: Summary cards methods - commented out for streamlined interface
+    # def create_inventory_summary_cards(self, layout):
+    #     """Create summary cards showing inventory status overview"""
+    #     self.cards_frame = QWidget()
+    #     cards_layout = QHBoxLayout(self.cards_frame)
+    #     cards_layout.setSpacing(15)
+    #
+    #     # Initialize card references for updates
+    #     self.summary_cards = {}
+    #
+    #     # Create status cards with initial data
+    #     cards_data = [
+    #         ("🔴 Khẩn Cấp", "critical", "#ffebee", "#c62828", "Cần nhập hàng ngay"),
+    #         ("🟡 Sắp Hết", "warning", "#fff8e1", "#f57c00", "Cần theo dõi"),
+    #         ("🟢 Đủ Hàng", "good", "#e8f5e9", "#2e7d32", "Tồn kho ổn định"),
+    #         ("⚪ Chưa Rõ", "no_data", "#f5f5f5", "#6c757d", "Không có dữ liệu")
+    #     ]
+    #
+    #     for title, card_type, bg_color, text_color, description in cards_data:
+    #         card, count_label = self.create_status_card_with_reference(title, 0, bg_color, text_color, description)
+    #         self.summary_cards[card_type] = count_label  # Store reference to count label
+    #         cards_layout.addWidget(card)
+    #
+    #     layout.addWidget(self.cards_frame)
+    #
+    #     # Update cards with real data
+    #     self.update_summary_cards()
 
+    # def update_summary_cards(self):
+    #     """Update summary cards with current inventory status data"""
+    #     try:
+    #         # Get current inventory analysis
+    #         avg_daily_usage = self.inventory_manager.analyze_consumption_patterns(7)
+    #         days_remaining = self.inventory_manager.calculate_days_until_empty(avg_daily_usage)
+    #
+    #         # Count items by status
+    #         critical_count = sum(1 for days in days_remaining.values() if days < 7 and days != float('inf'))
+    #         warning_count = sum(1 for days in days_remaining.values() if 7 <= days <= 14)
+    #         good_count = sum(1 for days in days_remaining.values() if days > 14)
+    #         no_data_count = sum(1 for days in days_remaining.values() if days == float('inf'))
+    #
+    #         # Update card displays
+    #         if hasattr(self, 'summary_cards'):
+    #             self.summary_cards['critical'].setText(str(critical_count))
+    #             self.summary_cards['warning'].setText(str(warning_count))
+    #             self.summary_cards['good'].setText(str(good_count))
+    #             self.summary_cards['no_data'].setText(str(no_data_count))
+    #
+    #         print(f"[DEBUG] Summary cards updated: Critical={critical_count}, Warning={warning_count}, Good={good_count}, NoData={no_data_count}")
+    #
+    #     except Exception as e:
+    #         print(f"[ERROR] Failed to update summary cards: {e}")
+    #         # Set default values on error
+    #         if hasattr(self, 'summary_cards'):
+    #             for card_type in self.summary_cards:
+    #                 self.summary_cards[card_type].setText("0")
 
+    def create_status_card(self, title, count, bg_color, text_color, description):
+        """Create a single status card widget (legacy method)"""
+        card, _ = self.create_status_card_with_reference(title, count, bg_color, text_color, description)
+        return card
 
+    def create_status_card_with_reference(self, title, count, bg_color, text_color, description):
+        """Create a single status card widget and return both card and count label reference"""
+        card = QWidget()
+        card.setFixedHeight(120)
+        card.setStyleSheet(f"""
+            QWidget {{
+                background-color: {bg_color};
+                border: 2px solid {text_color};
+                border-radius: 12px;
+                padding: 15px;
+            }}
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setSpacing(5)
+
+        # Title
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Arial", 14, QFont.Bold))
+        title_label.setStyleSheet(f"color: {text_color}; border: none;")
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+
+        # Count (store reference for updates)
+        count_label = QLabel(str(count))
+        count_label.setFont(QFont("Arial", 24, QFont.Bold))
+        count_label.setStyleSheet(f"color: {text_color}; border: none;")
+        count_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(count_label)
+
+        # Description
+        desc_label = QLabel(description)
+        desc_label.setFont(QFont("Arial", 10))
+        desc_label.setStyleSheet(f"color: {text_color}; border: none;")
+        desc_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(desc_label)
+
+        return card, count_label
+
+    def create_enhanced_control_panel(self, layout):
+        """Create enhanced control panel with search and filter options"""
+        control_frame = QWidget()
+        control_frame.setStyleSheet("""
+            QWidget {
+                background-color: #f8f9fa;
+                border: 2px solid #dee2e6;
+                border-radius: 10px;
+                padding: 15px;
+            }
+        """)
+        control_layout = QHBoxLayout(control_frame)
+        control_layout.setSpacing(15)
+
+        # Search section
+        search_label = QLabel("🔍 Tìm kiếm:")
+        search_label.setFont(QFont("Arial", 11, QFont.Bold))
+        control_layout.addWidget(search_label)
+
+        self.inventory_search = QLineEdit()
+        self.inventory_search.setPlaceholderText("Nhập tên nguyên liệu...")
+        self.inventory_search.setFont(QFont("Arial", 11))
+        self.inventory_search.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                border: 2px solid #ced4da;
+                border-radius: 6px;
+                background: white;
+            }
+            QLineEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        self.inventory_search.textChanged.connect(self.filter_inventory_tables)
+        control_layout.addWidget(self.inventory_search)
+
+        # Filter section
+        filter_label = QLabel("📊 Lọc theo:")
+        filter_label.setFont(QFont("Arial", 11, QFont.Bold))
+        control_layout.addWidget(filter_label)
+
+        self.inventory_filter = QComboBox()
+        self.inventory_filter.addItems([
+            "Tất cả", "🔴 Khẩn cấp", "🟡 Sắp hết", "🟢 Đủ hàng", "⚪ Chưa rõ"
+        ])
+        self.inventory_filter.setFont(QFont("Arial", 11))
+        self.inventory_filter.setStyleSheet("""
+            QComboBox {
+                padding: 8px 12px;
+                border: 2px solid #ced4da;
+                border-radius: 6px;
+                background: white;
+                min-width: 120px;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666;
+            }
+        """)
+        self.inventory_filter.currentTextChanged.connect(self.filter_inventory_tables)
+        control_layout.addWidget(self.inventory_filter)
+
+        control_layout.addStretch()
+
+        # Action buttons
+        refresh_btn = QPushButton("🔄 Làm mới")
+        refresh_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+            QPushButton:pressed {
+                background-color: #0f6674;
+            }
+        """)
+        refresh_btn.clicked.connect(self.refresh_inventory_analysis)
+        control_layout.addWidget(refresh_btn)
+
+        # Last updated label
+        self.last_updated_label = QLabel("Cập nhật lần cuối: Đang tải...")
+        self.last_updated_label.setFont(QFont("Arial", 10))
+        self.last_updated_label.setStyleSheet("color: #6c757d;")
+        control_layout.addWidget(self.last_updated_label)
+
+        layout.addWidget(control_frame)
+
+    def filter_inventory_tables(self):
+        """Filter inventory tables based on search text and status filter"""
+        search_text = self.inventory_search.text().lower()
+        filter_status = self.inventory_filter.currentText()
+
+        # Filter feed inventory table
+        self.filter_table(self.feed_inventory_table, search_text, filter_status)
+
+        # Filter mix inventory table
+        self.filter_table(self.mix_inventory_table, search_text, filter_status)
+
+    def filter_table(self, table, search_text, filter_status):
+        """Filter a specific table based on search and status criteria"""
+        for row in range(table.rowCount()):
+            show_row = True
+
+            # Check search text (ingredient name in column 0)
+            if search_text:
+                ingredient_item = table.item(row, 0)
+                if ingredient_item:
+                    ingredient_name = ingredient_item.text().lower()
+                    # Remove emoji from ingredient name for search
+                    ingredient_clean = ingredient_name.replace("🌾 ", "").replace("🧪 ", "")
+                    if search_text not in ingredient_clean:
+                        show_row = False
+
+            # Check status filter (status in column 5)
+            if show_row and filter_status != "Tất cả":
+                status_item = table.item(row, 5)
+                if status_item:
+                    status_text = status_item.text()
+
+                    # Map filter options to status text
+                    status_mapping = {
+                        "🔴 Khẩn cấp": "Khẩn cấp",
+                        "🟡 Sắp hết": "Sắp hết",
+                        "🟢 Đủ hàng": "Đủ hàng",
+                        "⚪ Chưa rõ": "Không có dữ liệu"
+                    }
+
+                    expected_status = status_mapping.get(filter_status, "")
+                    if expected_status and expected_status not in status_text:
+                        show_row = False
+
+            table.setRowHidden(row, not show_row)
+
+    def refresh_inventory_analysis(self):
+        """Refresh inventory analysis and update all components"""
+        try:
+            # Update timestamp
+            from datetime import datetime
+            current_time = datetime.now().strftime("%d/%m/%Y %H:%M")
+            self.last_updated_label.setText(f"Cập nhật lần cuối: {current_time}")
+
+            # Refresh inventory tables
+            self.update_feed_inventory_table()
+            self.update_mix_inventory_table()
+
+            print("[INFO] Inventory analysis refreshed successfully")
+
+        except Exception as e:
+            print(f"[ERROR] Failed to refresh inventory analysis: {e}")
 
     def refresh_formula_combo(self):
         """Refresh combo box công thức mặc định với các preset mới nhất"""
@@ -6952,30 +7343,41 @@ class ChickenFarmApp(QMainWindow):
                 print(f"Lỗi khi áp dụng công thức: {str(e)}")
 
     def auto_select_default_formula(self, value, combo):
-        """Tự động chọn công thức mặc định khi người dùng nhập số lượng mẻ"""
-        # Nếu đã chọn công thức rồi thì không thay đổi
-        if combo.currentText():
-            return
+        """Tự động áp dụng công thức mặc định khi người dùng nhập số lượng mẻ"""
+        # Lấy công thức mặc định hiện tại
+        default_formula = self.default_formula_combo.currentText()
 
-        # Nếu người dùng nhập giá trị > 0 và chưa chọn công thức, tự động chọn công thức mặc định
-        if value > 0:
-            default_formula = self.default_formula_combo.currentText()
-            if default_formula:
+        # Nếu người dùng nhập giá trị > 0 và có công thức mặc định
+        if value > 0 and default_formula:
+            # Luôn áp dụng công thức mặc định khi có giá trị được nhập
+            current_formula = combo.currentText()
+
+            # Chỉ cập nhật nếu công thức hiện tại khác với công thức mặc định
+            if current_formula != default_formula:
                 # Tạm ngắt kết nối sự kiện để tránh gọi lại nhiều lần
-                old_handlers = []
-                if combo.receivers(combo.currentTextChanged) > 0:
-                    old_handlers = [combo.currentTextChanged.disconnect() for _ in range(combo.receivers(combo.currentTextChanged))]
+                try:
+                    combo.currentTextChanged.disconnect()
+                except:
+                    pass  # Ignore if no connections exist
 
-                # Thiết lập công thức
+                # Thiết lập công thức mặc định
                 combo.setCurrentText(default_formula)
 
-                # Kết nối lại các sự kiện nếu có
-                for handler in old_handlers:
-                    if handler:
-                        combo.currentTextChanged.connect(handler)
+                # Kết nối lại sự kiện
+                try:
+                    combo.currentTextChanged.connect(lambda: self.update_feed_table_display())
+                except:
+                    pass  # Ignore if connection fails
+
+                print(f"[DEBUG] Auto-applied default formula '{default_formula}' for value {value}")
+
+        elif value == 0:
+            # Khi giá trị về 0, có thể giữ nguyên công thức hoặc xóa tùy theo yêu cầu
+            # Hiện tại giữ nguyên công thức để người dùng có thể nhập lại mà không mất công thức
+            pass
 
     def apply_default_formula(self):
-        """Áp dụng công thức cám mặc định cho tất cả các ô trong bảng khi thay đổi công thức mặc định"""
+        """Áp dụng công thức cám mặc định cho tất cả các ô có giá trị trong bảng khi thay đổi công thức mặc định"""
         default_formula = self.default_formula_combo.currentText()
         print(f"[DEBUG] apply_default_formula called with: '{default_formula}'")
 
@@ -6986,38 +7388,29 @@ class ChickenFarmApp(QMainWindow):
         else:
             print(f"[ERROR] Không thể lưu công thức mặc định: '{default_formula}'")
 
-        # Nếu không có công thức mặc định, chỉ lưu và không áp dụng
-        if not default_formula:
-            print("[INFO] Không có công thức mặc định để áp dụng")
-            return
-
         # Kiểm tra xem feed_table đã được tạo chưa
         if not hasattr(self, 'feed_table'):
             return
 
-        # Áp dụng cho tất cả các ô trong bảng
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if cell_widget and hasattr(cell_widget, 'formula_combo'):
-                    cell_widget.formula_combo.setCurrentText(default_formula)
+        # Nếu có công thức mặc định, áp dụng cho tất cả các ô có giá trị > 0
+        if default_formula:
+            cells_updated = 0
+            for col in range(self.feed_table.columnCount()):
+                for row in range(2, 2 + len(SHIFTS)):
+                    cell_widget = self.feed_table.cellWidget(row, col)
+                    if cell_widget and hasattr(cell_widget, 'formula_combo') and hasattr(cell_widget, 'spin_box'):
+                        # Chỉ áp dụng cho các ô có giá trị > 0
+                        if cell_widget.spin_box.value() > 0:
+                            cell_widget.formula_combo.setCurrentText(default_formula)
+                            cells_updated += 1
 
-        # Kiểm tra xem phương thức update_feed_table_display đã tồn tại chưa
-        if hasattr(self, 'update_feed_table_display'):
-            # Cập nhật hiển thị bảng
-            self.update_feed_table_display()
-        if not default_formula:
-            return
-
-        # Áp dụng cho tất cả các ô trong bảng
-        for col in range(self.feed_table.columnCount()):
-            for row in range(2, 2 + len(SHIFTS)):
-                cell_widget = self.feed_table.cellWidget(row, col)
-                if cell_widget and hasattr(cell_widget, 'formula_combo'):
-                    cell_widget.formula_combo.setCurrentText(default_formula)
+            print(f"[INFO] Đã áp dụng công thức mặc định '{default_formula}' cho {cells_updated} ô có giá trị")
+        else:
+            print("[INFO] Không có công thức mặc định để áp dụng")
 
         # Cập nhật hiển thị bảng
-        self.update_feed_table_display()
+        if hasattr(self, 'update_feed_table_display'):
+            self.update_feed_table_display()
 
 
 
