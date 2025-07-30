@@ -51,8 +51,3 @@ target/
 .vscode/
 *.swp
 *.swo
-
-# Project specific
-src/data/reports/
-*.png
-*.ico
