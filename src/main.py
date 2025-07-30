@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QMessageBox, QFileDialog, QSpinBox, QDoubleSpinBox, QInputDialog,
                             QGroupBox, QDialog, QRadioButton, QDateEdit, QScrollArea, QSizePolicy,
                             QMenu, QAction, QAbstractSpinBox, QAbstractItemView, QCalendarWidget,
-                            QCheckBox, QListWidget, QListWidgetItem, QTextEdit)
+                            QCheckBox, QListWidget, QListWidgetItem, QTextEdit, QFormLayout,
+                            QDialogButtonBox, QFrame)
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QFont, QColor, QCursor, QBrush
 
@@ -1274,10 +1275,10 @@ class ChickenFarmApp(QMainWindow):
 
         self.feed_inventory_table = QTableWidget()
         self.feed_inventory_table.setFont(QFont("Arial", 11))
-        self.feed_inventory_table.setColumnCount(6)  # Added status column
+        self.feed_inventory_table.setColumnCount(8)  # Added action columns
         self.feed_inventory_table.setHorizontalHeaderLabels([
             "🌾 Thành phần", "📊 Tồn kho (kg)", "📦 Kích thước bao (kg)",
-            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng"
+            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng", "✏️ Sửa", "🗑️ Xóa"
         ])
         self.feed_inventory_table.horizontalHeader().setFont(QFont("Arial", 12, QFont.Bold))
 
@@ -1322,6 +1323,10 @@ class ChickenFarmApp(QMainWindow):
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Number of bags
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
+        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Edit button
+        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Delete button
+        self.feed_inventory_table.setColumnWidth(6, 80)  # Edit button width
+        self.feed_inventory_table.setColumnWidth(7, 80)  # Delete button width
 
         self.feed_inventory_table.setSortingEnabled(True)
         self.feed_inventory_table.setAlternatingRowColors(True)
@@ -1380,10 +1385,10 @@ class ChickenFarmApp(QMainWindow):
 
         self.mix_inventory_table = QTableWidget()
         self.mix_inventory_table.setFont(QFont("Arial", 11))
-        self.mix_inventory_table.setColumnCount(6)  # Added status column
+        self.mix_inventory_table.setColumnCount(8)  # Added action columns
         self.mix_inventory_table.setHorizontalHeaderLabels([
             "🧪 Thành phần", "📊 Tồn kho (kg)", "📦 Kích thước bao (kg)",
-            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng"
+            "🔢 Số bao", "⏰ Còn lại (ngày)", "🚦 Tình trạng", "✏️ Sửa", "🗑️ Xóa"
         ])
         self.mix_inventory_table.horizontalHeader().setFont(QFont("Arial", 12, QFont.Bold))
 
@@ -1428,6 +1433,10 @@ class ChickenFarmApp(QMainWindow):
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Number of bags
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Days remaining
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Status
+        header.setSectionResizeMode(6, QHeaderView.Fixed)  # Edit button
+        header.setSectionResizeMode(7, QHeaderView.Fixed)  # Delete button
+        self.mix_inventory_table.setColumnWidth(6, 80)  # Edit button width
+        self.mix_inventory_table.setColumnWidth(7, 80)  # Delete button width
 
         self.mix_inventory_table.setSortingEnabled(True)
         self.mix_inventory_table.setAlternatingRowColors(True)
@@ -3509,9 +3518,23 @@ class ChickenFarmApp(QMainWindow):
 
             self.feed_inventory_table.setItem(i, 5, status_item)
 
+            # Edit button (column 6)
+            edit_button = self.create_action_button(
+                "✏️", "#2196F3",
+                lambda checked, name=ingredient: self.open_edit_item_dialog(name, "feed")
+            )
+            self.feed_inventory_table.setCellWidget(i, 6, edit_button)
+
+            # Delete button (column 7)
+            delete_button = self.create_action_button(
+                "🗑️", "#F44336",
+                lambda checked, name=ingredient: self.open_delete_item_dialog(name, "feed")
+            )
+            self.feed_inventory_table.setCellWidget(i, 7, delete_button)
+
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.feed_inventory_table.rowCount()):
-            self.feed_inventory_table.setRowHeight(row, 40)
+            self.feed_inventory_table.setRowHeight(row, 45)  # Increased for buttons
 
     def update_mix_inventory_table(self):
         """Update the mix inventory table with days until empty analysis"""
@@ -3618,9 +3641,23 @@ class ChickenFarmApp(QMainWindow):
 
             self.mix_inventory_table.setItem(i, 5, status_item)
 
+            # Edit button (column 6)
+            edit_button = self.create_action_button(
+                "✏️", "#2196F3",
+                lambda checked, name=ingredient: self.open_edit_item_dialog(name, "mix")
+            )
+            self.mix_inventory_table.setCellWidget(i, 6, edit_button)
+
+            # Delete button (column 7)
+            delete_button = self.create_action_button(
+                "🗑️", "#F44336",
+                lambda checked, name=ingredient: self.open_delete_item_dialog(name, "mix")
+            )
+            self.mix_inventory_table.setCellWidget(i, 7, delete_button)
+
         # Tăng chiều cao của các hàng để dễ nhìn hơn
         for row in range(self.mix_inventory_table.rowCount()):
-            self.mix_inventory_table.setRowHeight(row, 40)
+            self.mix_inventory_table.setRowHeight(row, 45)  # Increased for buttons
 
     def calculate_feed_usage(self):
         """Calculate feed usage based on input values"""
@@ -5514,23 +5551,18 @@ class ChickenFarmApp(QMainWindow):
                                             # Ưu tiên sử dụng từ manager nếu combo chưa được update
                                             default_formula = default_formula_from_combo if default_formula_from_combo else default_formula_from_manager
 
-                                            print(f"[DEBUG] Data loading - Formula: '{formula}', Default (combo): '{default_formula_from_combo}', Default (manager): '{default_formula_from_manager}', Using: '{default_formula}'")
-
                                             # Chỉ hiển thị label nếu công thức KHÁC với công thức mặc định
                                             if formula and formula != default_formula:
                                                 cell_widget.formula_label.setText(formula)
                                                 cell_widget.formula_label.setVisible(True)
                                                 cell_widget.layout().setStretch(0, 60)
                                                 cell_widget.layout().setStretch(1, 40)
-                                                print(f"[DEBUG] Showing formula label: '{formula}' (different from default)")
                                             else:
                                                 # Ẩn label cho công thức mặc định hoặc công thức trống
                                                 cell_widget.formula_label.setText("")
                                                 cell_widget.formula_label.setVisible(False)
                                                 cell_widget.layout().setStretch(0, 100)
                                                 cell_widget.layout().setStretch(1, 0)
-                                                print(f"[DEBUG] Hiding formula label: '{formula}' (same as default or empty)")
-
                     col_index += 1
 
             # Cập nhật hiển thị toàn bộ bảng sau khi điền dữ liệu
@@ -7006,6 +7038,51 @@ class ChickenFarmApp(QMainWindow):
         control_layout.addStretch()
 
         # Action buttons
+        # Add New Feed Item button
+        add_feed_btn = QPushButton("➕ Thêm Cám Mới")
+        add_feed_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        add_feed_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45A049;
+            }
+            QPushButton:pressed {
+                background-color: #3D8B40;
+            }
+        """)
+        add_feed_btn.clicked.connect(lambda: self.open_add_item_dialog("feed"))
+        control_layout.addWidget(add_feed_btn)
+
+        # Add New Mix Item button
+        add_mix_btn = QPushButton("➕ Thêm Mix Mới")
+        add_mix_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        add_mix_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #8BC34A;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #7CB342;
+            }
+            QPushButton:pressed {
+                background-color: #689F38;
+            }
+        """)
+        add_mix_btn.clicked.connect(lambda: self.open_add_item_dialog("mix"))
+        control_layout.addWidget(add_mix_btn)
+
+        # Refresh button
         refresh_btn = QPushButton("🔄 Làm mới")
         refresh_btn.setFont(QFont("Arial", 11, QFont.Bold))
         refresh_btn.setStyleSheet("""
@@ -7027,6 +7104,28 @@ class ChickenFarmApp(QMainWindow):
         refresh_btn.clicked.connect(self.refresh_inventory_analysis)
         control_layout.addWidget(refresh_btn)
 
+        # Bulk operations button
+        bulk_ops_btn = QPushButton("📋 Thao Tác Hàng Loạt")
+        bulk_ops_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        bulk_ops_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+            QPushButton:pressed {
+                background-color: #E65100;
+            }
+        """)
+        bulk_ops_btn.clicked.connect(self.open_bulk_operations_dialog)
+        control_layout.addWidget(bulk_ops_btn)
+
         # Last updated label
         self.last_updated_label = QLabel("Cập nhật lần cuối: Đang tải...")
         self.last_updated_label.setFont(QFont("Arial", 10))
@@ -7034,6 +7133,122 @@ class ChickenFarmApp(QMainWindow):
         control_layout.addWidget(self.last_updated_label)
 
         layout.addWidget(control_frame)
+
+    def open_add_item_dialog(self, item_type):
+        """Open the add new item dialog"""
+        try:
+            dialog = AddInventoryItemDialog(self, item_type)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh inventory displays after successful addition
+                self.update_feed_inventory_table()
+                self.update_mix_inventory_table()
+
+                # Refresh analysis if available
+                if hasattr(self, 'refresh_inventory_analysis'):
+                    self.refresh_inventory_analysis()
+
+                print(f"[INFO] New {item_type} item added successfully")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở dialog thêm mặt hàng: {str(e)}")
+
+    def open_edit_item_dialog(self, item_name, item_type):
+        """Open the edit item dialog"""
+        try:
+            dialog = EditInventoryItemDialog(self, item_name, item_type)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh inventory displays after successful edit
+                self.update_feed_inventory_table()
+                self.update_mix_inventory_table()
+
+                # Refresh analysis if available
+                if hasattr(self, 'refresh_inventory_analysis'):
+                    self.refresh_inventory_analysis()
+
+                print(f"[INFO] Item '{item_name}' edited successfully")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở dialog chỉnh sửa: {str(e)}")
+
+    def open_delete_item_dialog(self, item_name, item_type):
+        """Open the delete item dialog"""
+        try:
+            dialog = DeleteInventoryItemDialog(self, item_name, item_type)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh inventory displays after successful deletion
+                self.update_feed_inventory_table()
+                self.update_mix_inventory_table()
+
+                # Refresh analysis if available
+                if hasattr(self, 'refresh_inventory_analysis'):
+                    self.refresh_inventory_analysis()
+
+                print(f"[INFO] Item '{item_name}' deleted successfully")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở dialog xóa: {str(e)}")
+
+    def create_action_button(self, text, color, callback):
+        """Create a styled action button for inventory table"""
+        button = QPushButton(text)
+        button.setFont(QFont("Arial", 10, QFont.Bold))
+        button.setMinimumHeight(30)
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {color};
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {self.darken_color(color)};
+            }}
+            QPushButton:pressed {{
+                background-color: {self.darken_color(color, 0.8)};
+            }}
+        """)
+        button.clicked.connect(callback)
+        return button
+
+    def darken_color(self, color, factor=0.9):
+        """Darken a hex color by a factor"""
+        # Simple color darkening - remove # and convert to RGB
+        if color.startswith('#'):
+            color = color[1:]
+
+        # Convert hex to RGB
+        r = int(color[0:2], 16)
+        g = int(color[2:4], 16)
+        b = int(color[4:6], 16)
+
+        # Darken by factor
+        r = int(r * factor)
+        g = int(g * factor)
+        b = int(b * factor)
+
+        # Convert back to hex
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def open_bulk_operations_dialog(self):
+        """Open bulk operations dialog"""
+        try:
+            # Determine which tab is currently active
+            current_tab = self.tabs.currentWidget()
+            if current_tab == self.inventory_tab:
+                # Check which inventory tab is active
+                inventory_tabs = current_tab.findChild(QTabWidget)
+                if inventory_tabs:
+                    current_inventory_tab = inventory_tabs.currentIndex()
+                    item_type = "feed" if current_inventory_tab == 0 else "mix"
+                else:
+                    item_type = "feed"  # Default
+            else:
+                item_type = "feed"  # Default
+
+            dialog = BulkOperationsDialog(self, item_type)
+            dialog.exec_()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở dialog thao tác hàng loạt: {str(e)}")
 
     def filter_inventory_tables(self):
         """Filter inventory tables based on search text and status filter"""
@@ -11579,7 +11794,2015 @@ class ChickenFarmApp(QMainWindow):
             print(f"Error populating leave type combo: {str(e)}")
 
 
+class EditInventoryItemDialog(QDialog):
+    """Dialog for editing existing inventory items"""
+
+    def __init__(self, parent=None, item_name="", item_type="feed"):
+        super().__init__(parent)
+        self.item_name = item_name
+        self.item_type = item_type  # "feed" or "mix"
+        self.parent_app = parent
+        self.original_data = {}
+        self.init_ui()
+        self.load_item_data()
+
+    def init_ui(self):
+        """Initialize the dialog UI"""
+        self.setWindowTitle(f"Chỉnh Sửa Mặt Hàng - {self.item_name}")
+        self.setModal(True)
+
+        # Set responsive dialog size
+        if hasattr(self.parent_app, 'get_responsive_dialog_size'):
+            width, height = self.parent_app.get_responsive_dialog_size()
+            self.resize(min(650, width), min(550, height))
+        else:
+            self.resize(650, 550)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header
+        header = QLabel(f"Chỉnh Sửa Mặt Hàng: {self.item_name}")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #1976D2;
+                padding: 15px;
+                background-color: #E3F2FD;
+                border-radius: 8px;
+                border: 2px solid #2196F3;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Form container
+        form_frame = QFrame()
+        form_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        form_layout = QFormLayout()
+        form_layout.setSpacing(15)
+        form_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Item name field (editable but with warning)
+        self.name_input = QLineEdit()
+        self.name_input.setFont(QFont("Arial", 12))
+        self.name_input.setPlaceholderText("Tên mặt hàng...")
+        self.name_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #2196F3;
+            }
+        """)
+        name_label = QLabel("Tên mặt hàng: *")
+        name_label.setFont(QFont("Arial", 12, QFont.Bold))
+        name_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(name_label, self.name_input)
+
+        # Warning about name change
+        name_warning = QLabel("⚠️ Thay đổi tên có thể ảnh hưởng đến công thức và báo cáo hiện có")
+        name_warning.setFont(QFont("Arial", 10))
+        name_warning.setStyleSheet("color: #FF9800; margin-bottom: 10px;")
+        form_layout.addRow("", name_warning)
+
+        # Current quantity field (read-only, for reference)
+        self.current_quantity_label = QLabel()
+        self.current_quantity_label.setFont(QFont("Arial", 12))
+        self.current_quantity_label.setStyleSheet("""
+            QLabel {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                background-color: #F5F5F5;
+                color: #666666;
+            }
+        """)
+        current_qty_label = QLabel("Số lượng hiện tại:")
+        current_qty_label.setFont(QFont("Arial", 12, QFont.Bold))
+        current_qty_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(current_qty_label, self.current_quantity_label)
+
+        # New quantity field (for adjustment)
+        self.quantity_input = QDoubleSpinBox()
+        self.quantity_input.setFont(QFont("Arial", 12))
+        self.quantity_input.setRange(0, 999999)
+        self.quantity_input.setDecimals(2)
+        self.quantity_input.setSuffix(" kg")
+        self.quantity_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #2196F3;
+            }
+        """)
+        quantity_label = QLabel("Số lượng mới: *")
+        quantity_label.setFont(QFont("Arial", 12, QFont.Bold))
+        quantity_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(quantity_label, self.quantity_input)
+
+        # Bag size field
+        self.bag_size_input = QSpinBox()
+        self.bag_size_input.setFont(QFont("Arial", 12))
+        self.bag_size_input.setRange(1, 1000)
+        self.bag_size_input.setSuffix(" kg/bao")
+        self.bag_size_input.setStyleSheet("""
+            QSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QSpinBox:focus {
+                border-color: #2196F3;
+            }
+        """)
+        bag_size_label = QLabel("Kích thước bao: *")
+        bag_size_label.setFont(QFont("Arial", 12, QFont.Bold))
+        bag_size_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(bag_size_label, self.bag_size_input)
+
+        form_frame.setLayout(form_layout)
+        layout.addWidget(form_frame)
+
+        # Error message label
+        self.error_label = QLabel()
+        self.error_label.setFont(QFont("Arial", 11))
+        self.error_label.setStyleSheet("""
+            QLabel {
+                color: #D32F2F;
+                background-color: #FFEBEE;
+                border: 1px solid #FFCDD2;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
+        self.error_label.setVisible(False)
+        layout.addWidget(self.error_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # Cancel button
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+            }
+        """)
+        cancel_button.clicked.connect(self.reject)
+
+        # Save button
+        self.save_button = QPushButton("Lưu Thay Đổi")
+        self.save_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.save_button.setMinimumHeight(40)
+        self.save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #1565C0;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.save_button.clicked.connect(self.validate_and_save_changes)
+
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.save_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+        # Connect validation to input changes
+        self.name_input.textChanged.connect(self.validate_form)
+        self.quantity_input.valueChanged.connect(self.validate_form)
+        self.bag_size_input.valueChanged.connect(self.validate_form)
+
+    def load_item_data(self):
+        """Load current item data from inventory"""
+        try:
+            if not self.parent_app or not hasattr(self.parent_app, 'inventory_manager'):
+                return
+
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            packaging_info = self.parent_app.inventory_manager.get_packaging_info()
+
+            if self.item_name in inventory:
+                current_quantity = inventory[self.item_name]
+                bag_size = packaging_info.get(self.item_name, 25)
+
+                # Store original data
+                self.original_data = {
+                    'name': self.item_name,
+                    'quantity': current_quantity,
+                    'bag_size': bag_size
+                }
+
+                # Populate form fields
+                self.name_input.setText(self.item_name)
+                self.current_quantity_label.setText(f"{current_quantity:,.2f} kg")
+                self.quantity_input.setValue(current_quantity)
+                self.bag_size_input.setValue(bag_size)
+
+                # Initial validation
+                self.validate_form()
+
+        except Exception as e:
+            print(f"Error loading item data: {e}")
+            self.show_error(f"Không thể tải dữ liệu mặt hàng: {str(e)}")
+
+    def validate_form(self):
+        """Validate form inputs and enable/disable save button"""
+        is_valid = True
+        error_messages = []
+
+        # Check required fields
+        if not self.name_input.text().strip():
+            is_valid = False
+            error_messages.append("Tên mặt hàng không được để trống")
+
+        if self.quantity_input.value() < 0:
+            is_valid = False
+            error_messages.append("Số lượng phải >= 0")
+
+        if self.bag_size_input.value() <= 0:
+            is_valid = False
+            error_messages.append("Kích thước bao phải > 0")
+
+        # Check for name conflicts (if name changed)
+        new_name = self.name_input.text().strip()
+        if new_name != self.original_data.get('name', '') and self.parent_app:
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            if new_name in inventory:
+                is_valid = False
+                error_messages.append("Tên mặt hàng đã tồn tại trong kho")
+
+        # Update UI based on validation
+        self.save_button.setEnabled(is_valid)
+
+        if error_messages:
+            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setVisible(True)
+        else:
+            self.error_label.setVisible(False)
+
+        return is_valid
+
+    def validate_and_save_changes(self):
+        """Validate form and save changes"""
+        if not self.validate_form():
+            return
+
+        # Show loading state
+        self.show_loading_state(True)
+
+        try:
+            # Get form data
+            new_data = {
+                'name': self.name_input.text().strip(),
+                'quantity': self.quantity_input.value(),
+                'bag_size': self.bag_size_input.value()
+            }
+
+            # Check what changed
+            changes = self.get_changes(new_data)
+            if not changes:
+                QMessageBox.information(self, "Thông báo", "Không có thay đổi nào để lưu.")
+                self.reject()
+                return
+
+            # Confirm changes with user
+            if not self.confirm_changes(changes):
+                return
+
+            # Apply changes
+            success = self.apply_changes(new_data, changes)
+
+            if success:
+                self.show_success_message(new_data['name'], changes)
+                self.accept()
+            else:
+                self.show_error_with_retry("Không thể lưu thay đổi. Vui lòng thử lại.")
+
+        except Exception as e:
+            error_msg = f"Lỗi khi lưu thay đổi: {str(e)}"
+            print(error_msg)  # Log for debugging
+            self.show_error_with_retry(error_msg)
+        finally:
+            # Hide loading state
+            self.show_loading_state(False)
+
+    def get_changes(self, new_data):
+        """Get list of changes made"""
+        changes = []
+
+        if new_data['name'] != self.original_data['name']:
+            changes.append(f"Tên: '{self.original_data['name']}' → '{new_data['name']}'")
+
+        if new_data['quantity'] != self.original_data['quantity']:
+            changes.append(f"Số lượng: {self.original_data['quantity']:,.2f} kg → {new_data['quantity']:,.2f} kg")
+
+        if new_data['bag_size'] != self.original_data['bag_size']:
+            changes.append(f"Kích thước bao: {self.original_data['bag_size']} kg/bao → {new_data['bag_size']} kg/bao")
+
+        return changes
+
+    def confirm_changes(self, changes):
+        """Show confirmation dialog for changes"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Question)
+        msg.setWindowTitle("Xác nhận thay đổi")
+        msg.setText("Bạn có chắc chắn muốn lưu các thay đổi sau?")
+        msg.setInformativeText("\n".join(changes))
+
+        save_btn = msg.addButton("Lưu thay đổi", QMessageBox.AcceptRole)
+        cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
+
+        msg.exec_()
+        return msg.clickedButton() == save_btn
+
+    def apply_changes(self, new_data, changes):
+        """Apply the changes to inventory"""
+        try:
+            inventory_manager = self.parent_app.inventory_manager
+
+            # Handle name change (most complex case)
+            if new_data['name'] != self.original_data['name']:
+                # Remove old item
+                inventory_manager.remove_item(self.original_data['name'])
+                # Add new item with new name
+                success = inventory_manager.add_new_item(
+                    new_data['name'],
+                    new_data['quantity'],
+                    new_data['bag_size']
+                )
+                if not success:
+                    # Rollback: restore original item
+                    inventory_manager.add_new_item(
+                        self.original_data['name'],
+                        self.original_data['quantity'],
+                        self.original_data['bag_size']
+                    )
+                    return False
+            else:
+                # Update existing item
+                inventory_manager.update_inventory(self.original_data['name'], new_data['quantity'])
+
+                # Update packaging info if changed
+                if new_data['bag_size'] != self.original_data['bag_size']:
+                    packaging_info = inventory_manager.get_packaging_info()
+                    packaging_info[self.original_data['name']] = new_data['bag_size']
+                    inventory_manager.save_packaging_info()
+
+            return True
+
+        except Exception as e:
+            print(f"Error applying changes: {e}")
+            return False
+
+    def show_loading_state(self, loading):
+        """Show or hide loading state"""
+        if loading:
+            self.save_button.setEnabled(False)
+            self.save_button.setText("⏳ Đang lưu...")
+            self.save_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.save_button.setEnabled(True)
+            self.save_button.setText("Lưu Thay Đổi")
+            self.save_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2196F3;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #1976D2;
+                }
+                QPushButton:pressed {
+                    background-color: #1565C0;
+                }
+                QPushButton:disabled {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                }
+            """)
+
+    def show_success_message(self, item_name, changes):
+        """Show success message with details"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Thành công")
+        msg.setText(f"✅ Đã cập nhật mặt hàng thành công!")
+        msg.setInformativeText(f"Mặt hàng: {item_name}\n\nCác thay đổi:\n" + "\n".join(changes))
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def show_error_with_retry(self, message):
+        """Show error message with retry option"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Lỗi")
+        msg.setText("❌ Không thể lưu thay đổi")
+        msg.setInformativeText(message)
+        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa")
+
+        retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
+        cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
+
+        msg.exec_()
+
+        if msg.clickedButton() == retry_btn:
+            # Retry the operation
+            self.validate_and_save_changes()
+
+    def show_error(self, message):
+        """Show error message"""
+        self.error_label.setText(message)
+        self.error_label.setVisible(True)
+        QMessageBox.warning(self, "Lỗi", message)
+
+
+class DeleteInventoryItemDialog(QDialog):
+    """Dialog for confirming deletion of inventory items"""
+
+    def __init__(self, parent=None, item_name="", item_type="feed"):
+        super().__init__(parent)
+        self.item_name = item_name
+        self.item_type = item_type
+        self.parent_app = parent
+        self.item_data = {}
+        self.init_ui()
+        self.load_item_info()
+
+    def init_ui(self):
+        """Initialize the dialog UI"""
+        self.setWindowTitle(f"Xóa Mặt Hàng - {self.item_name}")
+        self.setModal(True)
+        self.resize(500, 400)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Warning header
+        header = QLabel("⚠️ XÁC NHẬN XÓA MẶT HÀNG")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #D32F2F;
+                padding: 15px;
+                background-color: #FFEBEE;
+                border-radius: 8px;
+                border: 2px solid #F44336;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Warning message
+        warning_text = QLabel(
+            f"Bạn có chắc chắn muốn xóa mặt hàng <b>'{self.item_name}'</b> khỏi kho?\n\n"
+            "⚠️ <b>CẢNH BÁO:</b> Hành động này không thể hoàn tác!\n\n"
+            "Việc xóa mặt hàng sẽ:\n"
+            "• Xóa hoàn toàn khỏi danh sách tồn kho\n"
+            "• Có thể ảnh hưởng đến các công thức đang sử dụng\n"
+            "• Có thể ảnh hưởng đến các báo cáo lịch sử"
+        )
+        warning_text.setFont(QFont("Arial", 12))
+        warning_text.setWordWrap(True)
+        warning_text.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                padding: 15px;
+                background-color: #FFF3E0;
+                border-radius: 6px;
+                border: 1px solid #FFB74D;
+                line-height: 1.4;
+            }
+        """)
+        layout.addWidget(warning_text)
+
+        # Item information display
+        self.info_frame = QFrame()
+        self.info_frame.setStyleSheet("""
+            QFrame {
+                background-color: #F5F5F5;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
+                padding: 15px;
+            }
+        """)
+        self.info_layout = QVBoxLayout(self.info_frame)
+        layout.addWidget(self.info_frame)
+
+        # Confirmation checkbox
+        self.confirm_checkbox = QCheckBox("Tôi hiểu rằng hành động này không thể hoàn tác")
+        self.confirm_checkbox.setFont(QFont("Arial", 12, QFont.Bold))
+        self.confirm_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #D32F2F;
+                padding: 10px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+            }
+            QCheckBox::indicator:unchecked {
+                border: 2px solid #D32F2F;
+                border-radius: 3px;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                border: 2px solid #D32F2F;
+                border-radius: 3px;
+                background-color: #D32F2F;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iOSIgdmlld0JveD0iMCAwIDEyIDkiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xIDQuNUw0LjUgOEwxMSAxIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K);
+            }
+        """)
+        self.confirm_checkbox.stateChanged.connect(self.update_delete_button_state)
+        layout.addWidget(self.confirm_checkbox)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # Cancel button
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+            }
+        """)
+        cancel_button.clicked.connect(self.reject)
+
+        # Delete button
+        self.delete_button = QPushButton("🗑️ XÓA MẶT HÀNG")
+        self.delete_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.delete_button.setMinimumHeight(40)
+        self.delete_button.setEnabled(False)  # Initially disabled
+        self.delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #F44336;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover:enabled {
+                background-color: #D32F2F;
+            }
+            QPushButton:pressed:enabled {
+                background-color: #C62828;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.delete_button.clicked.connect(self.confirm_and_delete)
+
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.delete_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def load_item_info(self):
+        """Load and display item information"""
+        try:
+            if not self.parent_app or not hasattr(self.parent_app, 'inventory_manager'):
+                return
+
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            packaging_info = self.parent_app.inventory_manager.get_packaging_info()
+
+            if self.item_name in inventory:
+                quantity = inventory[self.item_name]
+                bag_size = packaging_info.get(self.item_name, 0)
+                num_bags = quantity / bag_size if bag_size > 0 else 0
+
+                self.item_data = {
+                    'quantity': quantity,
+                    'bag_size': bag_size,
+                    'num_bags': num_bags
+                }
+
+                # Create info display
+                info_label = QLabel(f"""
+<b>Thông tin mặt hàng sẽ bị xóa:</b><br><br>
+<b>Tên:</b> {self.item_name}<br>
+<b>Loại kho:</b> {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}<br>
+<b>Số lượng hiện tại:</b> {quantity:,.2f} kg<br>
+<b>Kích thước bao:</b> {bag_size} kg/bao<br>
+<b>Số bao:</b> {num_bags:.2f} bao
+                """)
+                info_label.setFont(QFont("Arial", 11))
+                info_label.setWordWrap(True)
+                info_label.setStyleSheet("color: #333333; line-height: 1.4;")
+                self.info_layout.addWidget(info_label)
+
+        except Exception as e:
+            print(f"Error loading item info: {e}")
+            error_label = QLabel(f"Không thể tải thông tin mặt hàng: {str(e)}")
+            error_label.setStyleSheet("color: #D32F2F;")
+            self.info_layout.addWidget(error_label)
+
+    def update_delete_button_state(self):
+        """Enable/disable delete button based on checkbox state"""
+        self.delete_button.setEnabled(self.confirm_checkbox.isChecked())
+
+    def confirm_and_delete(self):
+        """Final confirmation and delete the item"""
+        # Show final confirmation
+        reply = QMessageBox.question(
+            self,
+            "XÁC NHẬN CUỐI CÙNG",
+            f"Bạn có THỰC SỰ chắc chắn muốn xóa mặt hàng '{self.item_name}'?\n\n"
+            "Hành động này KHÔNG THỂ HOÀN TÁC!",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.delete_item()
+
+    def delete_item(self):
+        """Delete the inventory item"""
+        try:
+            # Show loading state
+            self.delete_button.setEnabled(False)
+            self.delete_button.setText("⏳ Đang xóa...")
+
+            # Perform deletion
+            success = self.parent_app.inventory_manager.remove_item(self.item_name)
+
+            if success:
+                # Update inventory displays
+                if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                    self.parent_app.update_feed_inventory_table()
+                if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                    self.parent_app.update_mix_inventory_table()
+
+                # Show success message
+                QMessageBox.information(
+                    self,
+                    "Thành công",
+                    f"✅ Đã xóa mặt hàng '{self.item_name}' thành công!"
+                )
+                self.accept()
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Lỗi",
+                    f"❌ Không thể xóa mặt hàng '{self.item_name}'. Vui lòng thử lại."
+                )
+                # Restore button state
+                self.delete_button.setEnabled(True)
+                self.delete_button.setText("🗑️ XÓA MẶT HÀNG")
+
+        except Exception as e:
+            error_msg = f"Lỗi khi xóa mặt hàng: {str(e)}"
+            print(error_msg)
+            QMessageBox.critical(self, "Lỗi", error_msg)
+            # Restore button state
+            self.delete_button.setEnabled(True)
+            self.delete_button.setText("🗑️ XÓA MẶT HÀNG")
+
+
+class BulkOperationsDialog(QDialog):
+    """Dialog for bulk operations on inventory items"""
+
+    def __init__(self, parent=None, item_type="feed"):
+        super().__init__(parent)
+        self.item_type = item_type
+        self.parent_app = parent
+        self.selected_items = []
+        self.init_ui()
+        self.load_items()
+
+    def init_ui(self):
+        """Initialize the dialog UI"""
+        self.setWindowTitle(f"Thao Tác Hàng Loạt - {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
+        self.setModal(True)
+        self.resize(800, 600)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header
+        header = QLabel(f"Thao Tác Hàng Loạt - {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #1976D2;
+                padding: 15px;
+                background-color: #E3F2FD;
+                border-radius: 8px;
+                border: 2px solid #2196F3;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Control panel
+        control_panel = QWidget()
+        control_layout = QHBoxLayout(control_panel)
+        control_layout.setSpacing(10)
+
+        # Search
+        search_label = QLabel("🔍 Tìm kiếm:")
+        search_label.setFont(QFont("Arial", 11, QFont.Bold))
+        control_layout.addWidget(search_label)
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Nhập tên mặt hàng...")
+        self.search_input.setFont(QFont("Arial", 11))
+        self.search_input.textChanged.connect(self.filter_items)
+        control_layout.addWidget(self.search_input)
+
+        # Select all/none buttons
+        select_all_btn = QPushButton("Chọn tất cả")
+        select_all_btn.clicked.connect(self.select_all_items)
+        control_layout.addWidget(select_all_btn)
+
+        select_none_btn = QPushButton("Bỏ chọn tất cả")
+        select_none_btn.clicked.connect(self.select_no_items)
+        control_layout.addWidget(select_none_btn)
+
+        control_layout.addStretch()
+        layout.addWidget(control_panel)
+
+        # Items table
+        self.items_table = QTableWidget()
+        self.items_table.setColumnCount(6)
+        self.items_table.setHorizontalHeaderLabels([
+            "☑️ Chọn", "📦 Tên mặt hàng", "📊 Số lượng (kg)",
+            "📏 Kích thước bao", "🔢 Số bao", "📝 Ghi chú"
+        ])
+
+        # Set column widths
+        header = self.items_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)  # Checkbox
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Name
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Quantity
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Bag size
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # Bags
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # Notes
+        self.items_table.setColumnWidth(0, 60)
+
+        self.items_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                selection-background-color: #e3f2fd;
+                alternate-background-color: #fafafa;
+                background-color: white;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+            }
+            QHeaderView::section {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2196F3, stop:1 #1976D2);
+                color: white;
+                padding: 12px 8px;
+                border: 1px solid #1976D2;
+                font-weight: bold;
+            }
+        """)
+        self.items_table.setAlternatingRowColors(True)
+        layout.addWidget(self.items_table)
+
+        # Selected items info
+        self.info_label = QLabel("Chưa chọn mặt hàng nào")
+        self.info_label.setFont(QFont("Arial", 11))
+        self.info_label.setStyleSheet("""
+            QLabel {
+                padding: 10px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                color: #495057;
+            }
+        """)
+        layout.addWidget(self.info_label)
+
+        # Action buttons
+        action_layout = QHBoxLayout()
+        action_layout.setSpacing(10)
+
+        # Bulk edit button
+        self.bulk_edit_btn = QPushButton("📝 Chỉnh Sửa Hàng Loạt")
+        self.bulk_edit_btn.setFont(QFont("Arial", 12, QFont.Bold))
+        self.bulk_edit_btn.setMinimumHeight(40)
+        self.bulk_edit_btn.setEnabled(False)
+        self.bulk_edit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover:enabled {
+                background-color: #1976D2;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.bulk_edit_btn.clicked.connect(self.open_bulk_edit_dialog)
+        action_layout.addWidget(self.bulk_edit_btn)
+
+        # Bulk delete button
+        self.bulk_delete_btn = QPushButton("🗑️ Xóa Hàng Loạt")
+        self.bulk_delete_btn.setFont(QFont("Arial", 12, QFont.Bold))
+        self.bulk_delete_btn.setMinimumHeight(40)
+        self.bulk_delete_btn.setEnabled(False)
+        self.bulk_delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #F44336;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover:enabled {
+                background-color: #D32F2F;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.bulk_delete_btn.clicked.connect(self.confirm_bulk_delete)
+        action_layout.addWidget(self.bulk_delete_btn)
+
+        action_layout.addStretch()
+
+        # Close button
+        close_btn = QPushButton("Đóng")
+        close_btn.setFont(QFont("Arial", 12, QFont.Bold))
+        close_btn.setMinimumHeight(40)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+        """)
+        close_btn.clicked.connect(self.accept)
+        action_layout.addWidget(close_btn)
+
+        layout.addLayout(action_layout)
+        self.setLayout(layout)
+
+    def load_items(self):
+        """Load inventory items into the table"""
+        try:
+            if not self.parent_app or not hasattr(self.parent_app, 'inventory_manager'):
+                return
+
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            packaging_info = self.parent_app.inventory_manager.get_packaging_info()
+
+            # Filter items based on type (feed vs mix)
+            if self.item_type == "feed":
+                # Get feed ingredients from formula
+                feed_formula = getattr(self.parent_app, 'feed_formula', {})
+                relevant_items = {k: v for k, v in inventory.items() if k in feed_formula}
+            else:
+                # Get mix ingredients from formula
+                mix_formula = getattr(self.parent_app, 'mix_formula', {})
+                relevant_items = {k: v for k, v in inventory.items() if k in mix_formula}
+
+            self.items_table.setRowCount(len(relevant_items))
+
+            for i, (item_name, quantity) in enumerate(relevant_items.items()):
+                # Checkbox
+                checkbox = QCheckBox()
+                checkbox.stateChanged.connect(self.update_selection)
+                self.items_table.setCellWidget(i, 0, checkbox)
+
+                # Item name
+                name_item = QTableWidgetItem(item_name)
+                name_item.setFont(QFont("Arial", 11))
+                self.items_table.setItem(i, 1, name_item)
+
+                # Quantity
+                qty_item = QTableWidgetItem(f"{quantity:,.2f}")
+                qty_item.setFont(QFont("Arial", 11))
+                qty_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.items_table.setItem(i, 2, qty_item)
+
+                # Bag size
+                bag_size = packaging_info.get(item_name, 25)
+                bag_item = QTableWidgetItem(f"{bag_size}")
+                bag_item.setFont(QFont("Arial", 11))
+                bag_item.setTextAlignment(Qt.AlignCenter)
+                self.items_table.setItem(i, 3, bag_item)
+
+                # Number of bags
+                num_bags = quantity / bag_size if bag_size > 0 else 0
+                bags_item = QTableWidgetItem(f"{num_bags:.2f}")
+                bags_item.setFont(QFont("Arial", 11))
+                bags_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.items_table.setItem(i, 4, bags_item)
+
+                # Notes (empty for now)
+                notes_item = QTableWidgetItem("")
+                notes_item.setFont(QFont("Arial", 11))
+                self.items_table.setItem(i, 5, notes_item)
+
+                # Set row height
+                self.items_table.setRowHeight(i, 40)
+
+        except Exception as e:
+            print(f"Error loading items: {e}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể tải danh sách mặt hàng: {str(e)}")
+
+    def filter_items(self):
+        """Filter items based on search text"""
+        search_text = self.search_input.text().lower()
+
+        for row in range(self.items_table.rowCount()):
+            item_name = self.items_table.item(row, 1)
+            if item_name:
+                should_show = search_text in item_name.text().lower()
+                self.items_table.setRowHidden(row, not should_show)
+
+    def select_all_items(self):
+        """Select all visible items"""
+        for row in range(self.items_table.rowCount()):
+            if not self.items_table.isRowHidden(row):
+                checkbox = self.items_table.cellWidget(row, 0)
+                if checkbox:
+                    checkbox.setChecked(True)
+
+    def select_no_items(self):
+        """Deselect all items"""
+        for row in range(self.items_table.rowCount()):
+            checkbox = self.items_table.cellWidget(row, 0)
+            if checkbox:
+                checkbox.setChecked(False)
+
+    def update_selection(self):
+        """Update selection info and button states"""
+        selected_items = []
+
+        for row in range(self.items_table.rowCount()):
+            checkbox = self.items_table.cellWidget(row, 0)
+            if checkbox and checkbox.isChecked():
+                item_name = self.items_table.item(row, 1)
+                if item_name:
+                    selected_items.append(item_name.text())
+
+        self.selected_items = selected_items
+        count = len(selected_items)
+
+        # Update info label
+        if count == 0:
+            self.info_label.setText("Chưa chọn mặt hàng nào")
+        elif count == 1:
+            self.info_label.setText(f"Đã chọn 1 mặt hàng: {selected_items[0]}")
+        else:
+            self.info_label.setText(f"Đã chọn {count} mặt hàng")
+
+        # Update button states
+        self.bulk_edit_btn.setEnabled(count > 0)
+        self.bulk_delete_btn.setEnabled(count > 0)
+
+    def open_bulk_edit_dialog(self):
+        """Open bulk edit dialog"""
+        if not self.selected_items:
+            return
+
+        try:
+            dialog = BulkEditDialog(self, self.selected_items, self.item_type)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh the items table
+                self.load_items()
+                # Refresh parent inventory tables
+                if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                    self.parent_app.update_feed_inventory_table()
+                if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                    self.parent_app.update_mix_inventory_table()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể mở dialog chỉnh sửa hàng loạt: {str(e)}")
+
+    def confirm_bulk_delete(self):
+        """Confirm and perform bulk delete"""
+        if not self.selected_items:
+            return
+
+        # Show confirmation dialog
+        reply = QMessageBox.question(
+            self,
+            "XÁC NHẬN XÓA HÀNG LOẠT",
+            f"Bạn có chắc chắn muốn xóa {len(self.selected_items)} mặt hàng đã chọn?\n\n"
+            f"Danh sách mặt hàng:\n" + "\n".join(f"• {item}" for item in self.selected_items[:10]) +
+            (f"\n... và {len(self.selected_items) - 10} mặt hàng khác" if len(self.selected_items) > 10 else "") +
+            "\n\nHành động này KHÔNG THỂ HOÀN TÁC!",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            self.perform_bulk_delete()
+
+    def perform_bulk_delete(self):
+        """Perform the bulk delete operation"""
+        try:
+            # Show progress
+            self.bulk_delete_btn.setEnabled(False)
+            self.bulk_delete_btn.setText("⏳ Đang xóa...")
+
+            # Perform bulk delete
+            success, errors = self.parent_app.inventory_manager.bulk_delete_items(self.selected_items)
+
+            if success:
+                QMessageBox.information(
+                    self,
+                    "Thành công",
+                    f"✅ Đã xóa thành công {len(self.selected_items)} mặt hàng!"
+                )
+
+                # Refresh displays
+                self.load_items()
+                if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                    self.parent_app.update_feed_inventory_table()
+                if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                    self.parent_app.update_mix_inventory_table()
+            else:
+                error_msg = "Có lỗi xảy ra khi xóa:\n" + "\n".join(errors)
+                QMessageBox.critical(self, "Lỗi", error_msg)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi không mong muốn: {str(e)}")
+        finally:
+            # Restore button
+            self.bulk_delete_btn.setEnabled(True)
+            self.bulk_delete_btn.setText("🗑️ Xóa Hàng Loạt")
+
+
+class BulkEditDialog(QDialog):
+    """Dialog for bulk editing inventory items"""
+
+    def __init__(self, parent=None, item_names=None, item_type="feed"):
+        super().__init__(parent)
+        self.item_names = item_names or []
+        self.item_type = item_type
+        self.parent_app = parent.parent_app if hasattr(parent, 'parent_app') else parent
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the dialog UI"""
+        self.setWindowTitle(f"Chỉnh Sửa Hàng Loạt - {len(self.item_names)} mặt hàng")
+        self.setModal(True)
+        self.resize(600, 400)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header
+        header = QLabel(f"Chỉnh Sửa Hàng Loạt - {len(self.item_names)} mặt hàng")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #1976D2;
+                padding: 15px;
+                background-color: #E3F2FD;
+                border-radius: 8px;
+                border: 2px solid #2196F3;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Items list
+        items_label = QLabel("Mặt hàng được chọn:")
+        items_label.setFont(QFont("Arial", 12, QFont.Bold))
+        layout.addWidget(items_label)
+
+        items_text = QTextEdit()
+        items_text.setMaximumHeight(100)
+        items_text.setPlainText("\n".join(f"• {item}" for item in self.item_names))
+        items_text.setReadOnly(True)
+        items_text.setStyleSheet("""
+            QTextEdit {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(items_text)
+
+        # Edit options
+        options_group = QGroupBox("Tùy chọn chỉnh sửa")
+        options_group.setFont(QFont("Arial", 12, QFont.Bold))
+        options_layout = QVBoxLayout(options_group)
+
+        # Quantity adjustment
+        qty_layout = QHBoxLayout()
+        self.qty_checkbox = QCheckBox("Điều chỉnh số lượng:")
+        self.qty_checkbox.setFont(QFont("Arial", 11))
+        qty_layout.addWidget(self.qty_checkbox)
+
+        self.qty_operation = QComboBox()
+        self.qty_operation.addItems(["Đặt thành", "Cộng thêm", "Trừ đi", "Nhân với", "Chia cho"])
+        self.qty_operation.setEnabled(False)
+        qty_layout.addWidget(self.qty_operation)
+
+        self.qty_value = QDoubleSpinBox()
+        self.qty_value.setRange(0, 999999)
+        self.qty_value.setDecimals(2)
+        self.qty_value.setSuffix(" kg")
+        self.qty_value.setEnabled(False)
+        qty_layout.addWidget(self.qty_value)
+
+        qty_layout.addStretch()
+        options_layout.addLayout(qty_layout)
+
+        # Bag size adjustment
+        bag_layout = QHBoxLayout()
+        self.bag_checkbox = QCheckBox("Đặt kích thước bao:")
+        self.bag_checkbox.setFont(QFont("Arial", 11))
+        bag_layout.addWidget(self.bag_checkbox)
+
+        self.bag_value = QSpinBox()
+        self.bag_value.setRange(1, 1000)
+        self.bag_value.setValue(25)
+        self.bag_value.setSuffix(" kg/bao")
+        self.bag_value.setEnabled(False)
+        bag_layout.addWidget(self.bag_value)
+
+        bag_layout.addStretch()
+        options_layout.addLayout(bag_layout)
+
+        layout.addWidget(options_group)
+
+        # Connect checkboxes to enable/disable controls
+        self.qty_checkbox.stateChanged.connect(self.toggle_qty_controls)
+        self.bag_checkbox.stateChanged.connect(self.toggle_bag_controls)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # Cancel button
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+        """)
+        cancel_button.clicked.connect(self.reject)
+
+        # Apply button
+        self.apply_button = QPushButton("Áp Dụng Thay Đổi")
+        self.apply_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.apply_button.setMinimumHeight(40)
+        self.apply_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.apply_button.clicked.connect(self.apply_changes)
+
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.apply_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+        # Initial state
+        self.update_apply_button()
+
+    def toggle_qty_controls(self, state):
+        """Enable/disable quantity controls"""
+        enabled = state == Qt.Checked
+        self.qty_operation.setEnabled(enabled)
+        self.qty_value.setEnabled(enabled)
+        self.update_apply_button()
+
+    def toggle_bag_controls(self, state):
+        """Enable/disable bag size controls"""
+        enabled = state == Qt.Checked
+        self.bag_value.setEnabled(enabled)
+        self.update_apply_button()
+
+    def update_apply_button(self):
+        """Update apply button state"""
+        has_changes = self.qty_checkbox.isChecked() or self.bag_checkbox.isChecked()
+        self.apply_button.setEnabled(has_changes)
+
+    def apply_changes(self):
+        """Apply bulk changes"""
+        try:
+            if not self.parent_app or not hasattr(self.parent_app, 'inventory_manager'):
+                QMessageBox.critical(self, "Lỗi", "Không thể truy cập inventory manager")
+                return
+
+            inventory_manager = self.parent_app.inventory_manager
+            inventory = inventory_manager.get_inventory()
+            packaging_info = inventory_manager.get_packaging_info()
+
+            updates = {}
+            packaging_updates = {}
+            changes_summary = []
+
+            # Process quantity changes
+            if self.qty_checkbox.isChecked():
+                operation = self.qty_operation.currentText()
+                value = self.qty_value.value()
+
+                for item_name in self.item_names:
+                    if item_name in inventory:
+                        current_qty = inventory[item_name]
+
+                        if operation == "Đặt thành":
+                            new_qty = value
+                        elif operation == "Cộng thêm":
+                            new_qty = current_qty + value
+                        elif operation == "Trừ đi":
+                            new_qty = max(0, current_qty - value)
+                        elif operation == "Nhân với":
+                            new_qty = current_qty * value
+                        elif operation == "Chia cho":
+                            new_qty = current_qty / value if value != 0 else current_qty
+                        else:
+                            new_qty = current_qty
+
+                        updates[item_name] = new_qty
+
+                changes_summary.append(f"Số lượng: {operation} {value}")
+
+            # Process bag size changes
+            if self.bag_checkbox.isChecked():
+                bag_size = self.bag_value.value()
+                for item_name in self.item_names:
+                    packaging_updates[item_name] = bag_size
+                changes_summary.append(f"Kích thước bao: {bag_size} kg/bao")
+
+            # Confirm changes
+            reply = QMessageBox.question(
+                self,
+                "Xác nhận thay đổi",
+                f"Áp dụng các thay đổi sau cho {len(self.item_names)} mặt hàng?\n\n" +
+                "\n".join(changes_summary) + "\n\nBạn có chắc chắn?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+
+            if reply == QMessageBox.Yes:
+                # Apply changes
+                success = True
+                errors = []
+
+                if updates:
+                    success, errors = inventory_manager.bulk_update_quantities(updates)
+
+                if success and packaging_updates:
+                    # Update packaging info
+                    for item_name, bag_size in packaging_updates.items():
+                        packaging_info[item_name] = bag_size
+                    inventory_manager.save_packaging_info()
+
+                if success:
+                    QMessageBox.information(
+                        self,
+                        "Thành công",
+                        f"✅ Đã cập nhật thành công {len(self.item_names)} mặt hàng!"
+                    )
+                    self.accept()
+                else:
+                    error_msg = "Có lỗi xảy ra:\n" + "\n".join(errors)
+                    QMessageBox.critical(self, "Lỗi", error_msg)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Lỗi không mong muốn: {str(e)}")
+
+class AddInventoryItemDialog(QDialog):
+    """Dialog for adding new inventory items"""
+
+    def __init__(self, parent=None, item_type="feed"):
+        super().__init__(parent)
+        self.item_type = item_type  # "feed" or "mix"
+        self.parent_app = parent
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the dialog UI"""
+        self.setWindowTitle(f"Thêm Mặt Hàng Mới - {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
+        self.setModal(True)
+
+        # Set responsive dialog size
+        if hasattr(self.parent_app, 'get_responsive_dialog_size'):
+            width, height = self.parent_app.get_responsive_dialog_size()
+            self.resize(min(600, width), min(500, height))
+        else:
+            self.resize(600, 500)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header
+        header = QLabel(f"Thêm Mặt Hàng Mới Vào {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                padding: 15px;
+                background-color: #E8F5E9;
+                border-radius: 8px;
+                border: 2px solid #4CAF50;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Form container
+        form_frame = QFrame()
+        form_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        form_layout = QFormLayout()
+        form_layout.setSpacing(15)
+        form_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Item name field (required)
+        self.name_input = QLineEdit()
+        self.name_input.setFont(QFont("Arial", 12))
+        self.name_input.setPlaceholderText("Nhập tên mặt hàng...")
+        self.name_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #4CAF50;
+            }
+            QLineEdit:invalid {
+                border-color: #F44336;
+            }
+        """)
+        name_label = QLabel("Tên mặt hàng: *")
+        name_label.setFont(QFont("Arial", 12, QFont.Bold))
+        name_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(name_label, self.name_input)
+
+        # Category field (required)
+        self.category_combo = QComboBox()
+        self.category_combo.setFont(QFont("Arial", 12))
+        self.category_combo.setStyleSheet("""
+            QComboBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666;
+            }
+        """)
+
+        # Populate categories based on item type
+        if self.item_type == "feed":
+            categories = ["Ngũ cốc", "Protein", "Khoáng chất", "Chất béo", "Khác"]
+        else:
+            categories = ["Amino acid", "Vitamin", "Enzyme", "Kháng sinh", "Chất bổ sung", "Khoáng chất", "Khác"]
+
+        self.category_combo.addItems(categories)
+        category_label = QLabel("Loại mặt hàng: *")
+        category_label.setFont(QFont("Arial", 12, QFont.Bold))
+        category_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(category_label, self.category_combo)
+
+        # Initial quantity field (required)
+        self.quantity_input = QDoubleSpinBox()
+        self.quantity_input.setFont(QFont("Arial", 12))
+        self.quantity_input.setRange(0, 999999)
+        self.quantity_input.setDecimals(2)
+        self.quantity_input.setSuffix(" kg")
+        self.quantity_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        quantity_label = QLabel("Số lượng ban đầu: *")
+        quantity_label.setFont(QFont("Arial", 12, QFont.Bold))
+        quantity_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(quantity_label, self.quantity_input)
+
+        # Unit of measure field (required)
+        self.unit_combo = QComboBox()
+        self.unit_combo.setFont(QFont("Arial", 12))
+        self.unit_combo.addItems(["kg", "pieces", "liters", "bags", "tons"])
+        self.unit_combo.setCurrentText("kg")
+        self.unit_combo.setStyleSheet("""
+            QComboBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        unit_label = QLabel("Đơn vị đo: *")
+        unit_label.setFont(QFont("Arial", 12, QFont.Bold))
+        unit_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(unit_label, self.unit_combo)
+
+        # Bag size field (required)
+        self.bag_size_input = QSpinBox()
+        self.bag_size_input.setFont(QFont("Arial", 12))
+        self.bag_size_input.setRange(1, 1000)
+        self.bag_size_input.setValue(25)  # Default bag size
+        self.bag_size_input.setSuffix(" kg/bao")
+        self.bag_size_input.setStyleSheet("""
+            QSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        bag_size_label = QLabel("Kích thước bao: *")
+        bag_size_label.setFont(QFont("Arial", 12, QFont.Bold))
+        bag_size_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(bag_size_label, self.bag_size_input)
+
+        # Minimum stock level field (required)
+        self.min_stock_input = QDoubleSpinBox()
+        self.min_stock_input.setFont(QFont("Arial", 12))
+        self.min_stock_input.setRange(0, 99999)
+        self.min_stock_input.setDecimals(2)
+        self.min_stock_input.setSuffix(" kg")
+        self.min_stock_input.setValue(100)  # Default minimum stock
+        self.min_stock_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        min_stock_label = QLabel("Mức tồn kho tối thiểu: *")
+        min_stock_label.setFont(QFont("Arial", 12, QFont.Bold))
+        min_stock_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(min_stock_label, self.min_stock_input)
+
+        # Optional fields separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("color: #CCCCCC;")
+        form_layout.addRow(separator)
+
+        optional_label = QLabel("Thông tin tùy chọn:")
+        optional_label.setFont(QFont("Arial", 12, QFont.Bold))
+        optional_label.setStyleSheet("color: #666666; margin-top: 10px;")
+        form_layout.addRow(optional_label)
+
+        # Item code/SKU field (optional)
+        self.code_input = QLineEdit()
+        self.code_input.setFont(QFont("Arial", 12))
+        self.code_input.setPlaceholderText("Mã sản phẩm (tùy chọn)...")
+        self.code_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        code_label = QLabel("Mã sản phẩm:")
+        code_label.setFont(QFont("Arial", 12))
+        code_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(code_label, self.code_input)
+
+        # Supplier field (optional)
+        self.supplier_input = QLineEdit()
+        self.supplier_input.setFont(QFont("Arial", 12))
+        self.supplier_input.setPlaceholderText("Nhà cung cấp (tùy chọn)...")
+        self.supplier_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        supplier_label = QLabel("Nhà cung cấp:")
+        supplier_label.setFont(QFont("Arial", 12))
+        supplier_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(supplier_label, self.supplier_input)
+
+        # Cost per unit field (optional)
+        self.cost_input = QDoubleSpinBox()
+        self.cost_input.setFont(QFont("Arial", 12))
+        self.cost_input.setRange(0, 999999)
+        self.cost_input.setDecimals(2)
+        self.cost_input.setSuffix(" VND/kg")
+        self.cost_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        cost_label = QLabel("Giá thành:")
+        cost_label.setFont(QFont("Arial", 12))
+        cost_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(cost_label, self.cost_input)
+
+        # Notes field (optional)
+        self.notes_input = QTextEdit()
+        self.notes_input.setFont(QFont("Arial", 12))
+        self.notes_input.setPlaceholderText("Ghi chú thêm (tùy chọn)...")
+        self.notes_input.setMaximumHeight(80)
+        self.notes_input.setStyleSheet("""
+            QTextEdit {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QTextEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        notes_label = QLabel("Ghi chú:")
+        notes_label.setFont(QFont("Arial", 12))
+        notes_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(notes_label, self.notes_input)
+
+        form_frame.setLayout(form_layout)
+        layout.addWidget(form_frame)
+
+        # Error message label
+        self.error_label = QLabel()
+        self.error_label.setFont(QFont("Arial", 11))
+        self.error_label.setStyleSheet("""
+            QLabel {
+                color: #D32F2F;
+                background-color: #FFEBEE;
+                border: 1px solid #FFCDD2;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
+        self.error_label.setVisible(False)
+        layout.addWidget(self.error_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # Cancel button
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+            }
+        """)
+        cancel_button.clicked.connect(self.reject)
+
+        # Add button
+        self.add_button = QPushButton("Thêm Mặt Hàng")
+        self.add_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.add_button.setMinimumHeight(40)
+        self.add_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45A049;
+            }
+            QPushButton:pressed {
+                background-color: #3D8B40;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.add_button.clicked.connect(self.validate_and_add_item)
+
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.add_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+        # Connect validation to input changes
+        self.name_input.textChanged.connect(self.validate_form)
+        self.quantity_input.valueChanged.connect(self.validate_form)
+        self.min_stock_input.valueChanged.connect(self.validate_form)
+
+        # Initial validation
+        self.validate_form()
+
+    def validate_form(self):
+        """Validate form inputs and enable/disable add button"""
+        is_valid = True
+        error_messages = []
+
+        # Check required fields
+        if not self.name_input.text().strip():
+            is_valid = False
+            error_messages.append("Tên mặt hàng không được để trống")
+
+        if self.quantity_input.value() < 0:
+            is_valid = False
+            error_messages.append("Số lượng ban đầu phải >= 0")
+
+        if self.min_stock_input.value() < 0:
+            is_valid = False
+            error_messages.append("Mức tồn kho tối thiểu phải >= 0")
+
+        if self.bag_size_input.value() <= 0:
+            is_valid = False
+            error_messages.append("Kích thước bao phải > 0")
+
+        # Use InventoryManager's validation method
+        if self.name_input.text().strip() and self.parent_app:
+            validation_result, validation_message = self.parent_app.inventory_manager.validate_item_data(
+                self.name_input.text().strip(),
+                self.quantity_input.value(),
+                self.bag_size_input.value()
+            )
+            if not validation_result:
+                is_valid = False
+                error_messages.append(validation_message)
+
+        # Update UI based on validation
+        self.add_button.setEnabled(is_valid)
+
+        if error_messages:
+            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setVisible(True)
+        else:
+            self.error_label.setVisible(False)
+
+        return is_valid
+
+    def validate_and_add_item(self):
+        """Validate form and add new inventory item"""
+        if not self.validate_form():
+            return
+
+        # Show loading state
+        self.show_loading_state(True)
+
+        try:
+            # Get form data
+            item_data = {
+                'name': self.name_input.text().strip(),
+                'category': self.category_combo.currentText(),
+                'quantity': self.quantity_input.value(),
+                'unit': self.unit_combo.currentText(),
+                'bag_size': self.bag_size_input.value(),
+                'min_stock': self.min_stock_input.value(),
+                'code': self.code_input.text().strip(),
+                'supplier': self.supplier_input.text().strip(),
+                'cost': self.cost_input.value(),
+                'notes': self.notes_input.toPlainText().strip(),
+                'type': self.item_type
+            }
+
+            # Add item to inventory
+            success = self.add_inventory_item(item_data)
+
+            if success:
+                self.show_success_message(item_data['name'])
+                self.accept()
+            else:
+                self.show_error_with_retry("Không thể thêm mặt hàng. Vui lòng kiểm tra lại thông tin.")
+
+        except Exception as e:
+            error_msg = f"Lỗi khi thêm mặt hàng: {str(e)}"
+            print(error_msg)  # Log for debugging
+            self.show_error_with_retry(error_msg)
+        finally:
+            # Hide loading state
+            self.show_loading_state(False)
+
+    def show_loading_state(self, loading):
+        """Show or hide loading state"""
+        if loading:
+            self.add_button.setEnabled(False)
+            self.add_button.setText("⏳ Đang thêm...")
+            self.add_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.add_button.setEnabled(True)
+            self.add_button.setText("Thêm Mặt Hàng")
+            self.add_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #45A049;
+                }
+                QPushButton:pressed {
+                    background-color: #3D8B40;
+                }
+                QPushButton:disabled {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                }
+            """)
+
+    def show_success_message(self, item_name):
+        """Show success message with details"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Thành công")
+        msg.setText(f"✅ Đã thêm mặt hàng thành công!")
+        msg.setInformativeText(
+            f"Mặt hàng: {item_name}\n"
+            f"Loại kho: {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}\n"
+            f"Số lượng: {self.quantity_input.value()} {self.unit_combo.currentText()}\n"
+            f"Kích thước bao: {self.bag_size_input.value()} kg/bao"
+        )
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def show_error_with_retry(self, message):
+        """Show error message with retry option"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Lỗi")
+        msg.setText("❌ Không thể thêm mặt hàng")
+        msg.setInformativeText(message)
+        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa\n• Tên mặt hàng không trùng lặp")
+
+        retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
+        cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
+
+        msg.exec_()
+
+        if msg.clickedButton() == retry_btn:
+            # Retry the operation
+            self.validate_and_add_item()
+
+    def add_inventory_item(self, item_data):
+        """Add new item to inventory and update related systems"""
+        try:
+            # Use InventoryManager's add_new_item method
+            success = self.parent_app.inventory_manager.add_new_item(
+                item_data['name'],
+                item_data['quantity'],
+                item_data['bag_size']
+            )
+
+            if not success:
+                return False
+
+            # Apply default formula if this is a feed-related item and user preference is set
+            if self.item_type == "feed" and item_data['category'] in ["Ngũ cốc", "Protein"]:
+                self.apply_default_feed_formula(item_data['name'])
+
+            # Set individual threshold for new item if minimum stock is specified
+            if item_data['min_stock'] > 0 and hasattr(self.parent_app, 'threshold_manager'):
+                try:
+                    # Set individual threshold based on minimum stock level
+                    individual_thresholds = self.parent_app.threshold_manager.get_individual_thresholds()
+                    individual_thresholds[item_data['name']] = {
+                        'critical_days': 3,  # 3 days for critical
+                        'warning_days': 7,   # 7 days for warning
+                        'critical_stock': 0,  # 0 for critical stock
+                        'warning_stock': item_data['min_stock']  # Use specified minimum stock
+                    }
+                    self.parent_app.threshold_manager.save_individual_thresholds(individual_thresholds)
+                except Exception as e:
+                    print(f"Warning: Could not set threshold for new item: {e}")
+
+            # Update inventory displays
+            if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                self.parent_app.update_feed_inventory_table()
+            if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                self.parent_app.update_mix_inventory_table()
+
+            # Refresh inventory analysis to include new item
+            if hasattr(self.parent_app, 'refresh_inventory_analysis'):
+                self.parent_app.refresh_inventory_analysis()
+
+            return True
+
+        except Exception as e:
+            print(f"Error adding inventory item: {e}")
+            return False
+
+    def apply_default_feed_formula(self, item_name):
+        """Apply default feed formula for new feed ingredients based on user preference"""
+        try:
+            # Check if user has automatic formula application preference
+            # This implements the user's preference for automatic application
+            if hasattr(self.parent_app, 'formula_manager'):
+                default_formula = self.parent_app.formula_manager.get_default_feed_formula()
+                if default_formula:
+                    # Add the new ingredient to the default formula with a small default amount
+                    current_formula = self.parent_app.formula_manager.get_feed_formula()
+                    if item_name not in current_formula:
+                        current_formula[item_name] = 0  # Start with 0, user can adjust
+                        self.parent_app.formula_manager.set_feed_formula(current_formula)
+        except Exception as e:
+            print(f"Error applying default formula: {e}")
+
+    def show_error(self, message):
+        """Show error message"""
+        self.error_label.setText(message)
+        self.error_label.setVisible(True)
+        QMessageBox.warning(self, "Lỗi", message)
+
+
 def main():
+    """Main function to run the application"""
     import sys
     from PyQt5.QtWidgets import QApplication
 
