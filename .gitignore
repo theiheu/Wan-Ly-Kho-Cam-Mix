@@ -24,6 +24,15 @@ var/
 *.manifest
 *.spec
 
+# Build and packaging
+build/
+dist/
+packages/
+*.zip
+version_info.txt
+install.bat
+README_DISTRIBUTION.txt
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
