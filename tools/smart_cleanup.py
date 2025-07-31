@@ -13,7 +13,7 @@ from pathlib import Path
 def clean_build_artifacts():
     """Xóa các file artifacts từ quá trình build"""
     print("🧹 Dọn dẹp build artifacts...")
-    
+
     # Thư mục build tạm thời
     build_dirs = ['build']
     for build_dir in build_dirs:
@@ -23,7 +23,7 @@ def clean_build_artifacts():
                 print(f"✅ Đã xóa thư mục: {build_dir}/")
             except Exception as e:
                 print(f"❌ Lỗi khi xóa {build_dir}: {e}")
-    
+
     # File .spec tự động tạo
     spec_files = glob.glob('*.spec')
     for spec_file in spec_files:
@@ -32,7 +32,7 @@ def clean_build_artifacts():
             print(f"✅ Đã xóa file spec: {spec_file}")
         except Exception as e:
             print(f"❌ Lỗi khi xóa {spec_file}: {e}")
-    
+
     # File version info
     version_files = ['version_info.txt']
     for version_file in version_files:
@@ -46,7 +46,7 @@ def clean_build_artifacts():
 def clean_pycache():
     """Xóa tất cả __pycache__ folders"""
     print("🧹 Dọn dẹp __pycache__ folders...")
-    
+
     for root, dirs, files in os.walk('.'):
         if '__pycache__' in dirs:
             pycache_path = os.path.join(root, '__pycache__')
@@ -59,7 +59,7 @@ def clean_pycache():
 def clean_pyc_files():
     """Xóa tất cả .pyc files"""
     print("🧹 Dọn dẹp .pyc files...")
-    
+
     pyc_files = glob.glob('**/*.pyc', recursive=True)
     for pyc_file in pyc_files:
         try:
@@ -71,7 +71,7 @@ def clean_pyc_files():
 def clean_temp_files():
     """Xóa các file tạm thời khác"""
     print("🧹 Dọn dẹp file tạm thời...")
-    
+
     # File log và temp
     temp_patterns = [
         '*.log',
@@ -80,7 +80,7 @@ def clean_temp_files():
         '.DS_Store',
         'Thumbs.db'
     ]
-    
+
     for pattern in temp_patterns:
         temp_files = glob.glob(pattern, recursive=False)
         for temp_file in temp_files:
@@ -90,18 +90,54 @@ def clean_temp_files():
             except Exception as e:
                 print(f"❌ Lỗi khi xóa {temp_file}: {e}")
 
+def clean_old_packages():
+    """Tùy chọn xóa packages và ZIP cũ"""
+    print("🤔 Tìm thấy packages và ZIP files từ build trước:")
+
+    # Kiểm tra packages
+    packages_exist = os.path.exists("packages") and os.listdir("packages")
+    zip_files = glob.glob("*.zip")
+
+    if packages_exist or zip_files:
+        if packages_exist:
+            print("  📁 Thư mục packages/ tồn tại")
+        for zip_file in zip_files:
+            size = get_size_info(zip_file)
+            print(f"  📄 {zip_file} {size}")
+
+        print("\n❓ Bạn có muốn xóa packages và ZIP cũ không?")
+        print("   Y = Xóa (để tạo package mới)")
+        print("   N = Giữ lại (khuyến nghị)")
+
+        try:
+            choice = input("Chọn (Y/N): ").strip().upper()
+            if choice == 'Y':
+                if packages_exist:
+                    shutil.rmtree("packages")
+                    print("✅ Đã xóa thư mục packages/")
+
+                for zip_file in zip_files:
+                    os.remove(zip_file)
+                    print(f"✅ Đã xóa {zip_file}")
+
+                print("💡 Bây giờ bạn có thể chạy create_package.py để tạo mới")
+            else:
+                print("📦 Đã giữ lại packages và ZIP files")
+        except KeyboardInterrupt:
+            print("\n📦 Đã giữ lại packages và ZIP files")
+
 def show_preserved_items():
     """Hiển thị các item được giữ lại"""
     print("📦 Các file/thư mục được GIỮ LẠI:")
-    
+
     preserved_items = [
         'dist/',
-        'packages/', 
+        'packages/',
         '*.zip',
         'install.bat',
         'README_DISTRIBUTION.txt'
     ]
-    
+
     for item in preserved_items:
         if '*' in item:
             # Pattern matching
@@ -141,7 +177,7 @@ def main():
     print("=" * 60)
     print("🎯 Mục tiêu: Dọn dẹp file tạm thời, GIỮ LẠI kết quả build")
     print()
-    
+
     try:
         # Thực hiện dọn dẹp
         clean_build_artifacts()
@@ -152,19 +188,23 @@ def main():
         print()
         clean_temp_files()
         print()
-        
+
+        # Tùy chọn xóa packages cũ
+        clean_old_packages()
+        print()
+
         # Hiển thị những gì được giữ lại
         show_preserved_items()
-        
+
         print("\n" + "=" * 60)
         print("🎉 DỌN DẸP HOÀN TẤT!")
         print("=" * 60)
         print("✅ Đã xóa: File tạm thời, build artifacts, __pycache__")
         print("📦 Đã giữ: dist/, packages/, *.zip, install.bat")
         print("💡 Bây giờ bạn có thể chạy build mới hoặc phân phối package")
-        
+
         return 0
-        
+
     except Exception as e:
         print(f"\n❌ Lỗi trong quá trình dọn dẹp: {e}")
         import traceback

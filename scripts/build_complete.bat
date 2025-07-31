@@ -16,7 +16,7 @@ call clean_build.bat
 
 echo.
 echo ⏱️  Bước 2/4: Build executable...
-python build_windows.py
+python ..\tools\build_windows.py
 
 if %errorLevel% neq 0 (
     echo ❌ Build executable thất bại!
@@ -26,7 +26,7 @@ if %errorLevel% neq 0 (
 
 echo.
 echo ⏱️  Bước 3/4: Tạo packages...
-python create_package.py
+python ..\tools\create_package.py
 
 if %errorLevel% neq 0 (
     echo ❌ Tạo package thất bại!

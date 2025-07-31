@@ -19,13 +19,18 @@ APP_AUTHOR = "Minh-Tan_Phat"
 def create_portable_package():
     """Tạo package portable (không cần cài đặt)"""
     print("📦 Tạo package portable...")
-    
+
     package_name = f"{APP_NAME}_v{APP_VERSION}_Portable"
     package_dir = f"packages/{package_name}"
-    
+
+    # Xóa thư mục package cũ nếu tồn tại
+    if os.path.exists(package_dir):
+        print(f"🗑️  Xóa package cũ: {package_dir}")
+        shutil.rmtree(package_dir)
+
     # Tạo thư mục package
     os.makedirs(package_dir, exist_ok=True)
-    
+
     # Copy executable và dependencies
     if os.path.exists(f"dist/{APP_NAME}"):
         shutil.copytree(f"dist/{APP_NAME}", f"{package_dir}/{APP_NAME}")
@@ -33,32 +38,32 @@ def create_portable_package():
     else:
         print("❌ Không tìm thấy dist folder. Vui lòng build trước.")
         return False
-    
+
     # Tạo file khởi chạy
     launcher_content = f"""@echo off
 cd /d "%~dp0"
 cd {APP_NAME}
 start "" "{APP_NAME}.exe"
 """
-    
+
     with open(f"{package_dir}/Khởi chạy {APP_DISPLAY_NAME}.bat", 'w', encoding='utf-8') as f:
         f.write(launcher_content)
-    
+
     # Copy documentation
     docs_to_copy = [
         'README.md',
         'ICON_DOCUMENTATION.md',
         'ICON_IMPLEMENTATION_SUMMARY.md'
     ]
-    
+
     docs_dir = f"{package_dir}/Tài liệu"
     os.makedirs(docs_dir, exist_ok=True)
-    
+
     for doc in docs_to_copy:
         if os.path.exists(doc):
             shutil.copy2(doc, docs_dir)
             print(f"✅ Đã copy {doc}")
-    
+
     # Tạo README cho package
     package_readme = f"""# {APP_DISPLAY_NAME} - Portable Version
 
@@ -80,7 +85,7 @@ start "" "{APP_NAME}.exe"
 
 ## Tính năng
 - 📊 Quản lý lượng cám hàng ngày
-- 📦 Hệ thống CRUD tồn kho hoàn chỉnh  
+- 📦 Hệ thống CRUD tồn kho hoàn chỉnh
 - 🧪 Quản lý công thức dinh dưỡng
 - 📈 Báo cáo và phân tích
 - 📋 Thao tác hàng loạt
@@ -96,23 +101,28 @@ start "" "{APP_NAME}.exe"
 
 © 2024 {APP_AUTHOR}. All rights reserved.
 """
-    
+
     with open(f"{package_dir}/README.txt", 'w', encoding='utf-8') as f:
         f.write(package_readme)
-    
+
     print(f"✅ Package portable đã tạo: {package_dir}")
     return package_dir
 
 def create_installer_package():
     """Tạo package với installer"""
     print("🔧 Tạo package installer...")
-    
+
     package_name = f"{APP_NAME}_v{APP_VERSION}_Installer"
     package_dir = f"packages/{package_name}"
-    
+
+    # Xóa thư mục package cũ nếu tồn tại
+    if os.path.exists(package_dir):
+        print(f"🗑️  Xóa package cũ: {package_dir}")
+        shutil.rmtree(package_dir)
+
     # Tạo thư mục package
     os.makedirs(package_dir, exist_ok=True)
-    
+
     # Copy executable
     if os.path.exists(f"dist/{APP_NAME}"):
         shutil.copytree(f"dist/{APP_NAME}", f"{package_dir}/app")
@@ -120,7 +130,7 @@ def create_installer_package():
     else:
         print("❌ Không tìm thấy dist folder")
         return False
-    
+
     # Tạo installer script nâng cao
     installer_script = f"""@echo off
 chcp 65001 >nul
@@ -237,10 +247,10 @@ echo.
 echo ✅ Hoàn tất!
 pause
 """
-    
+
     with open(f"{package_dir}/install.bat", 'w', encoding='utf-8') as f:
         f.write(installer_script)
-    
+
     # Tạo README cho installer
     installer_readme = f"""# {APP_DISPLAY_NAME} - Installer Package
 
@@ -265,85 +275,90 @@ Chạy file "uninstall.bat" trong thư mục cài đặt
 
 © 2024 {APP_AUTHOR}
 """
-    
+
     with open(f"{package_dir}/README_INSTALLER.txt", 'w', encoding='utf-8') as f:
         f.write(installer_readme)
-    
+
     print(f"✅ Package installer đã tạo: {package_dir}")
     return package_dir
 
 def create_zip_packages():
     """Tạo file ZIP cho các packages"""
     print("🗜️ Tạo file ZIP...")
-    
+
     packages_created = []
-    
+
     # Tìm các package đã tạo
     if os.path.exists("packages"):
         for item in os.listdir("packages"):
             package_path = f"packages/{item}"
             if os.path.isdir(package_path):
                 zip_name = f"{item}.zip"
-                
+
+                # Xóa file ZIP cũ nếu tồn tại
+                if os.path.exists(zip_name):
+                    print(f"🗑️  Xóa ZIP cũ: {zip_name}")
+                    os.remove(zip_name)
+
                 print(f"📦 Tạo {zip_name}...")
-                
+
                 with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                     for root, dirs, files in os.walk(package_path):
                         for file in files:
                             file_path = os.path.join(root, file)
                             arc_name = os.path.relpath(file_path, package_path)
                             zipf.write(file_path, arc_name)
-                
+
                 packages_created.append(zip_name)
                 print(f"✅ Đã tạo {zip_name}")
-    
+
     return packages_created
 
 def main():
     """Hàm chính"""
     print("📦 Package Creator - Chicken Farm Management")
     print("=" * 60)
-    
+
     # Kiểm tra dist folder
     if not os.path.exists(f"dist/{APP_NAME}"):
         print("❌ Không tìm thấy dist folder.")
         print("💡 Vui lòng chạy build_windows.py trước.")
         return 1
-    
+
     try:
         # Tạo thư mục packages
         os.makedirs("packages", exist_ok=True)
-        
+
         # Tạo các packages
         portable_dir = create_portable_package()
         installer_dir = create_installer_package()
-        
+
         # Tạo ZIP files
         zip_files = create_zip_packages()
-        
+
         # Thông báo kết quả
         print("\n" + "=" * 60)
         print("🎉 TẠO PACKAGE THÀNH CÔNG!")
         print("=" * 60)
-        
+
         if portable_dir:
             print(f"📦 Portable package: {portable_dir}")
-        
+
         if installer_dir:
             print(f"🔧 Installer package: {installer_dir}")
-        
+
         if zip_files:
             print("\n📁 File ZIP đã tạo:")
             for zip_file in zip_files:
                 size = os.path.getsize(zip_file) / (1024*1024)  # MB
                 print(f"   📄 {zip_file} ({size:.1f} MB)")
-        
+
         print(f"\n💡 Hướng dẫn phân phối:")
         print(f"   • Portable: Giải nén và chạy trực tiếp")
         print(f"   • Installer: Chạy install.bat với quyền Admin")
-        
+
         return 0
-        
+
     except Exception as e:
         print(f"\n❌ Lỗi khi tạo package: {e}")
         import traceback

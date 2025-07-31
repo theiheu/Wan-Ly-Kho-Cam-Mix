@@ -34,7 +34,7 @@ if %errorLevel% == 2 (
 
 echo.
 echo 🚀 Bắt đầu dọn dẹp...
-python smart_cleanup.py
+python ..\tools\smart_cleanup.py
 
 if %errorLevel% neq 0 (
     echo.
