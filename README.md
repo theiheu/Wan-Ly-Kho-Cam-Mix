@@ -1,190 +1,102 @@
-# 🐔 Phần mềm Quản lý Cám - Trại Gà
+# 🐔 Chicken Farm Management System
 
-Hệ thống quản lý toàn diện cho trại gà với giao diện PyQt5 hiện đại và các tính năng chuyên nghiệp.
+A comprehensive management system for chicken farms with feed tracking, inventory management, and analytics.
 
-## 🎯 Tính năng chính
+## ✨ Features
 
-### 📊 Quản lý lượng cám hàng ngày
-- Nhập liệu lượng cám cho từng chuồng
-- Tính toán tự động tổng lượng cám
-- Lưu trữ lịch sử sử dụng cám với báo cáo chi tiết
-
-### 📦 Hệ thống CRUD tồn kho hoàn chỉnh
-- **Create**: Thêm mới nguyên liệu vào kho
-- **Read**: Xem danh sách tồn kho với thông tin chi tiết
-- **Update**: Cập nhật số lượng, giá cả nguyên liệu
-- **Delete**: Xóa nguyên liệu không còn sử dụng
-
-### 🧪 Quản lý công thức dinh dưỡng
-- Tạo và chỉnh sửa công thức cám
-- Tính toán tỷ lệ dinh dưỡng
-- Quản lý công thức trộn cám với preset
-
-### 📈 Báo cáo và phân tích
-- Báo cáo sử dụng cám theo ngày/tuần/tháng
-- Phân tích xu hướng tiêu thụ
-- Xuất báo cáo Excel với charts
-
-### 📋 Thao tác hàng loạt
-- Import/Export dữ liệu Excel
-- Backup và restore dữ liệu
-- Cập nhật hàng loạt với validation
+- 📊 **Daily Feed Management** - Track feed consumption and costs
+- 📦 **Inventory System** - Complete inventory CRUD operations  
+- 🧪 **Formula Management** - Create and manage feed formulas
+- 📈 **Reports & Analytics** - Generate insights and reports
+- 🔔 **Smart Alerts** - Inventory threshold notifications
+- 📱 **Modern UI** - Responsive PyQt5 interface
 
 ## 🚀 Quick Start
 
-### Chạy ứng dụng
+### Option 1: Use Pre-built Installer (Recommended)
 ```bash
-python run.py
+# Download and run the installer
+build\install.bat
 ```
 
-### Build và Package
+### Option 2: Run Portable
 ```bash
-# Build executable
-python build.py
-
-# Tạo packages phân phối
-python package.py
-
-# Dọn dẹp file tạm
-python clean.py
-
-# Rebuild hoàn chỉnh
-python rebuild.py
+# Run directly without installation
+dist\ChickenFarmManager.exe
 ```
 
-## 📁 Cấu trúc dự án
-
-```
-Wan_Ly_Kho_Cam_Mix-3.3/
-├── 📁 src/                    # 🎯 Source code chính
-│   ├── main.py               # Entry point của ứng dụng
-│   ├── config/               # Configuration và settings
-│   ├── controllers/          # Business logic controllers
-│   ├── core/                 # Core functionality
-│   ├── data/                 # Data files, presets, reports
-│   ├── models/               # Data models và schemas
-│   ├── services/             # Service layer
-│   ├── ui/                   # User interface components
-│   └── utils/                # Utility functions
-├── 📁 tools/                  # 🔧 Build và development tools
-│   ├── build_windows.py      # Build executable cho Windows
-│   ├── create_package.py     # Tạo packages phân phối
-│   ├── smart_cleanup.py      # Dọn dẹp thông minh
-│   └── rebuild_all.py        # Rebuild hoàn chỉnh
-├── 📁 scripts/                # 🤖 Automation scripts
-│   ├── build_complete.bat    # Build script hoàn chỉnh
-│   ├── clean_build.bat       # Dọn dẹp toàn bộ
-│   ├── smart_clean.bat       # Dọn dẹp thông minh
-│   └── *.bat                 # Các batch scripts khác
-├── 📁 examples/               # 🧪 Demo và examples
-│   ├── demo_responsive_dialog.py  # Demo responsive UI
-│   └── visualize_app.py      # Tool trực quan hóa
-├── 📁 docs/                   # 📖 Documentation
-│   ├── CLEANUP_GUIDE.md      # Hướng dẫn dọn dẹp
-│   └── README_DISTRIBUTION.txt # Hướng dẫn phân phối
-├── 📁 tests/                  # 🧪 Test files
-├── 📁 temp/                   # 🗂️ Temporary files
-├── 📁 dist/                   # 📦 Built executables
-├── 📁 packages/               # 📦 Distribution packages
-├── 🐍 run.py                  # Main entry point
-├── 🐍 build.py               # Build wrapper
-├── 🐍 package.py             # Package wrapper
-├── 🐍 clean.py               # Cleanup wrapper
-├── 🐍 rebuild.py             # Rebuild wrapper
-├── 📄 requirements.txt       # Runtime dependencies
-├── 📄 requirements-build.txt # Build dependencies
-└── 📄 README.md              # This file
-```
-
-## 🛠️ Development Tools
-
-### Build Tools (tools/)
-- **build_windows.py**: Build executable cho Windows với PyInstaller
-- **create_package.py**: Tạo packages portable và installer
-- **smart_cleanup.py**: Dọn dẹp thông minh, giữ lại kết quả build
-- **rebuild_all.py**: Script tổng hợp rebuild từ đầu đến cuối
-
-### Automation Scripts (scripts/)
-- **build_complete.bat**: Build hoàn chỉnh với batch script
-- **clean_build.bat**: Dọn dẹp toàn bộ (nguy hiểm)
-- **smart_clean.bat**: Wrapper cho smart cleanup
-- **quick_build.bat**: Build nhanh
-
-### Examples (examples/)
-- **demo_responsive_dialog.py**: Demo tính năng responsive UI
-- **visualize_app.py**: Tool trực quan hóa dữ liệu
-
-## 🔧 Yêu cầu hệ thống
-
-### Runtime
-- Python 3.6+
-- PyQt5 >= 5.15.0
-- pandas >= 1.0.0
-- matplotlib >= 3.3.0
-- openpyxl >= 3.0.0
-
-### Build
-- pyinstaller >= 5.0.0
-- setuptools >= 60.0.0
-- wheel >= 0.37.0
-
-### Cài đặt
+### Option 3: Build from Source
 ```bash
-# Runtime dependencies
-pip install -r requirements.txt
+# Build the application
+python build\build.py
 
-# Build dependencies
+# Then use the installer
+build\install.bat
+```
+
+## 📋 Requirements
+
+- **OS**: Windows 10/11 (64-bit)
+- **RAM**: 4GB minimum
+- **Storage**: 200MB free space
+- **Python**: 3.6+ (for building from source)
+
+## 🔧 Building
+
+### Simple Build
+```bash
+python build\build.py
+```
+
+This creates:
+- `dist\ChickenFarmManager.exe` - Standalone executable
+- `build\install.bat` - Windows installer
+
+### Build Dependencies
+```bash
 pip install -r requirements-build.txt
 ```
 
-## 📖 Documentation
+## 📁 Project Structure
 
-- **docs/CLEANUP_GUIDE.md**: Hướng dẫn chi tiết về dọn dẹp build files
-- **docs/README_DISTRIBUTION.txt**: Hướng dẫn phân phối phần mềm
-
-## 🧪 Testing
-
-```bash
-# Chạy tests (nếu có)
-python -m pytest tests/
-
-# Test build
-python build.py
-
-# Test package
-python package.py
+```
+📦 chicken-farm-management/
+├── 📁 src/                 # Application source code
+├── 📁 build/               # Build tools & installer
+│   ├── 🔧 build.py         # Main build script  
+│   ├── 📦 install.bat      # Windows installer
+│   └── 📁 tools/           # Build utilities
+├── 📁 dist/                # Built executable (generated)
+├── 📁 docs/                # Documentation
+├── 📁 examples/            # Demo code
+├── 📁 tests/               # Test files
+├── 🐍 run.py               # Development launcher
+├── 📄 requirements.txt     # Runtime dependencies
+└── 📄 requirements-build.txt # Build dependencies
 ```
 
-## 📦 Distribution
+## 💡 Usage
 
-### Tạo packages
-```bash
-# Tạo cả portable và installer
-python package.py
+1. **Launch**: Run executable or use desktop shortcut
+2. **Feed Tracking**: Monitor daily feed consumption
+3. **Inventory**: Manage stock levels and alerts  
+4. **Formulas**: Create custom feed recipes
+5. **Reports**: Generate analytics and insights
 
-# Hoặc sử dụng tools trực tiếp
-python tools/create_package.py
-```
+## 📚 Documentation
 
-### Kết quả
-- **Portable**: Giải nén và chạy trực tiếp
-- **Installer**: Chạy install.bat với quyền Admin
-- **ZIP files**: Sẵn sàng phân phối
+- 📖 [Build Guide](docs/BUILD_INSTALLER_GUIDE.md)
+- 🎯 [Build Solution](docs/FINAL_BUILD_SOLUTION.md)  
+- ✅ [Success Summary](docs/BUILD_SUCCESS_SUMMARY.md)
 
 ## 🤝 Contributing
 
-1. Fork dự án
-2. Tạo feature branch
-3. Commit changes
-4. Push to branch
-5. Tạo Pull Request
+1. Fork the repository
+2. Create feature branch
+3. Make changes
+4. Add tests
+5. Submit pull request
 
-## 📝 License
+## 📄 License
 
 © 2024 Minh-Tan_Phat. All rights reserved.
-
-## 🆘 Support
-
-- **Issues**: Tạo issue trên GitHub
-- **Documentation**: Xem thư mục docs/
-- **Examples**: Xem thư mục examples/
