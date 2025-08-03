@@ -4,6 +4,7 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
+from utils.persistent_paths import get_data_file_path, get_config_file_path
 
 def format_number(value):
     """Format a number to display as integer if it has no decimal part, otherwise show decimal places without trailing zeros"""
@@ -28,7 +29,7 @@ def load_report(filename):
 
 def ensure_reports_dir():
     """Ensure reports directory exists"""
-    reports_dir = "src/data/reports"
+    reports_dir = "reports"
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir)
     return reports_dir
@@ -208,7 +209,7 @@ def visualize_mix_ingredients(report_data):
 
 def list_reports():
     """List all available reports"""
-    reports_dir = "src/data/reports"
+    reports_dir = "reports"
     if not os.path.exists(reports_dir):
         print(f"Reports directory '{reports_dir}' not found")
         return None

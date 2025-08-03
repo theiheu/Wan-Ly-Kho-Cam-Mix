@@ -30,6 +30,10 @@ If you see import errors:
 1. Make sure you're running from the application directory
 2. Check that all source files are present in the `src/` folder
 
+### Permission Errors
+1. Make sure you have write permissions in the application directory
+2. Try running as administrator
+
 ## Files
 
 - `ChickenFarmManager.py` - Main launcher script
@@ -37,5 +41,10 @@ If you see import errors:
 - `src/` - Application source code
 - `requirements.txt` - Python package requirements
 
+## Support
+
+For support and updates, visit: https://github.com/Minh-Tan_Phat
+
 ---
 Chicken Farm Manager v2.0.0
+© 2025 Minh-Tan_Phat

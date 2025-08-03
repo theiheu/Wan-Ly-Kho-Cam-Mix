@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Phần mềm Quản lý Cám - Trại Gà
 ==============================
@@ -8,6 +9,19 @@ Script khởi động chính cho ứng dụng.
 
 import os
 import sys
+
+# Fix console encoding for Windows (safe for executable)
+if sys.platform == "win32":
+    try:
+        import codecs
+        if hasattr(sys.stdout, 'buffer') and sys.stdout.buffer is not None:
+            sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        if hasattr(sys.stderr, 'buffer') and sys.stderr.buffer is not None:
+            sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except (AttributeError, TypeError):
+        # In executable environment, stdout/stderr might not have buffer
+        pass
+
 
 def setup_environment():
     """Thiết lập môi trường chạy"""

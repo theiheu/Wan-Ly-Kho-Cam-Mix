@@ -1,25 +1,31 @@
 import json
 import os
 from typing import Dict, Any, List, Tuple, Optional
+try:
+    from src.utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
+except ImportError:
+    from utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
 
 class FormulaManager:
     """Class to manage feed and mix formulas"""
 
     def __init__(self):
-        # Cập nhật đường dẫn file
-        self.feed_formula_file = "src/data/config/feed_formula.json"
-        self.mix_formula_file = "src/data/config/mix_formula.json"
-        self.formula_links_file = "src/data/config/formula_links.json"
-        self.formulas_dir = "src/data/presets"
-        self.default_formula_file = "src/data/config/default_formula.json"
-        self.column_mix_formulas_file = "src/data/config/column_mix_formulas.json"
+        # Use persistent path manager for proper data paths
+        self.feed_formula_file = str(get_config_file_path("feed_formula.json"))
+        self.mix_formula_file = str(get_config_file_path("mix_formula.json"))
+        self.formula_links_file = str(get_config_file_path("formula_links.json"))
+        self.formulas_dir = str(persistent_path_manager.data_path / "presets")
+        self.default_formula_file = str(get_config_file_path("default_formula.json"))
+        self.column_mix_formulas_file = str(get_config_file_path("column_mix_formulas.json"))
 
         # Create formulas directory if it doesn't exist
         if not os.path.exists(self.formulas_dir):
             os.makedirs(self.formulas_dir)
 
-        # Đảm bảo thư mục config tồn tại
-        os.makedirs(os.path.dirname(self.feed_formula_file), exist_ok=True)
+        # Ensure config directory exists
+        config_dir = os.path.dirname(self.feed_formula_file)
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
 
         # Load current formulas
         self.feed_formula = self.load_formula(self.feed_formula_file)

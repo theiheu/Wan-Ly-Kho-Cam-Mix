@@ -2,13 +2,17 @@ import json
 import os
 from typing import Dict, Any, List, Tuple
 from datetime import datetime, timedelta
+try:
+    from src.utils.persistent_paths import get_data_file_path, get_config_file_path
+except ImportError:
+    from utils.persistent_paths import get_data_file_path, get_config_file_path
 
 class InventoryManager:
     """Class to manage inventory of feed and mix ingredients"""
 
     def __init__(self):
-        self.inventory_file = "src/data/config/inventory.json"
-        self.packaging_file = "src/data/config/packaging_info.json"
+        self.inventory_file = str(get_config_file_path("inventory.json"))
+        self.packaging_file = str(get_config_file_path("packaging_info.json"))
         self.inventory = self.load_inventory()
         self.packaging_info = self.load_packaging_info()
 
@@ -423,7 +427,7 @@ class InventoryManager:
 
         try:
             # Check feed formulas
-            feed_formula_file = "src/data/config/feed_formula.json"
+            feed_formula_file = "config/feed_formula.json"
             if os.path.exists(feed_formula_file):
                 with open(feed_formula_file, 'r', encoding='utf-8') as f:
                     feed_formula = json.load(f)
@@ -431,7 +435,7 @@ class InventoryManager:
                         dependencies['feed_formulas'].append("Công thức cám hiện tại")
 
             # Check mix formulas
-            mix_formula_file = "src/data/config/mix_formula.json"
+            mix_formula_file = "config/mix_formula.json"
             if os.path.exists(mix_formula_file):
                 with open(mix_formula_file, 'r', encoding='utf-8') as f:
                     mix_formula = json.load(f)
@@ -439,7 +443,7 @@ class InventoryManager:
                         dependencies['mix_formulas'].append("Công thức mix hiện tại")
 
             # Check preset formulas
-            presets_dir = "src/data/presets"
+            presets_dir = "presets"
             if os.path.exists(presets_dir):
                 for root, dirs, files in os.walk(presets_dir):
                     for file in files:
@@ -560,7 +564,7 @@ class InventoryManager:
         Analyze consumption patterns from recent reports
         Returns dict with ingredient -> average daily usage
         """
-        reports_dir = "src/data/reports"
+        reports_dir = "reports"
         end_date = datetime.now()
 
         daily_usage = {}

@@ -202,9 +202,9 @@ class ChickenFarmApp(QMainWindow):
         print(f"Dialog Ratios: {self.responsive_dialog_width_ratio:.2f}w x {self.responsive_dialog_height_ratio:.2f}h")
         dialog_w, dialog_h = self.get_responsive_dialog_size()
         print(f"Dialog Size: {dialog_w}x{dialog_h}px")
-        print(f"Extreme-Compact Font: 12px → {self.get_responsive_font_size(12)}px")
-        print(f"Extreme-Compact Row: 30px → {self.get_responsive_row_height(30)}px")
-        print(f"Extreme-Compact Table: 500px → {self.get_responsive_table_height(500)}px")
+        print(f"Extreme-Compact Font: 12px -> {self.get_responsive_font_size(12)}px")
+        print(f"Extreme-Compact Row: 30px -> {self.get_responsive_row_height(30)}px")
+        print(f"Extreme-Compact Table: 500px -> {self.get_responsive_table_height(500)}px")
         print("Extreme-Compact Design: 0.10 scale factor for maximum information density")
 
     def setup_responsive_main_window(self):
@@ -3895,7 +3895,7 @@ class ChickenFarmApp(QMainWindow):
                 # Tính lượng thành phần theo số mẻ thực tế
                 mix_amount = one_batch_amount * actual_batches
 
-                print(f"  {ingredient}: {one_batch_amount} × {actual_batches} = {mix_amount:.2f} kg")
+                print(f"  {ingredient}: {one_batch_amount} x {actual_batches} = {mix_amount:.2f} kg")
 
                 # Cộng dồn vào kết quả
                 if ingredient in mix_ingredients:
@@ -12083,7 +12083,7 @@ class EditInventoryItemDialog(QDialog):
         self.save_button.setEnabled(is_valid)
 
         if error_messages:
-            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setText("* " + "\n* ".join(error_messages))
             self.error_label.setVisible(True)
         else:
             self.error_label.setVisible(False)
@@ -12139,13 +12139,13 @@ class EditInventoryItemDialog(QDialog):
         changes = []
 
         if new_data['name'] != self.original_data['name']:
-            changes.append(f"Tên: '{self.original_data['name']}' → '{new_data['name']}'")
+            changes.append(f"Tên: '{self.original_data['name']}' -> '{new_data['name']}'")
 
         if new_data['quantity'] != self.original_data['quantity']:
-            changes.append(f"Số lượng: {self.original_data['quantity']:,.2f} kg → {new_data['quantity']:,.2f} kg")
+            changes.append(f"Số lượng: {self.original_data['quantity']:,.2f} kg -> {new_data['quantity']:,.2f} kg")
 
         if new_data['bag_size'] != self.original_data['bag_size']:
-            changes.append(f"Kích thước bao: {self.original_data['bag_size']} kg/bao → {new_data['bag_size']} kg/bao")
+            changes.append(f"Kích thước bao: {self.original_data['bag_size']} kg/bao -> {new_data['bag_size']} kg/bao")
 
         return changes
 
@@ -12258,7 +12258,7 @@ class EditInventoryItemDialog(QDialog):
         msg.setWindowTitle("Lỗi")
         msg.setText("❌ Không thể lưu thay đổi")
         msg.setInformativeText(message)
-        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa")
+        msg.setDetailedText("Vui lòng kiểm tra:\n* Kết nối mạng\n* Quyền ghi file\n* Dung lượng ổ đĩa")
 
         retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
         cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
@@ -12319,9 +12319,9 @@ class DeleteInventoryItemDialog(QDialog):
             f"Bạn có chắc chắn muốn xóa mặt hàng <b>'{self.item_name}'</b> khỏi kho?\n\n"
             "⚠️ <b>CẢNH BÁO:</b> Hành động này không thể hoàn tác!\n\n"
             "Việc xóa mặt hàng sẽ:\n"
-            "• Xóa hoàn toàn khỏi danh sách tồn kho\n"
-            "• Có thể ảnh hưởng đến các công thức đang sử dụng\n"
-            "• Có thể ảnh hưởng đến các báo cáo lịch sử"
+            "* Xóa hoàn toàn khỏi danh sách tồn kho\n"
+            "* Có thể ảnh hưởng đến các công thức đang sử dụng\n"
+            "* Có thể ảnh hưởng đến các báo cáo lịch sử"
         )
         warning_text.setFont(QFont("Arial", 12))
         warning_text.setWordWrap(True)
@@ -12880,7 +12880,7 @@ class BulkOperationsDialog(QDialog):
             self,
             "XÁC NHẬN XÓA HÀNG LOẠT",
             f"Bạn có chắc chắn muốn xóa {len(self.selected_items)} mặt hàng đã chọn?\n\n"
-            f"Danh sách mặt hàng:\n" + "\n".join(f"• {item}" for item in self.selected_items[:10]) +
+            f"Danh sách mặt hàng:\n" + "\n".join(f"* {item}" for item in self.selected_items[:10]) +
             (f"\n... và {len(self.selected_items) - 10} mặt hàng khác" if len(self.selected_items) > 10 else "") +
             "\n\nHành động này KHÔNG THỂ HOÀN TÁC!",
             QMessageBox.Yes | QMessageBox.No,
@@ -12968,7 +12968,7 @@ class BulkEditDialog(QDialog):
 
         items_text = QTextEdit()
         items_text.setMaximumHeight(100)
-        items_text.setPlainText("\n".join(f"• {item}" for item in self.item_names))
+        items_text.setPlainText("\n".join(f"* {item}" for item in self.item_names))
         items_text.setReadOnly(True)
         items_text.setStyleSheet("""
             QTextEdit {
@@ -13610,7 +13610,7 @@ class AddInventoryItemDialog(QDialog):
         self.add_button.setEnabled(is_valid)
 
         if error_messages:
-            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setText("* " + "\n* ".join(error_messages))
             self.error_label.setVisible(True)
         else:
             self.error_label.setVisible(False)
@@ -13719,7 +13719,7 @@ class AddInventoryItemDialog(QDialog):
         msg.setWindowTitle("Lỗi")
         msg.setText("❌ Không thể thêm mặt hàng")
         msg.setInformativeText(message)
-        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa\n• Tên mặt hàng không trùng lặp")
+        msg.setDetailedText("Vui lòng kiểm tra:\n* Kết nối mạng\n* Quyền ghi file\n* Dung lượng ổ đĩa\n* Tên mặt hàng không trùng lặp")
 
         retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
         cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)

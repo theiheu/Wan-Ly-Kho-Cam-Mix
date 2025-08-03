@@ -7,13 +7,17 @@ Cho phép người dùng cài đặt ngưỡng cho các mức cảnh báo khác 
 import json
 import os
 from typing import Dict, Tuple
+try:
+    from src.utils.persistent_paths import get_data_file_path, get_config_file_path
+except ImportError:
+    from utils.persistent_paths import get_data_file_path, get_config_file_path
 
 class ThresholdManager:
     """Quản lý ngưỡng cảnh báo tồn kho"""
 
     def __init__(self):
-        self.config_file = "src/data/threshold_config.json"
-        self.individual_config_file = "src/data/individual_thresholds.json"
+        self.config_file = str(get_data_file_path("threshold_config.json"))
+        self.individual_config_file = str(get_data_file_path("individual_thresholds.json"))
         self.default_thresholds = {
             # Ngưỡng cơ bản
             "critical_days": 7,      # Khẩn cấp: < 7 ngày

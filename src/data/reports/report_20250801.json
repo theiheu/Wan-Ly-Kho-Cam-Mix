@@ -1,0 +1,30 @@
+{
+  "date": "20250801",
+  "display_date": "01/08/2025",
+  "feed_usage": {
+    "Khu 1": {
+      "Trại 1": {
+        "Sáng": 1,
+        "Chiều": 1
+      }
+    }
+  },
+  "formula_usage": {
+    "Khu 1": {
+      "Trại 1": {
+        "Sáng": "Test Formula",
+        "Chiều": "Test Formula"
+      }
+    }
+  },
+  "feed_ingredients": {
+    "Test Ingredient": 100.0
+  },
+  "mix_ingredients": {
+    "Test Mix": 50.0
+  },
+  "total_batches": 2,
+  "total_feed": 100.0,
+  "total_mix": 50.0,
+  "batch_count": 2
+}

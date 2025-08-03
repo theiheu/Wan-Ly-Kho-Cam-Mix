@@ -242,7 +242,7 @@ class ThresholdSettingsDialog(QDialog):
 
         # Example
         example_label = QLabel("💡 Ví dụ: Nếu đặt Khẩn cấp = 7, Sắp hết = 14, Đủ hàng = 14\n"
-                              "→ <7 ngày: Khẩn cấp, 7-14 ngày: Sắp hết, >14 ngày: Đủ hàng")
+                              "-> <7 ngày: Khẩn cấp, 7-14 ngày: Sắp hết, >14 ngày: Đủ hàng")
         example_label.setStyleSheet("""
             QLabel {
                 background-color: #e3f2fd;
@@ -303,7 +303,7 @@ class ThresholdSettingsDialog(QDialog):
 
         # Example
         example_label = QLabel("💡 Ví dụ: Nếu đặt Khẩn cấp = 0, Sắp hết = 100, Đủ hàng = 500\n"
-                              "→ ≤0 kg: Khẩn cấp, ≤100 kg: Sắp hết, >500 kg: Đủ hàng")
+                              "-> ≤0 kg: Khẩn cấp, ≤100 kg: Sắp hết, >500 kg: Đủ hàng")
         example_label.setStyleSheet("""
             QLabel {
                 background-color: #e8f5e9;
@@ -336,7 +336,7 @@ class ThresholdSettingsDialog(QDialog):
         self.use_days_checkbox.setStyleSheet("QCheckBox { padding: 5px; }")
         priority_layout.addWidget(self.use_days_checkbox)
 
-        days_desc = QLabel("   → Sử dụng dữ liệu tiêu thụ để tính số ngày còn lại và đánh giá trạng thái")
+        days_desc = QLabel("   -> Sử dụng dữ liệu tiêu thụ để tính số ngày còn lại và đánh giá trạng thái")
         days_desc.setStyleSheet("color: #666; margin-left: 20px;")
         priority_layout.addWidget(days_desc)
 
@@ -346,7 +346,7 @@ class ThresholdSettingsDialog(QDialog):
         self.use_stock_checkbox.setStyleSheet("QCheckBox { padding: 5px; }")
         priority_layout.addWidget(self.use_stock_checkbox)
 
-        stock_desc = QLabel("   → Sử dụng số lượng tồn kho hiện tại để đánh giá trạng thái")
+        stock_desc = QLabel("   -> Sử dụng số lượng tồn kho hiện tại để đánh giá trạng thái")
         stock_desc.setStyleSheet("color: #666; margin-left: 20px;")
         priority_layout.addWidget(stock_desc)
 
@@ -361,10 +361,10 @@ class ThresholdSettingsDialog(QDialog):
         logic_text.setReadOnly(True)
         logic_text.setMaximumHeight(120)
         logic_text.setPlainText(
-            "• Nếu chọn 'Ưu tiên theo ngày': Hệ thống sẽ ưu tiên sử dụng số ngày còn lại để đánh giá\n"
-            "• Nếu không có dữ liệu ngày hoặc chọn 'Theo tồn kho': Sử dụng số lượng tồn kho\n"
-            "• Có thể chọn cả hai để có đánh giá toàn diện\n"
-            "• Khuyến nghị: Chọn 'Ưu tiên theo ngày' để có đánh giá chính xác hơn"
+            "* Nếu chọn 'Ưu tiên theo ngày': Hệ thống sẽ ưu tiên sử dụng số ngày còn lại để đánh giá\n"
+            "* Nếu không có dữ liệu ngày hoặc chọn 'Theo tồn kho': Sử dụng số lượng tồn kho\n"
+            "* Có thể chọn cả hai để có đánh giá toàn diện\n"
+            "* Khuyến nghị: Chọn 'Ưu tiên theo ngày' để có đánh giá chính xác hơn"
         )
         logic_text.setStyleSheet("""
             QTextEdit {

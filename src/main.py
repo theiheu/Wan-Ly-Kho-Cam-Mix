@@ -4,6 +4,7 @@ import json
 import subprocess
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout,
                             QHBoxLayout, QGridLayout, QLabel, QLineEdit, QPushButton,
                             QTableWidget, QTableWidgetItem, QHeaderView, QComboBox,
@@ -23,6 +24,7 @@ try:
     from src.utils.default_formulas import PACKAGING_INFO
     from src.utils.app_icon import create_app_icon
     from src.ui.threshold_settings_dialog import ThresholdSettingsDialog
+    from src.utils.persistent_paths import persistent_path_manager, get_data_file_path, get_report_file_path, get_export_file_path
 except ImportError:
     # Nếu không import được từ src, thử import trực tiếp
     from core.formula_manager import FormulaManager
@@ -202,9 +204,9 @@ class ChickenFarmApp(QMainWindow):
         print(f"Dialog Ratios: {self.responsive_dialog_width_ratio:.2f}w x {self.responsive_dialog_height_ratio:.2f}h")
         dialog_w, dialog_h = self.get_responsive_dialog_size()
         print(f"Dialog Size: {dialog_w}x{dialog_h}px")
-        print(f"Extreme-Compact Font: 12px → {self.get_responsive_font_size(12)}px")
-        print(f"Extreme-Compact Row: 30px → {self.get_responsive_row_height(30)}px")
-        print(f"Extreme-Compact Table: 500px → {self.get_responsive_table_height(500)}px")
+        print(f"Extreme-Compact Font: 12px -> {self.get_responsive_font_size(12)}px")
+        print(f"Extreme-Compact Row: 30px -> {self.get_responsive_row_height(30)}px")
+        print(f"Extreme-Compact Table: 500px -> {self.get_responsive_table_height(500)}px")
         print("Extreme-Compact Design: 0.10 scale factor for maximum information density")
 
     def setup_responsive_main_window(self):
@@ -378,8 +380,8 @@ class ChickenFarmApp(QMainWindow):
         print("Initializing managers and data...")
 
         # Các thư mục dữ liệu
-        os.makedirs("src/data/reports", exist_ok=True)
-        os.makedirs("src/data/imports", exist_ok=True)
+        os.makedirs(str(persistent_path_manager.reports_path), exist_ok=True)
+        os.makedirs(str(persistent_path_manager.data_path / "imports"), exist_ok=True)
 
         # Initialize managers
         self.formula_manager = FormulaManager()
@@ -1929,10 +1931,10 @@ class ChickenFarmApp(QMainWindow):
                 date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
             # Create filename based on date
-            filename = f"src/data/imports/import_{date}.json"
+            filename = str(persistent_path_manager.data_path / "imports" / f"import_{date}.json")
 
             # Ensure directory exists
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
             # Load existing data if file exists
             imports = []
@@ -1977,6 +1979,10 @@ class ChickenFarmApp(QMainWindow):
                 self.mix_import_note.clear()
 
         except Exception as e:
+            print(f"Error saving import history: {e}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể lưu lịch sử nhập kho: {e}")
+
+        except Exception as e:
             error_msg = f"Không thể lưu lịch sử nhập hàng: {str(e)}"
             QMessageBox.critical(self, "Lỗi", error_msg)
             print(f"Error in save_import_history: {str(e)}")
@@ -2009,7 +2015,7 @@ class ChickenFarmApp(QMainWindow):
         current_date = from_date
         while current_date <= to_date:
             date_str = current_date.toString("dd/MM/yyyy")
-            filename = f"src/data/imports/import_{date_str}.json"
+            filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
 
             # Nếu có file dữ liệu cho ngày này
             if os.path.exists(filename):
@@ -2084,7 +2090,7 @@ class ChickenFarmApp(QMainWindow):
         try:
             # Lấy ngày hiện tại với format đúng
             current_date = QDate.currentDate().toString("yyyy-MM-dd")
-            filename = f"src/data/imports/import_{current_date}.json"
+            filename = str(persistent_path_manager.data_path / "imports" / f"import_{current_date}.json")
 
             # Xóa dữ liệu hiện tại
             self.feed_import_history_table.setRowCount(0)
@@ -2101,12 +2107,12 @@ class ChickenFarmApp(QMainWindow):
                 print(f"Warning: Invalid data format in {filename}")
                 return
 
+            # Lọc chỉ lấy dữ liệu cám
+            feed_imports = [import_data for import_data in imports if import_data["type"] == "feed"]
+
         except Exception as e:
             print(f"Error updating feed import history: {str(e)}")
             return
-
-                # Lọc chỉ lấy dữ liệu cám
-        feed_imports = [import_data for import_data in imports if import_data["type"] == "feed"]
 
         # Sắp xếp theo thời gian, mới nhất lên đầu
         feed_imports.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -2150,7 +2156,7 @@ class ChickenFarmApp(QMainWindow):
         try:
             # Lấy ngày hiện tại với format đúng
             current_date = QDate.currentDate().toString("yyyy-MM-dd")
-            filename = f"src/data/imports/import_{current_date}.json"
+            filename = str(persistent_path_manager.data_path / "imports" / f"import_{current_date}.json")
 
             # Xóa dữ liệu hiện tại
             self.mix_import_history_table.setRowCount(0)
@@ -2167,12 +2173,12 @@ class ChickenFarmApp(QMainWindow):
                 print(f"Warning: Invalid data format in {filename}")
                 return
 
+            # Lọc chỉ lấy dữ liệu mix
+            mix_imports = [import_data for import_data in imports if import_data["type"] == "mix"]
+
         except Exception as e:
             print(f"Error updating mix import history: {str(e)}")
             return
-
-                # Lọc chỉ lấy dữ liệu mix
-        mix_imports = [import_data for import_data in imports if import_data["type"] == "mix"]
 
         # Sắp xếp theo thời gian, mới nhất lên đầu
         mix_imports.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -2894,7 +2900,7 @@ class ChickenFarmApp(QMainWindow):
             cb.clear()
 
         # Reports directory
-        reports_dir = "src/data/reports"
+        reports_dir = str(persistent_path_manager.reports_path)
 
         # Check if reports directory exists
         if not os.path.exists(reports_dir):
@@ -3895,7 +3901,7 @@ class ChickenFarmApp(QMainWindow):
                 # Tính lượng thành phần theo số mẻ thực tế
                 mix_amount = one_batch_amount * actual_batches
 
-                print(f"  {ingredient}: {one_batch_amount} × {actual_batches} = {mix_amount:.2f} kg")
+                print(f"  {ingredient}: {one_batch_amount} x {actual_batches} = {mix_amount:.2f} kg")
 
                 # Cộng dồn vào kết quả
                 if ingredient in mix_ingredients:
@@ -4365,7 +4371,7 @@ class ChickenFarmApp(QMainWindow):
             self.update_inventory_after_usage(all_ingredients_used)
 
             # Tạo thư mục báo cáo nếu chưa tồn tại
-            reports_dir = "src/data/reports"
+            reports_dir = str(persistent_path_manager.reports_path)
             if not os.path.exists(reports_dir):
                 os.makedirs(reports_dir)
 
@@ -4389,7 +4395,7 @@ class ChickenFarmApp(QMainWindow):
                 # Nếu có lỗi, sử dụng ngày hiện tại
                 date_str = QDate.currentDate().toString("yyyyMMdd")
 
-            report_file = os.path.join(reports_dir, f"report_{date_str}.json")
+            report_file = str(persistent_path_manager.reports_path / f"report_{date_str}.json")
 
             # Thu thập dữ liệu lượng cám
             feed_usage = {}
@@ -4475,8 +4481,8 @@ class ChickenFarmApp(QMainWindow):
             # Cập nhật danh sách báo cáo trong tab lịch sử
             self.update_history_dates()
 
-            # Cập nhật bảng lịch sử cám
-            self.load_feed_usage_history(show_message=False)
+            # Cập nhật bảng lịch sử cám với bộ lọc hiện tại
+            self.refresh_history_with_current_filter()
 
         except Exception as e:
             print(f"Lỗi khi lưu báo cáo: {str(e)}")
@@ -5737,7 +5743,7 @@ class ChickenFarmApp(QMainWindow):
             print(f"Đang tìm báo cáo cho ngày: {date_str}")
 
             # Tạo đường dẫn file báo cáo
-            report_file = f"src/data/reports/report_{date_str}.json"
+            report_file = str(persistent_path_manager.reports_path / f"report_{date_str}.json")
             print(f"Thử đường dẫn 1: {report_file}")
 
             # Kiểm tra file tồn tại
@@ -5750,7 +5756,7 @@ class ChickenFarmApp(QMainWindow):
                     print(f"Không tìm thấy file tại: {report_file}")
 
                     # Kiểm tra tất cả các file báo cáo hiện có
-                    reports_dir1 = "src/data/reports"
+                    reports_dir1 = str(persistent_path_manager.reports_path)
                     reports_dir2 = "reports"
 
                     if os.path.exists(reports_dir1):
@@ -7530,7 +7536,7 @@ class ChickenFarmApp(QMainWindow):
             # Lưu báo cáo hiện tại
             if "date" in self.current_report_data:
                 date_str = self.current_report_data["date"]
-                report_file = f"src/data/reports/report_{date_str}.json"
+                report_file = str(persistent_path_manager.reports_path / f"report_{date_str}.json")
                 try:
                     with open(report_file, 'w', encoding='utf-8') as f:
                         json.dump(self.current_report_data, f, ensure_ascii=False, indent=4)
@@ -7704,6 +7710,24 @@ class ChickenFarmApp(QMainWindow):
         # Gọi load_feed_usage_history với tham số lọc
         self.load_feed_usage_history(show_message=False, filter_from_date=from_date, filter_to_date=to_date)
 
+    def refresh_history_with_current_filter(self):
+        """Refresh history table while respecting current date filter settings"""
+        # Check if date filter controls exist and get current filter values
+        if hasattr(self, 'history_from_date') and hasattr(self, 'history_to_date'):
+            from_date = self.history_from_date.date()
+            to_date = self.history_to_date.date()
+
+            # Validate date range
+            if from_date <= to_date:
+                # Apply current filter
+                self.load_feed_usage_history(show_message=False, filter_from_date=from_date, filter_to_date=to_date)
+            else:
+                # If invalid date range, load all reports
+                self.load_feed_usage_history(show_message=False)
+        else:
+            # If no filter controls exist, load all reports
+            self.load_feed_usage_history(show_message=False)
+
 
 
     def load_feed_usage_history(self, show_message=True, filter_from_date=None, filter_to_date=None):
@@ -7717,7 +7741,7 @@ class ChickenFarmApp(QMainWindow):
             return
 
         # Reports directory
-        reports_dir = "src/data/reports"
+        reports_dir = str(persistent_path_manager.reports_path)
 
         # Check if reports directory exists
         if not os.path.exists(reports_dir):
@@ -9329,7 +9353,7 @@ class ChickenFarmApp(QMainWindow):
     def load_employees(self):
         """Load employees from JSON file"""
         try:
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -9508,7 +9532,7 @@ class ChickenFarmApp(QMainWindow):
 
         try:
             # Load existing employees
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -9533,7 +9557,7 @@ class ChickenFarmApp(QMainWindow):
             employees_data.append(new_employee)
 
             # Save to file
-            os.makedirs(os.path.dirname(employees_file), exist_ok=True)
+            Path(employees_file).parent.mkdir(parents=True, exist_ok=True)
             with open(employees_file, 'w', encoding='utf-8') as f:
                 json.dump(employees_data, f, ensure_ascii=False, indent=2)
 
@@ -9644,7 +9668,7 @@ class ChickenFarmApp(QMainWindow):
 
         try:
             # Load existing employees
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             with open(employees_file, 'r', encoding='utf-8') as f:
                 employees_data = json.load(f)
 
@@ -9694,7 +9718,7 @@ class ChickenFarmApp(QMainWindow):
         if reply == QMessageBox.Yes:
             try:
                 # Load existing employees
-                employees_file = "src/data/employees.json"
+                employees_file = str(get_data_file_path("employees.json"))
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
 
@@ -9725,7 +9749,7 @@ class ChickenFarmApp(QMainWindow):
     def load_attendance_data(self):
         """Load attendance data and update calendar"""
         try:
-            attendance_file = "src/data/attendance.json"
+            attendance_file = str(get_data_file_path("attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     self.attendance_data = json.load(f)
@@ -9801,7 +9825,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Show all employees' absence status for this date
         try:
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -9887,8 +9911,8 @@ class ChickenFarmApp(QMainWindow):
                 }
 
                 # Save to file
-                attendance_file = "src/data/attendance.json"
-                os.makedirs(os.path.dirname(attendance_file), exist_ok=True)
+                attendance_file = str(get_data_file_path("attendance.json"))
+                Path(attendance_file).parent.mkdir(parents=True, exist_ok=True)
                 with open(attendance_file, 'w', encoding='utf-8') as f:
                     json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
 
@@ -9944,7 +9968,7 @@ class ChickenFarmApp(QMainWindow):
                     del self.attendance_data[employee_id]
 
                 # Save to file
-                attendance_file = "src/data/attendance.json"
+                attendance_file = str(get_data_file_path("attendance.json"))
                 with open(attendance_file, 'w', encoding='utf-8') as f:
                     json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
 
@@ -9967,7 +9991,7 @@ class ChickenFarmApp(QMainWindow):
             self.import_tracking_table.setRowCount(0)
 
             # Load participation data
-            participation_file = "src/data/import_participation.json"
+            participation_file = str(get_data_file_path("import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -9977,11 +10001,11 @@ class ChickenFarmApp(QMainWindow):
             all_imports = []
 
             # Process import files from imports directory
-            imports_dir = "src/data/imports"
+            imports_dir = str(persistent_path_manager.data_path / "imports")
             if os.path.exists(imports_dir):
                 for filename in os.listdir(imports_dir):
                     if filename.startswith('import_') and filename.endswith('.json'):
-                        file_path = os.path.join(imports_dir, filename)
+                        file_path = str(persistent_path_manager.data_path / "imports" / filename)
 
                         # Extract date from filename (import_YYYY-MM-DD.json)
                         try:
@@ -10333,7 +10357,7 @@ class ChickenFarmApp(QMainWindow):
         """Get employees available on a specific date (not on leave)"""
         try:
             # Load all employees
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if not os.path.exists(employees_file):
                 return []
 
@@ -10341,7 +10365,7 @@ class ChickenFarmApp(QMainWindow):
                 all_employees = json.load(f)
 
             # Load attendance data
-            attendance_file = "src/data/attendance.json"
+            attendance_file = str(get_data_file_path("attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -10387,7 +10411,7 @@ class ChickenFarmApp(QMainWindow):
                     })
 
             # Load existing participation data
-            participation_file = "src/data/import_participation.json"
+            participation_file = str(get_data_file_path("import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -10406,7 +10430,7 @@ class ChickenFarmApp(QMainWindow):
             }
 
             # Save to file
-            os.makedirs(os.path.dirname(participation_file), exist_ok=True)
+            Path(participation_file).parent.mkdir(parents=True, exist_ok=True)
             with open(participation_file, 'w', encoding='utf-8') as f:
                 json.dump(participation_data, f, ensure_ascii=False, indent=2)
 
@@ -10441,7 +10465,7 @@ class ChickenFarmApp(QMainWindow):
             })
 
             # Load participation data
-            participation_file = "src/data/import_participation.json"
+            participation_file = str(get_data_file_path("import_participation.json"))
             if not os.path.exists(participation_file):
                 QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu tham gia nhập kho!")
                 return
@@ -10450,7 +10474,7 @@ class ChickenFarmApp(QMainWindow):
                 participation_data = json.load(f)
 
             # Load employees data
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if not os.path.exists(employees_file):
                 QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu nhân viên!")
                 return
@@ -10459,7 +10483,7 @@ class ChickenFarmApp(QMainWindow):
                 employees_data = json.load(f)
 
             # Load attendance data to exclude sick leave
-            attendance_file = "src/data/attendance.json"
+            attendance_file = str(get_data_file_path("attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -10590,7 +10614,7 @@ class ChickenFarmApp(QMainWindow):
     def save_bonus_calculation(self, employee_bonuses, month, year):
         """Save bonus calculation results to file"""
         try:
-            bonus_file = "src/data/bonus_calculation.json"
+            bonus_file = str(get_data_file_path("bonus_calculation.json"))
 
             # Load existing data
             if os.path.exists(bonus_file):
@@ -10609,7 +10633,7 @@ class ChickenFarmApp(QMainWindow):
             }
 
             # Save to file
-            os.makedirs(os.path.dirname(bonus_file), exist_ok=True)
+            Path(bonus_file).parent.mkdir(parents=True, exist_ok=True)
             with open(bonus_file, 'w', encoding='utf-8') as f:
                 json.dump(bonus_data, f, ensure_ascii=False, indent=2)
 
@@ -10661,7 +10685,7 @@ class ChickenFarmApp(QMainWindow):
     def create_employee_sheet(self, writer):
         """Create employee list sheet"""
         try:
-            employees_file = "src/data/employees.json"
+            employees_file = str(get_data_file_path("employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -10684,8 +10708,8 @@ class ChickenFarmApp(QMainWindow):
     def create_attendance_sheet(self, writer):
         """Create attendance data sheet"""
         try:
-            attendance_file = "src/data/attendance.json"
-            employees_file = "src/data/employees.json"
+            attendance_file = str(get_data_file_path("attendance.json"))
+            employees_file = str(get_data_file_path("employees.json"))
 
             if os.path.exists(attendance_file) and os.path.exists(employees_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
@@ -10721,7 +10745,7 @@ class ChickenFarmApp(QMainWindow):
     def create_import_tracking_sheet(self, writer):
         """Create import tracking sheet"""
         try:
-            participation_file = "src/data/import_participation.json"
+            participation_file = str(get_data_file_path("import_participation.json"))
 
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
@@ -10821,7 +10845,7 @@ class ChickenFarmApp(QMainWindow):
     def load_bonus_rates(self):
         """Load bonus rates from config file"""
         try:
-            bonus_rates_file = "src/data/config/bonus_rates.json"
+            bonus_rates_file = str(persistent_path_manager.get_config_file_path("bonus_rates.json"))
             if os.path.exists(bonus_rates_file):
                 with open(bonus_rates_file, 'r', encoding='utf-8') as f:
                     bonus_config = json.load(f)
@@ -10851,8 +10875,8 @@ class ChickenFarmApp(QMainWindow):
     def save_bonus_rates(self, bonus_config):
         """Save bonus rates to config file"""
         try:
-            bonus_rates_file = "src/data/config/bonus_rates.json"
-            os.makedirs(os.path.dirname(bonus_rates_file), exist_ok=True)
+            bonus_rates_file = str(persistent_path_manager.get_config_file_path("bonus_rates.json"))
+            Path(bonus_rates_file).parent.mkdir(parents=True, exist_ok=True)
 
             bonus_config["last_updated"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -11013,7 +11037,7 @@ class ChickenFarmApp(QMainWindow):
             import_key = f"{date}_{timestamp}_{ingredient}_{amount}"
 
             # Load existing participation data
-            participation_file = "src/data/import_participation.json"
+            participation_file = str(get_data_file_path("import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -11037,7 +11061,7 @@ class ChickenFarmApp(QMainWindow):
             }
 
             # Save to file
-            os.makedirs(os.path.dirname(participation_file), exist_ok=True)
+            Path(participation_file).parent.mkdir(parents=True, exist_ok=True)
             with open(participation_file, 'w', encoding='utf-8') as f:
                 json.dump(participation_data, f, ensure_ascii=False, indent=2)
 
@@ -11299,7 +11323,7 @@ class ChickenFarmApp(QMainWindow):
     def load_salary_rates(self):
         """Load salary rates from config file"""
         try:
-            salary_rates_file = "src/data/config/salary_rates.json"
+            salary_rates_file = str(persistent_path_manager.get_config_file_path("salary_rates.json"))
             if os.path.exists(salary_rates_file):
                 with open(salary_rates_file, 'r', encoding='utf-8') as f:
                     salary_config = json.load(f)
@@ -11337,8 +11361,8 @@ class ChickenFarmApp(QMainWindow):
     def save_salary_rates(self, salary_config):
         """Save salary rates to config file"""
         try:
-            salary_rates_file = "src/data/config/salary_rates.json"
-            os.makedirs(os.path.dirname(salary_rates_file), exist_ok=True)
+            salary_rates_file = str(persistent_path_manager.get_config_file_path("salary_rates.json"))
+            Path(salary_rates_file).parent.mkdir(parents=True, exist_ok=True)
 
             salary_config["last_updated"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -11568,7 +11592,7 @@ class ChickenFarmApp(QMainWindow):
     def load_attendance_data_for_salary(self, month, year):
         """Load attendance data for salary calculation"""
         try:
-            attendance_file = "src/data/attendance.json"
+            attendance_file = str(get_data_file_path("attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -11656,7 +11680,7 @@ class ChickenFarmApp(QMainWindow):
     def load_leave_types(self):
         """Load leave types configuration"""
         try:
-            leave_types_file = "src/data/config/leave_types.json"
+            leave_types_file = str(persistent_path_manager.get_config_file_path("leave_types.json"))
             if os.path.exists(leave_types_file):
                 with open(leave_types_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
@@ -12083,7 +12107,7 @@ class EditInventoryItemDialog(QDialog):
         self.save_button.setEnabled(is_valid)
 
         if error_messages:
-            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setText("* " + "\n* ".join(error_messages))
             self.error_label.setVisible(True)
         else:
             self.error_label.setVisible(False)
@@ -12139,13 +12163,13 @@ class EditInventoryItemDialog(QDialog):
         changes = []
 
         if new_data['name'] != self.original_data['name']:
-            changes.append(f"Tên: '{self.original_data['name']}' → '{new_data['name']}'")
+            changes.append(f"Tên: '{self.original_data['name']}' -> '{new_data['name']}'")
 
         if new_data['quantity'] != self.original_data['quantity']:
-            changes.append(f"Số lượng: {self.original_data['quantity']:,.2f} kg → {new_data['quantity']:,.2f} kg")
+            changes.append(f"Số lượng: {self.original_data['quantity']:,.2f} kg -> {new_data['quantity']:,.2f} kg")
 
         if new_data['bag_size'] != self.original_data['bag_size']:
-            changes.append(f"Kích thước bao: {self.original_data['bag_size']} kg/bao → {new_data['bag_size']} kg/bao")
+            changes.append(f"Kích thước bao: {self.original_data['bag_size']} kg/bao -> {new_data['bag_size']} kg/bao")
 
         return changes
 
@@ -12258,7 +12282,7 @@ class EditInventoryItemDialog(QDialog):
         msg.setWindowTitle("Lỗi")
         msg.setText("❌ Không thể lưu thay đổi")
         msg.setInformativeText(message)
-        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa")
+        msg.setDetailedText("Vui lòng kiểm tra:\n* Kết nối mạng\n* Quyền ghi file\n* Dung lượng ổ đĩa")
 
         retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
         cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
@@ -12319,9 +12343,9 @@ class DeleteInventoryItemDialog(QDialog):
             f"Bạn có chắc chắn muốn xóa mặt hàng <b>'{self.item_name}'</b> khỏi kho?\n\n"
             "⚠️ <b>CẢNH BÁO:</b> Hành động này không thể hoàn tác!\n\n"
             "Việc xóa mặt hàng sẽ:\n"
-            "• Xóa hoàn toàn khỏi danh sách tồn kho\n"
-            "• Có thể ảnh hưởng đến các công thức đang sử dụng\n"
-            "• Có thể ảnh hưởng đến các báo cáo lịch sử"
+            "* Xóa hoàn toàn khỏi danh sách tồn kho\n"
+            "* Có thể ảnh hưởng đến các công thức đang sử dụng\n"
+            "* Có thể ảnh hưởng đến các báo cáo lịch sử"
         )
         warning_text.setFont(QFont("Arial", 12))
         warning_text.setWordWrap(True)
@@ -12880,7 +12904,7 @@ class BulkOperationsDialog(QDialog):
             self,
             "XÁC NHẬN XÓA HÀNG LOẠT",
             f"Bạn có chắc chắn muốn xóa {len(self.selected_items)} mặt hàng đã chọn?\n\n"
-            f"Danh sách mặt hàng:\n" + "\n".join(f"• {item}" for item in self.selected_items[:10]) +
+            f"Danh sách mặt hàng:\n" + "\n".join(f"* {item}" for item in self.selected_items[:10]) +
             (f"\n... và {len(self.selected_items) - 10} mặt hàng khác" if len(self.selected_items) > 10 else "") +
             "\n\nHành động này KHÔNG THỂ HOÀN TÁC!",
             QMessageBox.Yes | QMessageBox.No,
@@ -12968,7 +12992,7 @@ class BulkEditDialog(QDialog):
 
         items_text = QTextEdit()
         items_text.setMaximumHeight(100)
-        items_text.setPlainText("\n".join(f"• {item}" for item in self.item_names))
+        items_text.setPlainText("\n".join(f"* {item}" for item in self.item_names))
         items_text.setReadOnly(True)
         items_text.setStyleSheet("""
             QTextEdit {
@@ -13610,7 +13634,7 @@ class AddInventoryItemDialog(QDialog):
         self.add_button.setEnabled(is_valid)
 
         if error_messages:
-            self.error_label.setText("• " + "\n• ".join(error_messages))
+            self.error_label.setText("* " + "\n* ".join(error_messages))
             self.error_label.setVisible(True)
         else:
             self.error_label.setVisible(False)
@@ -13719,7 +13743,7 @@ class AddInventoryItemDialog(QDialog):
         msg.setWindowTitle("Lỗi")
         msg.setText("❌ Không thể thêm mặt hàng")
         msg.setInformativeText(message)
-        msg.setDetailedText("Vui lòng kiểm tra:\n• Kết nối mạng\n• Quyền ghi file\n• Dung lượng ổ đĩa\n• Tên mặt hàng không trùng lặp")
+        msg.setDetailedText("Vui lòng kiểm tra:\n* Kết nối mạng\n* Quyền ghi file\n* Dung lượng ổ đĩa\n* Tên mặt hàng không trùng lặp")
 
         retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
         cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
