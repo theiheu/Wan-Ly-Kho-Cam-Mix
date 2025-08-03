@@ -1,0 +1,14 @@
+[
+  {
+    "timestamp": "2025-08-04 00:10:34",
+    "type": "feed",
+    "ingredient": "Bắpf",
+    "amount": 5.0,
+    "unit_price": 22.0,
+    "total_cost": 110.0,
+    "supplier": "",
+    "bag_weight": null,
+    "num_bags": null,
+    "note": ""
+  }
+]

@@ -1491,14 +1491,23 @@ class ChickenFarmApp(QMainWindow):
         self.inventory_tab.setLayout(layout)
 
     def setup_import_tab(self):
-        """Setup the import goods tab"""
+        """Setup the enhanced import goods tab with unified interface"""
         layout = QVBoxLayout()
 
         # Add a header for the tab
         header = QLabel("Nhập Hàng Vào Kho")
         header.setFont(HEADER_FONT)
         header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("QLabel { padding: 10px; background-color: #e0f2f1; border-radius: 5px; }")
+        header.setStyleSheet("""
+            QLabel {
+                padding: 15px;
+                background-color: #E8F5E9;
+                border-radius: 8px;
+                border: 2px solid #4CAF50;
+                color: #2E7D32;
+                font-weight: bold;
+            }
+        """)
         layout.addWidget(header)
 
         # Create tabs for Feed and Mix imports
@@ -1508,6 +1517,7 @@ class ChickenFarmApp(QMainWindow):
             QTabWidget::pane {
                 border: 1px solid #cccccc;
                 background: white;
+                border-radius: 8px;
             }
             QTabWidget::tab-bar {
                 left: 5px;
@@ -1516,10 +1526,11 @@ class ChickenFarmApp(QMainWindow):
                 background: #f0f0f0;
                 border: 1px solid #cccccc;
                 border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 8px 12px;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                padding: 12px 16px;
                 margin-right: 2px;
+                font-weight: bold;
             }
             QTabBar::tab:selected {
                 background: #4CAF50;
@@ -1527,6 +1538,9 @@ class ChickenFarmApp(QMainWindow):
             }
             QTabBar::tab:!selected {
                 margin-top: 2px;
+            }
+            QTabBar::tab:hover {
+                background: #E8F5E9;
             }
         """)
 
@@ -1539,198 +1553,220 @@ class ChickenFarmApp(QMainWindow):
         import_tabs.addTab(mix_import_tab, "Nhập kho mix")
         import_tabs.addTab(import_history_tab, "Lịch Sử Nhập Hàng")
 
-        # Setup Feed Import tab
+        # Setup Feed Import tab with enhanced interface
         feed_import_layout = QVBoxLayout()
+        feed_import_layout.setSpacing(20)
+        feed_import_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Form layout for feed import
-        feed_form_group = QGroupBox("Thông Tin Nhập kho cám")
-        feed_form_group.setFont(DEFAULT_FONT)
-        feed_form_layout = QGridLayout()
+        # Enhanced import section for feed
+        feed_import_section = QFrame()
+        feed_import_section.setStyleSheet("""
+            QFrame {
+                background-color: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 20px;
+            }
+        """)
+        feed_section_layout = QVBoxLayout()
 
-        # Add form fields
-        feed_form_layout.addWidget(QLabel("Thành phần:"), 0, 0)
-        self.feed_import_combo = QComboBox()
-        self.feed_import_combo.setFont(DEFAULT_FONT)
-
-        # Lấy danh sách các thành phần từ công thức cám
-        feed_ingredients = self.formula_manager.get_feed_formula().keys()
-        for ingredient in feed_ingredients:
-            self.feed_import_combo.addItem(ingredient)
-        feed_form_layout.addWidget(self.feed_import_combo, 0, 1)
-
-        feed_form_layout.addWidget(QLabel("Số lượng (kg):"), 1, 0)
-        self.feed_import_amount = CustomDoubleSpinBox()
-        self.feed_import_amount.setRange(0, 1000000)
-        self.feed_import_amount.setDecimals(2)
-        self.feed_import_amount.setSingleStep(10)
-        self.feed_import_amount.setFont(DEFAULT_FONT)
-        feed_form_layout.addWidget(self.feed_import_amount, 1, 1)
-
-        feed_form_layout.addWidget(QLabel("Ngày nhập:"), 2, 0)
-        self.feed_import_date = QDateEdit()
-        self.feed_import_date.setDate(QDate.currentDate())
-        self.feed_import_date.setCalendarPopup(True)
-        self.feed_import_date.setFont(DEFAULT_FONT)
-        feed_form_layout.addWidget(self.feed_import_date, 2, 1)
-
-        feed_form_layout.addWidget(QLabel("Ghi chú:"), 3, 0)
-        self.feed_import_note = QLineEdit()
-        self.feed_import_note.setFont(DEFAULT_FONT)
-        feed_form_layout.addWidget(self.feed_import_note, 3, 1)
-
-        feed_form_group.setLayout(feed_form_layout)
-        feed_import_layout.addWidget(feed_form_group)
-
-        # Add submit button
-        feed_import_btn = QPushButton("Nhập kho cám")
-        feed_import_btn.setFont(BUTTON_FONT)
-        feed_import_btn.setMinimumHeight(40)
+        # Import button for feed
+        feed_import_btn = QPushButton("📦 Nhập Kho Cám")
+        feed_import_btn.setFont(QFont("Arial", 14, QFont.Bold))
+        feed_import_btn.setMinimumHeight(50)
         feed_import_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
+                border: none;
+                border-radius: 8px;
+                padding: 15px 30px;
+                font-weight: bold;
+                font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #45a049;
+                background-color: #45A049;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #3D8B40;
             }
         """)
-        feed_import_btn.clicked.connect(lambda: self.import_feed())
-        feed_import_layout.addWidget(feed_import_btn)
+        feed_import_btn.clicked.connect(lambda: self.open_enhanced_import_dialog("feed"))
 
-        # Thêm bảng lịch sử Nhập kho cám
-        feed_history_group = QGroupBox("Lịch Sử Nhập kho cám")
-        feed_history_group.setFont(DEFAULT_FONT)
+        # Description for feed import
+        feed_description = QLabel("Sử dụng giao diện nhập kho nâng cao với đầy đủ tính năng quản lý thành phần, đơn vị đo, nhà cung cấp và theo dõi lịch sử.")
+        feed_description.setFont(QFont("Arial", 11))
+        feed_description.setStyleSheet("color: #666666; padding: 10px;")
+        feed_description.setWordWrap(True)
+
+        feed_section_layout.addWidget(feed_import_btn)
+        feed_section_layout.addWidget(feed_description)
+        feed_import_section.setLayout(feed_section_layout)
+        feed_import_layout.addWidget(feed_import_section)
+
+        # Enhanced history section for feed
+        feed_history_group = QGroupBox("Lịch Sử Nhập Kho Cám")
+        feed_history_group.setFont(QFont("Arial", 12, QFont.Bold))
+        feed_history_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #4CAF50;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+                color: #2E7D32;
+            }
+        """)
         feed_history_layout = QVBoxLayout()
 
         self.feed_import_history_table = QTableWidget()
         self.feed_import_history_table.setFont(TABLE_CELL_FONT)
-        self.feed_import_history_table.setColumnCount(5)
-        self.feed_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Số bao", "Ghi chú"])
+        self.feed_import_history_table.setColumnCount(7)
+        self.feed_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Đơn giá (VNĐ)", "Thành tiền (VNĐ)", "Nhà cung cấp", "Ghi chú"])
         self.feed_import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.feed_import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.feed_import_history_table.setAlternatingRowColors(True)
         self.feed_import_history_table.setStyleSheet("""
             QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
+                gridline-color: #E0E0E0;
+                selection-background-color: #E8F5E9;
+                alternate-background-color: #F9F9F9;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
             }
             QHeaderView::section {
                 background-color: #4CAF50;
                 color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
+                padding: 8px;
+                border: 1px solid #45A049;
+                font-weight: bold;
             }
             QTableWidget::item {
-                padding: 4px;
+                padding: 6px;
+                border-bottom: 1px solid #F0F0F0;
             }
         """)
-        self.feed_import_history_table.setMinimumHeight(200)
+        self.feed_import_history_table.setMinimumHeight(250)
         feed_history_layout.addWidget(self.feed_import_history_table)
         feed_history_group.setLayout(feed_history_layout)
         feed_import_layout.addWidget(feed_history_group)
 
-        # Cập nhật lịch sử Nhập kho cám lần đầu
+        # Update feed import history initially
         self.update_feed_import_history()
 
         feed_import_tab.setLayout(feed_import_layout)
 
-        # Setup Mix Import tab (similar to feed import)
+        # Setup Mix Import tab with enhanced interface
         mix_import_layout = QVBoxLayout()
+        mix_import_layout.setSpacing(20)
+        mix_import_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Form layout for mix import
-        mix_form_group = QGroupBox("Thông Tin Nhập kho mix")
-        mix_form_group.setFont(DEFAULT_FONT)
-        mix_form_layout = QGridLayout()
-
-        # Add form fields
-        mix_form_layout.addWidget(QLabel("Thành phần:"), 0, 0)
-        self.mix_import_combo = QComboBox()
-        self.mix_import_combo.setFont(DEFAULT_FONT)
-
-        # Lấy danh sách các thành phần từ công thức mix
-        mix_ingredients = self.formula_manager.get_mix_formula().keys()
-        for ingredient in mix_ingredients:
-            self.mix_import_combo.addItem(ingredient)
-        mix_form_layout.addWidget(self.mix_import_combo, 0, 1)
-
-        mix_form_layout.addWidget(QLabel("Số lượng (kg):"), 1, 0)
-        self.mix_import_amount = CustomDoubleSpinBox()
-        self.mix_import_amount.setRange(0, 1000000)
-        self.mix_import_amount.setDecimals(2)
-        self.mix_import_amount.setSingleStep(10)
-        self.mix_import_amount.setFont(DEFAULT_FONT)
-        mix_form_layout.addWidget(self.mix_import_amount, 1, 1)
-
-        mix_form_layout.addWidget(QLabel("Ngày nhập:"), 2, 0)
-        self.mix_import_date = QDateEdit()
-        self.mix_import_date.setDate(QDate.currentDate())
-        self.mix_import_date.setCalendarPopup(True)
-        self.mix_import_date.setFont(DEFAULT_FONT)
-        mix_form_layout.addWidget(self.mix_import_date, 2, 1)
-
-        mix_form_layout.addWidget(QLabel("Ghi chú:"), 3, 0)
-        self.mix_import_note = QLineEdit()
-        self.mix_import_note.setFont(DEFAULT_FONT)
-        mix_form_layout.addWidget(self.mix_import_note, 3, 1)
-
-        mix_form_group.setLayout(mix_form_layout)
-        mix_import_layout.addWidget(mix_form_group)
-
-        # Add submit button
-        mix_import_btn = QPushButton("Nhập kho mix")
-        mix_import_btn.setFont(BUTTON_FONT)
-        mix_import_btn.setMinimumHeight(40)
-        mix_import_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border-radius: 5px;
-                padding: 8px 15px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
+        # Enhanced import section for mix
+        mix_import_section = QFrame()
+        mix_import_section.setStyleSheet("""
+            QFrame {
+                background-color: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 20px;
             }
         """)
-        mix_import_btn.clicked.connect(lambda: self.import_mix())
-        mix_import_layout.addWidget(mix_import_btn)
+        mix_section_layout = QVBoxLayout()
 
-        # Thêm bảng lịch sử Nhập kho mix
-        mix_history_group = QGroupBox("Lịch Sử Nhập kho mix")
-        mix_history_group.setFont(DEFAULT_FONT)
+        # Import button for mix
+        mix_import_btn = QPushButton("🥤 Nhập Kho Mix")
+        mix_import_btn.setFont(QFont("Arial", 14, QFont.Bold))
+        mix_import_btn.setMinimumHeight(50)
+        mix_import_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 15px 30px;
+                font-weight: bold;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                background-color: #E65100;
+            }
+        """)
+        mix_import_btn.clicked.connect(lambda: self.open_enhanced_import_dialog("mix"))
+
+        # Description for mix import
+        mix_description = QLabel("Sử dụng giao diện nhập kho nâng cao với đầy đủ tính năng quản lý thành phần, đơn vị đo, nhà cung cấp và theo dõi lịch sử.")
+        mix_description.setFont(QFont("Arial", 11))
+        mix_description.setStyleSheet("color: #666666; padding: 10px;")
+        mix_description.setWordWrap(True)
+
+        mix_section_layout.addWidget(mix_import_btn)
+        mix_section_layout.addWidget(mix_description)
+        mix_import_section.setLayout(mix_section_layout)
+        mix_import_layout.addWidget(mix_import_section)
+
+        # Enhanced history section for mix
+        mix_history_group = QGroupBox("Lịch Sử Nhập Kho Mix")
+        mix_history_group.setFont(QFont("Arial", 12, QFont.Bold))
+        mix_history_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #FF9800;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+                color: #E65100;
+            }
+        """)
         mix_history_layout = QVBoxLayout()
 
         self.mix_import_history_table = QTableWidget()
         self.mix_import_history_table.setFont(TABLE_CELL_FONT)
-        self.mix_import_history_table.setColumnCount(5)
-        self.mix_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Số bao", "Ghi chú"])
+        self.mix_import_history_table.setColumnCount(7)
+        self.mix_import_history_table.setHorizontalHeaderLabels(["Thời gian", "Thành phần", "Số lượng (kg)", "Đơn giá (VNĐ)", "Thành tiền (VNĐ)", "Nhà cung cấp", "Ghi chú"])
         self.mix_import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.mix_import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.mix_import_history_table.setAlternatingRowColors(True)
         self.mix_import_history_table.setStyleSheet("""
             QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
+                gridline-color: #E0E0E0;
+                selection-background-color: #FFF3E0;
+                alternate-background-color: #F9F9F9;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
             }
             QHeaderView::section {
-                background-color: #4CAF50;
+                background-color: #FF9800;
                 color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
+                padding: 8px;
+                border: 1px solid #F57C00;
+                font-weight: bold;
             }
             QTableWidget::item {
-                padding: 4px;
+                padding: 6px;
+                border-bottom: 1px solid #F0F0F0;
             }
         """)
-        self.mix_import_history_table.setMinimumHeight(200)
+        self.mix_import_history_table.setMinimumHeight(250)
         mix_history_layout.addWidget(self.mix_import_history_table)
         mix_history_group.setLayout(mix_history_layout)
         mix_import_layout.addWidget(mix_history_group)
 
-        # Cập nhật lịch sử Nhập kho mix lần đầu
+        # Update mix import history initially
         self.update_mix_import_history()
 
         mix_import_tab.setLayout(mix_import_layout)
@@ -1809,6 +1845,33 @@ class ChickenFarmApp(QMainWindow):
         layout.addWidget(import_tabs)
 
         self.import_tab.setLayout(layout)
+
+    def open_enhanced_import_dialog(self, item_type):
+        """Open the enhanced warehouse import dialog"""
+        try:
+            dialog = EnhancedWarehouseImportDialog(self, item_type)
+            if dialog.exec_() == QDialog.Accepted:
+                # Refresh inventory displays after successful import
+                if item_type == "feed":
+                    self.update_feed_inventory_table()
+                    self.update_feed_import_history()
+                else:
+                    self.update_mix_inventory_table()
+                    self.update_mix_import_history()
+
+                # Refresh inventory analysis
+                if hasattr(self, 'refresh_inventory_analysis'):
+                    self.refresh_inventory_analysis()
+
+                # Show success notification
+                self.show_notification(
+                    f"✅ Nhập kho {'cám' if item_type == 'feed' else 'mix'} thành công!",
+                    "success"
+                )
+        except Exception as e:
+            error_msg = f"Lỗi khi mở dialog nhập kho: {str(e)}"
+            print(error_msg)
+            QMessageBox.warning(self, "Lỗi", error_msg)
 
     def import_feed(self):
         """Import feed into inventory"""
@@ -1921,8 +1984,8 @@ class ChickenFarmApp(QMainWindow):
 
         QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho mix!")
 
-    def save_import_history(self, import_type, ingredient, amount, date, note):
-        """Save import history to file"""
+    def save_import_history(self, import_type, ingredient, amount, date, note, unit_price=0, supplier="", bag_weight=None):
+        """Save import history to file with enhanced data"""
         try:
             # Ensure date is in YYYY-MM-DD format
             if "/" in date:
@@ -1948,12 +2011,17 @@ class ChickenFarmApp(QMainWindow):
                     print(f"Warning: Could not read existing import file {filename}: {e}")
                     imports = []
 
-            # Add new import record
+            # Add new import record with enhanced data
             import_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "type": import_type,
                 "ingredient": ingredient,
                 "amount": float(amount),  # Ensure amount is numeric
+                "unit_price": float(unit_price) if unit_price else 0,
+                "total_cost": float(amount) * float(unit_price) if unit_price else 0,
+                "supplier": str(supplier) if supplier else "",
+                "bag_weight": float(bag_weight) if bag_weight else None,
+                "num_bags": float(amount) / float(bag_weight) if bag_weight and bag_weight > 0 else None,
                 "note": str(note) if note else ""
             }
 
@@ -2134,22 +2202,28 @@ class ChickenFarmApp(QMainWindow):
             amount_item.setTextAlignment(Qt.AlignCenter)
             self.feed_import_history_table.setItem(row, 2, amount_item)
 
-            # Số bao
-            ingredient_name = import_data["ingredient"]
-            amount = import_data["amount"]
-            # Lấy kích thước bao từ packaging_info
-            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
-            if bag_size > 0:
-                bags = amount / bag_size
-                bags_item = QTableWidgetItem(format_number(bags))
-            else:
-                bags_item = QTableWidgetItem("")
-            bags_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_import_history_table.setItem(row, 3, bags_item)
+            # Đơn giá
+            unit_price = import_data.get("unit_price", 0)
+            price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
+            price_item.setTextAlignment(Qt.AlignRight)
+            self.feed_import_history_table.setItem(row, 3, price_item)
+
+            # Thành tiền
+            total_cost = import_data.get("total_cost", 0)
+            if total_cost <= 0 and unit_price > 0:
+                total_cost = import_data["amount"] * unit_price
+            total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
+            total_item.setTextAlignment(Qt.AlignRight)
+            self.feed_import_history_table.setItem(row, 4, total_item)
+
+            # Nhà cung cấp
+            supplier = import_data.get("supplier", "")
+            supplier_item = QTableWidgetItem(supplier)
+            self.feed_import_history_table.setItem(row, 5, supplier_item)
 
             # Ghi chú
             note_item = QTableWidgetItem(import_data["note"])
-            self.feed_import_history_table.setItem(row, 4, note_item)
+            self.feed_import_history_table.setItem(row, 6, note_item)
 
     def update_mix_import_history(self):
         """Cập nhật bảng lịch sử Nhập kho mix"""
@@ -2200,22 +2274,28 @@ class ChickenFarmApp(QMainWindow):
             amount_item.setTextAlignment(Qt.AlignCenter)
             self.mix_import_history_table.setItem(row, 2, amount_item)
 
-            # Số bao
-            ingredient_name = import_data["ingredient"]
-            amount = import_data["amount"]
-            # Lấy kích thước bao từ packaging_info
-            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
-            if bag_size > 0:
-                bags = amount / bag_size
-                bags_item = QTableWidgetItem(format_number(bags))
-            else:
-                bags_item = QTableWidgetItem("")
-            bags_item.setTextAlignment(Qt.AlignCenter)
-            self.mix_import_history_table.setItem(row, 3, bags_item)
+            # Đơn giá
+            unit_price = import_data.get("unit_price", 0)
+            price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
+            price_item.setTextAlignment(Qt.AlignRight)
+            self.mix_import_history_table.setItem(row, 3, price_item)
+
+            # Thành tiền
+            total_cost = import_data.get("total_cost", 0)
+            if total_cost <= 0 and unit_price > 0:
+                total_cost = import_data["amount"] * unit_price
+            total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
+            total_item.setTextAlignment(Qt.AlignRight)
+            self.mix_import_history_table.setItem(row, 4, total_item)
+
+            # Nhà cung cấp
+            supplier = import_data.get("supplier", "")
+            supplier_item = QTableWidgetItem(supplier)
+            self.mix_import_history_table.setItem(row, 5, supplier_item)
 
             # Ghi chú
             note_item = QTableWidgetItem(import_data["note"])
-            self.mix_import_history_table.setItem(row, 4, note_item)
+            self.mix_import_history_table.setItem(row, 6, note_item)
 
     def setup_formula_tab(self):
         """Setup the formula management tab"""
@@ -13212,6 +13292,1011 @@ class BulkEditDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Lỗi không mong muốn: {str(e)}")
 
+class EnhancedWarehouseImportDialog(QDialog):
+    """Enhanced warehouse import dialog that matches the Add New interface"""
+
+    def __init__(self, parent=None, item_type="feed"):
+        super().__init__(parent)
+        self.item_type = item_type  # "feed" or "mix"
+        self.parent_app = parent
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the dialog UI with consistent styling"""
+        self.setWindowTitle(f"Nhập Kho - {'Cám' if self.item_type == 'feed' else 'Mix'}")
+        self.setModal(True)
+
+        # Set responsive dialog size
+        if hasattr(self.parent_app, 'get_responsive_dialog_size'):
+            width, height = self.parent_app.get_responsive_dialog_size()
+            self.resize(min(600, width), min(500, height))
+        else:
+            self.resize(600, 500)
+
+        # Main layout
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # Header
+        header = QLabel(f"Nhập Hàng Vào {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
+        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                color: #2E7D32;
+                padding: 15px;
+                background-color: #E8F5E9;
+                border-radius: 8px;
+                border: 2px solid #4CAF50;
+            }
+        """)
+        layout.addWidget(header)
+
+        # Form container
+        form_frame = QFrame()
+        form_frame.setStyleSheet("""
+            QFrame {
+                background-color: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 15px;
+            }
+        """)
+        form_layout = QFormLayout()
+        form_layout.setSpacing(15)
+        form_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Ingredient selection field (required)
+        self.ingredient_combo = QComboBox()
+        self.ingredient_combo.setFont(QFont("Arial", 12))
+        self.ingredient_combo.setEditable(True)
+        self.ingredient_combo.setStyleSheet("""
+            QComboBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666;
+            }
+        """)
+
+        # Populate ingredients based on item type
+        self.populate_ingredients()
+
+        ingredient_label = QLabel("Thành phần: *")
+        ingredient_label.setFont(QFont("Arial", 12, QFont.Bold))
+        ingredient_label.setStyleSheet("color: #333333;")
+
+        # Create a container for ingredient combo and status
+        ingredient_container = QWidget()
+        ingredient_layout = QVBoxLayout()
+        ingredient_layout.setContentsMargins(0, 0, 0, 0)
+        ingredient_layout.setSpacing(5)
+
+        ingredient_layout.addWidget(self.ingredient_combo)
+
+        # Add status label for ingredient
+        self.ingredient_status_label = QLabel()
+        self.ingredient_status_label.setFont(QFont("Arial", 10))
+        self.ingredient_status_label.setVisible(False)
+        self.ingredient_status_label.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                background-color: #F0F0F0;
+                padding: 4px 8px;
+                border-radius: 3px;
+                border-left: 3px solid #2196F3;
+            }
+        """)
+        ingredient_layout.addWidget(self.ingredient_status_label)
+
+        ingredient_container.setLayout(ingredient_layout)
+        form_layout.addRow(ingredient_label, ingredient_container)
+
+        # Import quantity field (required)
+        self.quantity_input = QDoubleSpinBox()
+        self.quantity_input.setFont(QFont("Arial", 12))
+        self.quantity_input.setRange(0, 999999)
+        self.quantity_input.setDecimals(2)
+        self.quantity_input.setSuffix(" kg")
+        self.quantity_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        quantity_label = QLabel("Số lượng nhập: *")
+        quantity_label.setFont(QFont("Arial", 12, QFont.Bold))
+        quantity_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(quantity_label, self.quantity_input)
+
+        # Unit of measure field (required)
+        self.unit_combo = QComboBox()
+        self.unit_combo.setFont(QFont("Arial", 12))
+        self.unit_combo.addItems(["kg", "pieces", "liters", "bags", "tons"])
+        self.unit_combo.setCurrentText("kg")
+        self.unit_combo.setStyleSheet("""
+            QComboBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        unit_label = QLabel("Đơn vị đo: *")
+        unit_label.setFont(QFont("Arial", 12, QFont.Bold))
+        unit_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(unit_label, self.unit_combo)
+
+        # Import date field (required)
+        self.import_date = QDateEdit()
+        self.import_date.setFont(QFont("Arial", 12))
+        self.import_date.setDate(QDate.currentDate())
+        self.import_date.setCalendarPopup(True)
+        self.import_date.setDisplayFormat("dd/MM/yyyy")
+        self.import_date.setStyleSheet("""
+            QDateEdit {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDateEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        date_label = QLabel("Ngày nhập: *")
+        date_label.setFont(QFont("Arial", 12, QFont.Bold))
+        date_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(date_label, self.import_date)
+
+        # Unit price field (required)
+        self.unit_price_input = QDoubleSpinBox()
+        self.unit_price_input.setFont(QFont("Arial", 12))
+        self.unit_price_input.setRange(0, 999999999)
+        self.unit_price_input.setDecimals(0)
+        self.unit_price_input.setSuffix(" VNĐ")
+        self.unit_price_input.setValue(0)
+        self.unit_price_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #CCCCCC;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        price_label = QLabel("Đơn giá: *")
+        price_label.setFont(QFont("Arial", 12, QFont.Bold))
+        price_label.setStyleSheet("color: #333333;")
+        form_layout.addRow(price_label, self.unit_price_input)
+
+        # Bag weight field (optional)
+        self.bag_weight_input = QDoubleSpinBox()
+        self.bag_weight_input.setFont(QFont("Arial", 12))
+        self.bag_weight_input.setRange(0, 1000)
+        self.bag_weight_input.setDecimals(1)
+        self.bag_weight_input.setSuffix(" kg/bao")
+        self.bag_weight_input.setValue(0.0)
+        self.bag_weight_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        bag_weight_label = QLabel("Số kg/bao:")
+        bag_weight_label.setFont(QFont("Arial", 12))
+        bag_weight_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(bag_weight_label, self.bag_weight_input)
+
+        # Optional fields separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("color: #CCCCCC;")
+        form_layout.addRow(separator)
+
+        optional_label = QLabel("Thông tin tùy chọn:")
+        optional_label.setFont(QFont("Arial", 12, QFont.Bold))
+        optional_label.setStyleSheet("color: #666666; margin-top: 10px;")
+        form_layout.addRow(optional_label)
+
+        # Supplier field (optional)
+        self.supplier_input = QLineEdit()
+        self.supplier_input.setFont(QFont("Arial", 12))
+        self.supplier_input.setPlaceholderText("Nhà cung cấp (tùy chọn)...")
+        self.supplier_input.setStyleSheet("""
+            QLineEdit {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QLineEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        supplier_label = QLabel("Nhà cung cấp:")
+        supplier_label.setFont(QFont("Arial", 12))
+        supplier_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(supplier_label, self.supplier_input)
+
+        # Notes field (optional)
+        self.notes_input = QTextEdit()
+        self.notes_input.setFont(QFont("Arial", 12))
+        self.notes_input.setPlaceholderText("Ghi chú thêm (tùy chọn)...")
+        self.notes_input.setMaximumHeight(80)
+        self.notes_input.setStyleSheet("""
+            QTextEdit {
+                padding: 10px;
+                border: 2px solid #E0E0E0;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QTextEdit:focus {
+                border-color: #4CAF50;
+            }
+        """)
+        notes_label = QLabel("Ghi chú:")
+        notes_label.setFont(QFont("Arial", 12))
+        notes_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(notes_label, self.notes_input)
+
+        # Auto-add to formula option (new feature)
+        formula_separator = QFrame()
+        formula_separator.setFrameShape(QFrame.HLine)
+        formula_separator.setFrameShadow(QFrame.Sunken)
+        formula_separator.setStyleSheet("color: #CCCCCC;")
+        form_layout.addRow(formula_separator)
+
+        formula_options_label = QLabel("Tùy chọn công thức:")
+        formula_options_label.setFont(QFont("Arial", 12, QFont.Bold))
+        formula_options_label.setStyleSheet("color: #666666; margin-top: 10px;")
+        form_layout.addRow(formula_options_label)
+
+        # Auto-add to formula checkbox
+        self.auto_add_formula_checkbox = QCheckBox()
+        self.auto_add_formula_checkbox.setChecked(True)  # Default enabled
+        self.auto_add_formula_checkbox.setFont(QFont("Arial", 11))
+        self.auto_add_formula_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #333333;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border: 2px solid #CCCCCC;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #4CAF50;
+                border-color: #4CAF50;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDNMNC41IDguNUwyIDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=);
+            }
+            QCheckBox::indicator:hover {
+                border-color: #4CAF50;
+            }
+        """)
+
+        auto_add_text = f"Tự động thêm vào công thức {'cám' if self.item_type == 'feed' else 'mix'} nếu chưa tồn tại"
+        auto_add_label = QLabel(auto_add_text)
+        auto_add_label.setFont(QFont("Arial", 11))
+        auto_add_label.setStyleSheet("color: #333333;")
+        auto_add_label.setWordWrap(True)
+
+        # Create horizontal layout for checkbox and label
+        auto_add_layout = QHBoxLayout()
+        auto_add_layout.addWidget(self.auto_add_formula_checkbox)
+        auto_add_layout.addWidget(auto_add_label)
+        auto_add_layout.addStretch()
+
+        auto_add_widget = QWidget()
+        auto_add_widget.setLayout(auto_add_layout)
+        form_layout.addRow("", auto_add_widget)
+
+        # Default percentage for new ingredients
+        self.default_percentage_input = QDoubleSpinBox()
+        self.default_percentage_input.setFont(QFont("Arial", 11))
+        self.default_percentage_input.setRange(0, 100)
+        self.default_percentage_input.setDecimals(1)
+        self.default_percentage_input.setValue(0.0)  # Default to 0%
+        self.default_percentage_input.setSuffix(" %")
+        self.default_percentage_input.setEnabled(self.auto_add_formula_checkbox.isChecked())
+        self.default_percentage_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 8px;
+                border: 2px solid #E0E0E0;
+                border-radius: 4px;
+                font-size: 11px;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #4CAF50;
+            }
+            QDoubleSpinBox:disabled {
+                background-color: #F5F5F5;
+                color: #999999;
+            }
+        """)
+
+        percentage_label = QLabel("Tỷ lệ mặc định:")
+        percentage_label.setFont(QFont("Arial", 11))
+        percentage_label.setStyleSheet("color: #666666;")
+        form_layout.addRow(percentage_label, self.default_percentage_input)
+
+        # Connect checkbox to enable/disable percentage input and update status
+        self.auto_add_formula_checkbox.toggled.connect(self.default_percentage_input.setEnabled)
+        self.auto_add_formula_checkbox.toggled.connect(self.update_ingredient_status)
+        self.default_percentage_input.valueChanged.connect(self.update_ingredient_status)
+
+        form_frame.setLayout(form_layout)
+        layout.addWidget(form_frame)
+
+        # Error message label
+        self.error_label = QLabel()
+        self.error_label.setFont(QFont("Arial", 11))
+        self.error_label.setStyleSheet("""
+            QLabel {
+                color: #D32F2F;
+                background-color: #FFEBEE;
+                border: 1px solid #FFCDD2;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
+        self.error_label.setVisible(False)
+        layout.addWidget(self.error_label)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
+
+        # Cancel button
+        cancel_button = QPushButton("Hủy")
+        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
+        cancel_button.setMinimumHeight(40)
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+            }
+        """)
+        cancel_button.clicked.connect(self.reject)
+
+        # Import button
+        self.import_button = QPushButton("Nhập Kho")
+        self.import_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.import_button.setMinimumHeight(40)
+        self.import_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #45A049;
+            }
+            QPushButton:pressed {
+                background-color: #3D8B40;
+            }
+            QPushButton:disabled {
+                background-color: #CCCCCC;
+                color: #666666;
+            }
+        """)
+        self.import_button.clicked.connect(self.validate_and_import_item)
+
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.import_button)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+        # Connect validation to input changes
+        self.ingredient_combo.currentTextChanged.connect(self.on_ingredient_changed)
+        self.quantity_input.valueChanged.connect(self.validate_form)
+        self.unit_price_input.valueChanged.connect(self.validate_form)
+
+        # Initial validation
+        self.validate_form()
+
+    def populate_ingredients(self):
+        """Populate ingredient combo box based on item type - enhanced to allow new ingredients"""
+        try:
+            # Get existing ingredients from formula
+            existing_ingredients = []
+            if self.item_type == "feed":
+                feed_ingredients = self.parent_app.formula_manager.get_feed_formula().keys()
+                existing_ingredients = sorted(feed_ingredients)
+            else:
+                mix_ingredients = self.parent_app.formula_manager.get_mix_formula().keys()
+                existing_ingredients = sorted(mix_ingredients)
+
+            # Add existing ingredients to combo box
+            self.ingredient_combo.addItems(existing_ingredients)
+
+            # Get existing inventory items that might not be in formula
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            inventory_ingredients = sorted(inventory.keys())
+
+            # Add inventory ingredients that are not already in the combo box
+            for ingredient in inventory_ingredients:
+                if ingredient not in existing_ingredients:
+                    self.ingredient_combo.addItem(ingredient)
+
+            # Add placeholder for new ingredients
+            self.ingredient_combo.addItem("--- Nhập thành phần mới ---")
+
+            # Make combo box editable to allow typing new ingredient names
+            self.ingredient_combo.setEditable(True)
+            self.ingredient_combo.setInsertPolicy(QComboBox.NoInsert)
+
+            # Add instruction text
+            self.ingredient_combo.lineEdit().setPlaceholderText("Chọn từ danh sách hoặc nhập tên mới...")
+
+        except Exception as e:
+            print(f"Error populating ingredients: {e}")
+            # Fallback: make combo box editable for manual input
+            self.ingredient_combo.setEditable(True)
+            self.ingredient_combo.lineEdit().setPlaceholderText("Nhập tên thành phần...")
+
+    def on_ingredient_changed(self):
+        """Handle ingredient selection change and update status"""
+        self.update_ingredient_status()
+        self.validate_form()
+
+    def update_ingredient_status(self):
+        """Update ingredient status label based on current selection"""
+        try:
+            ingredient_name = self.ingredient_combo.currentText().strip()
+
+            if not ingredient_name or ingredient_name == "--- Nhập thành phần mới ---":
+                self.ingredient_status_label.setVisible(False)
+                return
+
+            # Check if ingredient exists in formula
+            formula_ingredients = []
+            if self.item_type == "feed":
+                formula_ingredients = list(self.parent_app.formula_manager.get_feed_formula().keys())
+            else:
+                formula_ingredients = list(self.parent_app.formula_manager.get_mix_formula().keys())
+
+            # Check if ingredient exists in inventory
+            inventory = self.parent_app.inventory_manager.get_inventory()
+            in_inventory = ingredient_name in inventory
+            in_formula = ingredient_name in formula_ingredients
+
+            # Update status label
+            if in_formula and in_inventory:
+                self.ingredient_status_label.setText(f"✅ Có trong công thức và kho (hiện có: {inventory[ingredient_name]:.1f} kg)")
+                self.ingredient_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #2E7D32;
+                        background-color: #E8F5E9;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                        border-left: 3px solid #4CAF50;
+                    }
+                """)
+            elif in_formula and not in_inventory:
+                self.ingredient_status_label.setText("📋 Có trong công thức, chưa có trong kho")
+                self.ingredient_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #F57C00;
+                        background-color: #FFF3E0;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                        border-left: 3px solid #FF9800;
+                    }
+                """)
+            elif not in_formula and in_inventory:
+                self.ingredient_status_label.setText(f"📦 Có trong kho (hiện có: {inventory[ingredient_name]:.1f} kg), chưa có trong công thức")
+                self.ingredient_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #1976D2;
+                        background-color: #E3F2FD;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                        border-left: 3px solid #2196F3;
+                    }
+                """)
+            else:
+                # New ingredient
+                auto_add_text = ""
+                if self.auto_add_formula_checkbox.isChecked():
+                    formula_type = "cám" if self.item_type == "feed" else "mix"
+                    percentage = self.default_percentage_input.value()
+                    auto_add_text = f" (sẽ tự động thêm vào công thức {formula_type} với {percentage}%)"
+
+                self.ingredient_status_label.setText(f"🆕 Thành phần mới{auto_add_text}")
+                self.ingredient_status_label.setStyleSheet("""
+                    QLabel {
+                        color: #7B1FA2;
+                        background-color: #F3E5F5;
+                        padding: 4px 8px;
+                        border-radius: 3px;
+                        border-left: 3px solid #9C27B0;
+                    }
+                """)
+
+            self.ingredient_status_label.setVisible(True)
+
+        except Exception as e:
+            print(f"Error updating ingredient status: {e}")
+            self.ingredient_status_label.setVisible(False)
+
+    def validate_form(self):
+        """Validate form inputs and enable/disable import button - unified with AddInventoryItemDialog"""
+        is_valid = True
+        error_messages = []
+
+        # Check required fields
+        if not self.ingredient_combo.currentText().strip():
+            is_valid = False
+            error_messages.append("Vui lòng chọn thành phần")
+
+        if self.quantity_input.value() <= 0:
+            is_valid = False
+            error_messages.append("Số lượng nhập phải > 0")
+
+        if self.unit_price_input.value() <= 0:
+            is_valid = False
+            error_messages.append("Đơn giá phải > 0")
+
+        # Enhanced validation: Allow new ingredients and provide helpful feedback
+        ingredient_name = self.ingredient_combo.currentText().strip()
+        if ingredient_name and self.parent_app:
+            try:
+                # Skip validation for placeholder text
+                if ingredient_name == "--- Nhập thành phần mới ---":
+                    is_valid = False
+                    error_messages.append("Vui lòng nhập tên thành phần cụ thể")
+                elif ingredient_name:
+                    # Check if ingredient name is valid (not empty, not just spaces)
+                    if len(ingredient_name.strip()) < 2:
+                        is_valid = False
+                        error_messages.append("Tên thành phần phải có ít nhất 2 ký tự")
+                    else:
+                        # Check if ingredient exists in formula (for informational purposes only)
+                        if self.item_type == "feed":
+                            formula_ingredients = self.parent_app.formula_manager.get_feed_formula().keys()
+                        else:
+                            formula_ingredients = self.parent_app.formula_manager.get_mix_formula().keys()
+
+                        # Note: We no longer reject ingredients not in formula
+                        # Instead, we'll show helpful information in the UI
+                        if ingredient_name not in formula_ingredients:
+                            # This is a new ingredient - will be auto-added to formula if enabled
+                            pass  # Allow the import to proceed
+
+            except Exception as e:
+                print(f"Warning: Could not validate ingredient: {e}")
+
+        # Validate import date (should not be in future)
+        import_date = self.import_date.date()
+        current_date = QDate.currentDate()
+        if import_date > current_date:
+            is_valid = False
+            error_messages.append("Ngày nhập không được trong tương lai")
+
+        # Update UI based on validation (consistent styling with AddInventoryItemDialog)
+        self.import_button.setEnabled(is_valid)
+
+        if error_messages:
+            self.error_label.setText("* " + "\n* ".join(error_messages))
+            self.error_label.setVisible(True)
+        else:
+            self.error_label.setVisible(False)
+
+        return is_valid
+
+    def validate_and_import_item(self):
+        """Validate form and import inventory item"""
+        if not self.validate_form():
+            return
+
+        # Show loading state
+        self.show_loading_state(True)
+
+        try:
+            # Get form data
+            import_data = {
+                'ingredient': self.ingredient_combo.currentText().strip(),
+                'quantity': self.quantity_input.value(),
+                'unit': self.unit_combo.currentText(),
+                'date': self.import_date.date(),
+                'unit_price': self.unit_price_input.value(),
+                'bag_weight': self.bag_weight_input.value() if self.bag_weight_input.value() > 0 else None,
+                'supplier': self.supplier_input.text().strip(),
+                'notes': self.notes_input.toPlainText().strip(),
+                'type': self.item_type
+            }
+
+            # Import item to inventory
+            success = self.import_inventory_item(import_data)
+
+            if success:
+                # Check if ingredient will be auto-added to formula for success message
+                will_auto_add = (self.auto_add_formula_checkbox.isChecked() and
+                               self.will_ingredient_be_added_to_formula(import_data['ingredient']))
+                self.show_success_message(import_data, will_auto_add)
+                self.accept()
+            else:
+                self.show_error_with_retry("Không thể nhập kho. Vui lòng kiểm tra lại thông tin.")
+
+        except Exception as e:
+            error_msg = f"Lỗi khi nhập kho: {str(e)}"
+            print(error_msg)  # Log for debugging
+            self.show_error_with_retry(error_msg)
+        finally:
+            # Hide loading state
+            self.show_loading_state(False)
+
+    def show_loading_state(self, loading):
+        """Show or hide loading state"""
+        if loading:
+            self.import_button.setEnabled(False)
+            self.import_button.setText("⏳ Đang nhập...")
+            self.import_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.import_button.setEnabled(True)
+            self.import_button.setText("Nhập Kho")
+            self.import_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #45A049;
+                }
+                QPushButton:pressed {
+                    background-color: #3D8B40;
+                }
+                QPushButton:disabled {
+                    background-color: #CCCCCC;
+                    color: #666666;
+                }
+            """)
+
+    def will_ingredient_be_added_to_formula(self, ingredient_name):
+        """Check if ingredient will be added to formula"""
+        try:
+            if not hasattr(self.parent_app, 'formula_manager'):
+                return False
+
+            if self.item_type == "feed":
+                current_formula = self.parent_app.formula_manager.get_feed_formula()
+                return ingredient_name not in current_formula
+            else:  # mix
+                current_formula = self.parent_app.formula_manager.get_mix_formula()
+                return ingredient_name not in current_formula
+        except Exception as e:
+            print(f"Error checking formula status: {e}")
+            return False
+
+    def show_success_message(self, import_data, will_auto_add=False):
+        """Show success message with details - enhanced with formula addition info"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Thành công")
+        msg.setText(f"✅ Đã nhập kho thành công!")
+
+        # Format detailed information consistently with AddInventoryItemDialog
+        details = (
+            f"Thành phần: {import_data['ingredient']}\n"
+            f"Loại kho: {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}\n"
+            f"Số lượng: {import_data['quantity']} {import_data['unit']}\n"
+            f"Đơn giá: {import_data['unit_price']:,.0f} VNĐ\n"
+            f"Thành tiền: {import_data['quantity'] * import_data['unit_price']:,.0f} VNĐ\n"
+            f"Ngày nhập: {import_data['date'].toString('dd/MM/yyyy')}"
+        )
+
+        # Add bag weight info if provided
+        if import_data.get('bag_weight') and import_data['bag_weight'] > 0:
+            num_bags = import_data['quantity'] / import_data['bag_weight']
+            details += f"\nSố kg/bao: {import_data['bag_weight']} kg"
+            details += f"\nSố bao: {num_bags:.1f} bao"
+
+        # Add supplier info if provided
+        if import_data.get('supplier'):
+            details += f"\nNhà cung cấp: {import_data['supplier']}"
+
+        # Add notes if provided
+        if import_data.get('notes'):
+            details += f"\nGhi chú: {import_data['notes']}"
+
+        # Add formula addition info if applicable
+        if will_auto_add:
+            formula_type = 'cám' if self.item_type == 'feed' else 'mix'
+            percentage = self.default_percentage_input.value()
+            details += f"\n\n🔄 Sẽ tự động thêm vào công thức {formula_type} với tỷ lệ {percentage}%"
+
+        msg.setInformativeText(details)
+        msg.setStandardButtons(QMessageBox.Ok)
+
+        # Apply consistent styling
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: white;
+            }
+            QMessageBox QLabel {
+                color: #333333;
+            }
+        """)
+
+        msg.exec_()
+
+    def show_error_with_retry(self, message):
+        """Show error message with retry option"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Lỗi")
+        msg.setText("❌ Không thể nhập kho")
+        msg.setInformativeText(message)
+        msg.setDetailedText("Vui lòng kiểm tra:\n* Kết nối mạng\n* Quyền ghi file\n* Dung lượng ổ đĩa\n* Thành phần đã tồn tại trong hệ thống")
+
+        retry_btn = msg.addButton("🔄 Thử lại", QMessageBox.ActionRole)
+        cancel_btn = msg.addButton("Hủy", QMessageBox.RejectRole)
+
+        msg.exec_()
+
+        if msg.clickedButton() == retry_btn:
+            # Retry the operation
+            self.validate_and_import_item()
+
+    def import_inventory_item(self, import_data):
+        """Import item to inventory and update related systems - unified with AddInventoryItemDialog"""
+        try:
+            # Update inventory using existing inventory system (consistent with add_inventory_item)
+            try:
+                # Get current inventory
+                if hasattr(self.parent_app, 'inventory'):
+                    inventory = self.parent_app.inventory.copy()
+                elif hasattr(self.parent_app, 'inventory_manager') and hasattr(self.parent_app.inventory_manager, 'get_inventory'):
+                    inventory = self.parent_app.inventory_manager.get_inventory()
+                else:
+                    # Fallback: create new inventory dict
+                    inventory = {}
+
+                # Update inventory amount
+                current_amount = inventory.get(import_data['ingredient'], 0)
+                new_amount = current_amount + import_data['quantity']
+                inventory[import_data['ingredient']] = new_amount
+
+                # Save inventory using available method
+                if hasattr(self.parent_app, 'inventory'):
+                    self.parent_app.inventory = inventory
+                    # Try to save to file if method exists
+                    if hasattr(self.parent_app, 'save_inventory_to_file'):
+                        self.parent_app.save_inventory_to_file()
+                elif hasattr(self.parent_app.inventory_manager, 'save_inventory'):
+                    self.parent_app.inventory_manager.save_inventory(inventory)
+                else:
+                    # Direct file save as fallback
+                    self.save_inventory_direct(inventory)
+
+                print(f"✅ Successfully updated inventory: {import_data['ingredient']} = {new_amount}")
+
+            except Exception as e:
+                print(f"❌ Error updating inventory: {e}")
+                return False
+
+            # Save import history using existing method with enhanced data
+            date_str = import_data['date'].toString("yyyy-MM-dd")
+            self.parent_app.save_import_history(
+                import_data['type'],
+                import_data['ingredient'],
+                import_data['quantity'],
+                date_str,
+                import_data['notes'],
+                import_data['unit_price'],
+                import_data['supplier'],
+                import_data['bag_weight']
+            )
+
+            # Update inventory displays (same as AddInventoryItemDialog)
+            if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                self.parent_app.update_feed_inventory_table()
+            if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                self.parent_app.update_mix_inventory_table()
+
+            # Update import history tables (specific to import workflow)
+            if hasattr(self.parent_app, 'update_feed_import_history'):
+                self.parent_app.update_feed_import_history()
+            if hasattr(self.parent_app, 'update_mix_import_history'):
+                self.parent_app.update_mix_import_history()
+
+            # Refresh inventory analysis to include updated amounts (consistent with AddInventoryItemDialog)
+            if hasattr(self.parent_app, 'refresh_inventory_analysis'):
+                self.parent_app.refresh_inventory_analysis()
+
+            # Auto-add to formula if enabled and ingredient is new (enhanced feature)
+            formula_additions = []
+            if self.auto_add_formula_checkbox.isChecked():
+                formula_additions = self.auto_add_to_formula(import_data['ingredient'])
+
+            # Update threshold monitoring if applicable (consistent with AddInventoryItemDialog approach)
+            if hasattr(self.parent_app, 'threshold_manager'):
+                try:
+                    # Check if this import affects any threshold warnings
+                    self.parent_app.threshold_manager.check_thresholds()
+                except Exception as e:
+                    print(f"Warning: Could not update threshold monitoring: {e}")
+
+            # Show formula addition notification if ingredients were added
+            if formula_additions:
+                self.show_formula_addition_notification(formula_additions)
+
+            return True
+
+        except Exception as e:
+            print(f"Error importing inventory item: {e}")
+            return False
+
+    def auto_add_to_formula(self, ingredient_name):
+        """Automatically add new ingredient to formula if not present - enhanced feature"""
+        formula_additions = []
+
+        try:
+            if not hasattr(self.parent_app, 'formula_manager'):
+                return formula_additions
+
+            default_percentage = self.default_percentage_input.value()
+
+            if self.item_type == "feed":
+                # Check and add to feed formula
+                current_formula = self.parent_app.formula_manager.get_feed_formula()
+                if ingredient_name not in current_formula:
+                    current_formula[ingredient_name] = default_percentage
+                    self.parent_app.formula_manager.set_feed_formula(current_formula)
+                    formula_additions.append({
+                        'type': 'feed',
+                        'ingredient': ingredient_name,
+                        'percentage': default_percentage
+                    })
+                    print(f"Auto-added {ingredient_name} to feed formula with {default_percentage}%")
+
+            else:  # mix
+                # Check and add to mix formula
+                current_formula = self.parent_app.formula_manager.get_mix_formula()
+                if ingredient_name not in current_formula:
+                    current_formula[ingredient_name] = default_percentage
+                    self.parent_app.formula_manager.set_mix_formula(current_formula)
+                    formula_additions.append({
+                        'type': 'mix',
+                        'ingredient': ingredient_name,
+                        'percentage': default_percentage
+                    })
+                    print(f"Auto-added {ingredient_name} to mix formula with {default_percentage}%")
+
+            # Update formula displays if available
+            if hasattr(self.parent_app, 'update_feed_formula_display'):
+                self.parent_app.update_feed_formula_display()
+            if hasattr(self.parent_app, 'update_mix_formula_display'):
+                self.parent_app.update_mix_formula_display()
+
+        except Exception as e:
+            print(f"Error auto-adding to formula: {e}")
+
+        return formula_additions
+
+    def show_formula_addition_notification(self, formula_additions):
+        """Show notification when ingredients are automatically added to formulas"""
+        if not formula_additions:
+            return
+
+        try:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Tự động thêm vào công thức")
+
+            if len(formula_additions) == 1:
+                addition = formula_additions[0]
+                msg.setText("🔄 Đã tự động thêm thành phần vào công thức!")
+                msg.setInformativeText(
+                    f"Thành phần: {addition['ingredient']}\n"
+                    f"Công thức: {'Cám' if addition['type'] == 'feed' else 'Mix'}\n"
+                    f"Tỷ lệ mặc định: {addition['percentage']}%\n\n"
+                    f"Bạn có thể điều chỉnh tỷ lệ này trong tab Công thức."
+                )
+            else:
+                msg.setText("🔄 Đã tự động thêm các thành phần vào công thức!")
+                details = []
+                for addition in formula_additions:
+                    details.append(f"• {addition['ingredient']} ({addition['percentage']}%) - Công thức {'Cám' if addition['type'] == 'feed' else 'Mix'}")
+
+                msg.setInformativeText(
+                    f"Đã thêm {len(formula_additions)} thành phần:\n" +
+                    "\n".join(details) +
+                    "\n\nBạn có thể điều chỉnh tỷ lệ trong tab Công thức."
+                )
+
+            # Add button to go to formula tab
+            formula_btn = msg.addButton("📊 Xem Công thức", QMessageBox.ActionRole)
+            ok_btn = msg.addButton("OK", QMessageBox.AcceptRole)
+
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: #333333;
+                }
+            """)
+
+            msg.exec_()
+
+            # If user clicks formula button, switch to formula tab
+            if msg.clickedButton() == formula_btn:
+                if hasattr(self.parent_app, 'tab_widget'):
+                    # Find and switch to formula tab
+                    for i in range(self.parent_app.tab_widget.count()):
+                        if "công thức" in self.parent_app.tab_widget.tabText(i).lower():
+                            self.parent_app.tab_widget.setCurrentIndex(i)
+                            break
+
+        except Exception as e:
+            print(f"Error showing formula addition notification: {e}")
+
+
 class AddInventoryItemDialog(QDialog):
     """Dialog for adding new inventory items"""
 
@@ -13767,9 +14852,12 @@ class AddInventoryItemDialog(QDialog):
             if not success:
                 return False
 
-            # Apply default formula if this is a feed-related item and user preference is set
+            # Apply default formula based on item type (enhanced for consistency with import dialog)
             if self.item_type == "feed" and item_data['category'] in ["Ngũ cốc", "Protein"]:
                 self.apply_default_feed_formula(item_data['name'])
+            elif self.item_type == "mix":
+                # Auto-add new mix items to mix formula (consistent with import dialog)
+                self.apply_default_mix_formula(item_data['name'])
 
             # Set individual threshold for new item if minimum stock is specified
             if item_data['min_stock'] > 0 and hasattr(self.parent_app, 'threshold_manager'):
@@ -13817,6 +14905,23 @@ class AddInventoryItemDialog(QDialog):
                         self.parent_app.formula_manager.set_feed_formula(current_formula)
         except Exception as e:
             print(f"Error applying default formula: {e}")
+
+    def apply_default_mix_formula(self, item_name):
+        """Apply default mix formula for new mix ingredients - consistent with import dialog"""
+        try:
+            # Auto-add new mix ingredients to mix formula (consistent with import dialog behavior)
+            if hasattr(self.parent_app, 'formula_manager'):
+                current_formula = self.parent_app.formula_manager.get_mix_formula()
+                if item_name not in current_formula:
+                    current_formula[item_name] = 0  # Start with 0, user can adjust
+                    self.parent_app.formula_manager.set_mix_formula(current_formula)
+                    print(f"Auto-added {item_name} to mix formula with 0%")
+
+                    # Update formula displays if available
+                    if hasattr(self.parent_app, 'update_mix_formula_display'):
+                        self.parent_app.update_mix_formula_display()
+        except Exception as e:
+            print(f"Error applying default mix formula: {e}")
 
     def show_error(self, message):
         """Show error message"""

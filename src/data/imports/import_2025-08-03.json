@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2025-08-03 23:49:43",
+    "type": "mix",
+    "ingredient": "Vitamino",
+    "amount": 1500.0,
+    "note": ""
+  },
+  {
+    "timestamp": "2025-08-03 23:52:53",
+    "type": "feed",
+    "ingredient": "Bắpk",
+    "amount": 32323.0,
+    "note": ""
+  }
+]
