@@ -6,17 +6,22 @@ PyQt5>=5.15.0
 pandas>=1.3.0
 matplotlib>=3.5.0
 openpyxl>=3.0.0
+numpy>=1.19.0
 
 # Build tools
 pyinstaller>=5.0.0
 pyinstaller-hooks-contrib>=2022.0
 
+# Image processing for installer assets
+Pillow>=8.0.0
+
 # Additional dependencies for packaging
 setuptools>=60.0.0
 wheel>=0.37.0
 
-# Optional: For better compression
-upx-ucl>=3.96
+# Optional: UPX compression (install separately)
+# Download UPX from https://upx.github.io/ and add to PATH
+# upx-ucl>=3.96  # Not available via pip - install manually
 
 # Development tools (optional)
 black>=22.0.0

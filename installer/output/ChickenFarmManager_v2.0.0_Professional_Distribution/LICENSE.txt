@@ -1,0 +1,42 @@
+THỎA THUẬN GIẤY PHÉP PHẦN MỚM
+Phần mềm Quản lý Cám - Trại Gà
+Phiên bản 2.0.0
+
+© 2025 Minh-Tan_Phat. Tất cả quyền được bảo lưu.
+
+ĐIỀU KHOẢN VÀ ĐIỀU KIỆN SỬ DỤNG
+
+1. CẤPHÉP
+Minh-Tan_Phat cấp cho bạn quyền sử dụng phần mềm này theo các điều khoản được quy định trong thỏa thuận này. Bạn có thể:
+- Cài đặt và sử dụng phần mềm trên máy tính của mình
+- Tạo bản sao lưu cho mục đích bảo vệ dữ liệu
+- Sử dụng phần mềm cho mục đích thương mại và phi thương mại
+
+2. HẠN CHẾ
+Bạn KHÔNG được phép:
+- Sao chép, phân phối lại phần mềm mà không có sự cho phép bằng văn bản
+- Dịch ngược, tháo rời hoặc cố gắng trích xuất mã nguồn
+- Cho thuê, cho mượn hoặc chuyển nhượng phần mềm cho bên thứ ba
+- Loại bỏ hoặc thay đổi các thông báo bản quyền
+
+3. BẢO HÀNH
+Phần mềm được cung cấp "NGUYÊN TRẠNG" mà không có bất kỳ bảo hành nào, rõ ràng hay ngụ ý. Minh-Tan_Phat không đảm bảo rằng phần mềm sẽ đáp ứng yêu cầu của bạn hoặc hoạt động không bị gián đoạn.
+
+4. GIỚI HẠN TRÁCH NHIỆM
+Trong mọi trường hợp, Minh-Tan_Phat sẽ không chịu trách nhiệm về bất kỳ thiệt hại nào phát sinh từ việc sử dụng hoặc không thể sử dụng phần mềm này.
+
+5. HỖ TRỢ KỸ THUẬT
+Hỗ trợ kỹ thuật được cung cấp trên cơ sở tự nguyện. Liên hệ qua GitHub repository để được hỗ trợ.
+
+6. CHẤM DỨT
+Thỏa thuận này có hiệu lực cho đến khi bị chấm dứt. Bạn có thể chấm dứt bằng cách gỡ cài đặt phần mềm. Minh-Tan_Phat có thể chấm dứt nếu bạn vi phạm các điều khoản.
+
+7. LUẬT ÁP DỤNG
+Thỏa thuận này được điều chỉnh bởi luật pháp Việt Nam.
+
+Bằng cách cài đặt và sử dụng phần mềm này, bạn đồng ý với tất cả các điều khoản và điều kiện nêu trên.
+
+Để biết thêm thông tin, vui lòng truy cập: https://github.com/Minh-Tan_Phat
+
+Liên hệ: Minh-Tan_Phat
+Ngày: Tháng 8, 2025

@@ -1,0 +1,360 @@
+{
+    "date": "20250719",
+    "feed_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T2": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T4": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T6": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T2": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T4": {
+                "Sáng": 2.0,
+                "Chiều": 0.0
+            },
+            "T6": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": 0.5,
+                "Chiều": 0.0
+            },
+            "2D": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "4D": {
+                "Sáng": 1.0,
+                "Chiều": 0.0
+            },
+            "2N": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T4": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T6": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T8": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "Trại 1 khu 4": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        },
+        "Khu 5": {
+            "Trống": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        }
+    },
+    "formula_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T2": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T4": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T6": {
+                "Sáng": "",
+                "Chiều": ""
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T2": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T4": {
+                "Sáng": "GD2",
+                "Chiều": ""
+            },
+            "T6": {
+                "Sáng": "",
+                "Chiều": ""
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": "GD1",
+                "Chiều": ""
+            },
+            "2D": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "4D": {
+                "Sáng": "GD1",
+                "Chiều": ""
+            },
+            "2N": {
+                "Sáng": "",
+                "Chiều": ""
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T4": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T6": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "T8": {
+                "Sáng": "",
+                "Chiều": ""
+            },
+            "Trại 1 khu 4": {
+                "Sáng": "",
+                "Chiều": ""
+            }
+        },
+        "Khu 5": {
+            "Trống": {
+                "Sáng": "",
+                "Chiều": ""
+            }
+        }
+    },
+    "results": [
+        {
+            "Thành phần": "THÀNH PHẦN KHO CÁM"
+        },
+        {
+            "Thành phần": "★ Bắp",
+            "Số lượng (kg)": "8309",
+            "Số bao": "0"
+        },
+        {
+            "Thành phần": "★ Nành",
+            "Số lượng (kg)": "3570",
+            "Số bao": "0"
+        },
+        {
+            "Thành phần": "Dầu",
+            "Số lượng (kg)": "70",
+            "Số bao": "0"
+        },
+        {
+            "Thành phần": "DCP",
+            "Số lượng (kg)": "168",
+            "Số bao": "6.72"
+        },
+        {
+            "Thành phần": "Đá hạt",
+            "Số lượng (kg)": "420",
+            "Số bao": "8.40"
+        },
+        {
+            "Thành phần": "Đá bột mịn",
+            "Số lượng (kg)": "210",
+            "Số bao": "4.20"
+        },
+        {
+            "Thành phần": "Cám gạo",
+            "Số lượng (kg)": "1050",
+            "Số bao": "26.25"
+        },
+        {
+            "Thành phần": "Tổng lượng Cám",
+            "Số lượng (kg)": "13797",
+            "Số bao": ""
+        },
+        {
+            "Thành phần": "THÀNH PHẦN KHO MIX"
+        },
+        {
+            "Thành phần": "Muối",
+            "Số lượng (kg)": "518",
+            "Số bao": "10.36"
+        },
+        {
+            "Thành phần": "Performix 0.25% layer",
+            "Số lượng (kg)": "420",
+            "Số bao": "16.80"
+        },
+        {
+            "Thành phần": "Miamix",
+            "Số lượng (kg)": "420",
+            "Số bao": "16.80"
+        },
+        {
+            "Thành phần": "Premix 0.25% layer",
+            "Số lượng (kg)": "420",
+            "Số bao": "16.80"
+        },
+        {
+            "Thành phần": "Bột đá mịn",
+            "Số lượng (kg)": "315",
+            "Số bao": "6.30"
+        },
+        {
+            "Thành phần": "DL-Methionine",
+            "Số lượng (kg)": "210",
+            "Số bao": "8.40"
+        },
+        {
+            "Thành phần": "Lactic LD",
+            "Số lượng (kg)": "140",
+            "Số bao": "5.60"
+        },
+        {
+            "Thành phần": "Sodium bicarbonate",
+            "Số lượng (kg)": "140",
+            "Số bao": "5.60"
+        },
+        {
+            "Thành phần": "L-Lysine",
+            "Số lượng (kg)": "112",
+            "Số bao": "4.48"
+        },
+        {
+            "Thành phần": "Defitox L1",
+            "Số lượng (kg)": "112",
+            "Số bao": "4.48"
+        },
+        {
+            "Thành phần": "Carophy Red",
+            "Số lượng (kg)": "42",
+            "Số bao": "1.68"
+        },
+        {
+            "Thành phần": "Men Ecobiol",
+            "Số lượng (kg)": "42",
+            "Số bao": "1.68"
+        },
+        {
+            "Thành phần": "Immunewall",
+            "Số lượng (kg)": "35",
+            "Số bao": "1.40"
+        },
+        {
+            "Thành phần": "Lysoforte Dry",
+            "Số lượng (kg)": "35",
+            "Số bao": "1.40"
+        },
+        {
+            "Thành phần": "Bio-Choline",
+            "Số lượng (kg)": "28",
+            "Số bao": "1.12"
+        },
+        {
+            "Thành phần": "P-Zym",
+            "Số lượng (kg)": "28",
+            "Số bao": "1.12"
+        },
+        {
+            "Thành phần": "Phytast",
+            "Số lượng (kg)": "21",
+            "Số bao": "0.84"
+        },
+        {
+            "Thành phần": "Compound Enzyme FE808E",
+            "Số lượng (kg)": "21",
+            "Số bao": "0.84"
+        },
+        {
+            "Thành phần": "Tổng lượng Mix",
+            "Số lượng (kg)": "3059",
+            "Số bao": ""
+        },
+        {},
+        {},
+        {},
+        {},
+        {}
+    ],
+    "feed_ingredients": {
+        "Nành": 3570.0,
+        "Dầu": 70.0,
+        "DCP": 168.0,
+        "Đá hạt": 420.0,
+        "Đá bột mịn": 210.0,
+        "Cám gạo": 1050.0,
+        "Bắp": 8309.0
+    },
+    "mix_ingredients": {
+        "L-Lysine": 112.0,
+        "DL-Methionine": 210.0,
+        "Bio-Choline": 28.0,
+        "Phytast": 21.0,
+        "Performix 0.25% layer": 420.0,
+        "Miamix": 420.0,
+        "Premix 0.25% layer": 420.0,
+        "Compound Enzyme FE808E": 21.0,
+        "Carophy Red": 42.0,
+        "P-Zym": 28.0,
+        "Oxytetracylin": 0.0,
+        "Tiamulin": 0.0,
+        "Amox": 0.0,
+        "Immunewall": 35.0,
+        "Lysoforte Dry": 35.0,
+        "Nutriprotect": 0.0,
+        "Defitox L1": 112.0,
+        "Men Ecobiol": 42.0,
+        "Lactic LD": 140.0,
+        "Sodium bicarbonate": 140.0,
+        "Bột đá mịn": 315.0,
+        "Muối": 518.0,
+        "DCP": 0.0
+    },
+    "total_batches": 7.0,
+    "total_batches_by_area": {
+        "Khu 2": 4.0,
+        "Khu 3": 3.0
+    },
+    "linked_mix_formula": "gà_đẻ",
+    "tong_hop_amount": 3059.0
+}
