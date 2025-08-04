@@ -1394,34 +1394,68 @@ class ChickenFarmApp(QMainWindow):
 
         # Enhanced table styling
         self.mix_inventory_table.setStyleSheet("""
+        /* QTableWidget với hiệu ứng hover và selection cả hàng */
             QTableWidget {
-                gridline-color: #e0e0e0;
-                selection-background-color: #e8f5e9;
-                alternate-background-color: #fafafa;
-                background-color: white;
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
+                gridline-color: #aaa;
+                selection-background-color: #c8e6c9;
+                alternate-background-color: #f0f8f0;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                outline: none;
+
+                /* Thiết lập chế độ chọn cả hàng */
+                selection-behavior: select-rows;
             }
+
             QHeaderView::section {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #8BC34A, stop:1 #7CB342);
+                background-color: #2E7D32;
                 color: white;
-                padding: 12px 8px;
-                border: 1px solid #7CB342;
+                padding: 8px;
+                border: 1px solid #1B5E20;
                 font-weight: bold;
-                text-align: center;
             }
-            QHeaderView::section:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #9CCC65, stop:1 #8BC34A);
-            }
+
+            /* Styling cho từng cell */
             QTableWidget::item {
                 padding: 8px;
-                border-bottom: 1px solid #f0f0f0;
+                border-bottom: 1px solid #eee;
+                border-right: none;
+                border-left: none;
+                border-top: none;
             }
+
+
+            /* Selection effect cho cả hàng */
             QTableWidget::item:selected {
+                background-color: #c8e6c9;
+                color: #000;
+                font-weight: bold;
+            }
+
+            /* Focus effect */
+            QTableWidget::item:focus {
+                border: 1px solid #4CAF50;
+                outline: none;
+            }
+
+            /* Đảm bảo hover hoạt động trên toàn bộ hàng */
+            QTableWidget QTableWidgetItem:hover {
                 background-color: #e8f5e9;
-                color: #388e3c;
+            }
+
+            /* Selection cho inactive state */
+            QTableWidget::item:selected:!active {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            /* Tăng cường hiệu ứng hover cho các hàng alternate */
+            QTableWidget::item:alternate:hover {
+                background-color: #e8f5e9;
+            }
+
+            QTableWidget::item:alternate:selected {
+                background-color: #c8e6c9;
             }
         """)
 
@@ -1610,19 +1644,68 @@ class ChickenFarmApp(QMainWindow):
         self.feed_import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.feed_import_history_table.setAlternatingRowColors(True)
         self.feed_import_history_table.setStyleSheet("""
+            /* QTableWidget với hiệu ứng hover và selection cả hàng */
             QTableWidget {
                 gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
+                selection-background-color: #c8e6c9;
+                alternate-background-color: #f0f8f0;
                 border: 1px solid #ddd;
+                border-radius: 4px;
+                outline: none;
+
+                /* Thiết lập chế độ chọn cả hàng */
+                selection-behavior: select-rows;
             }
+
+            QHeaderView::section {
+                background-color: #2E7D32;
+                color: white;
+                padding: 8px;
+                border: 1px solid #1B5E20;
+                font-weight: bold;
+            }
+
+            /* Styling cho từng cell */
             QTableWidget::item {
-                padding: 4px;
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+                border-right: none;
+                border-left: none;
+                border-top: none;
+            }
+
+
+            /* Selection effect cho cả hàng */
+            QTableWidget::item:selected {
+                background-color: #c8e6c9;
+                color: #000;
+                font-weight: bold;
+            }
+
+            /* Focus effect */
+            QTableWidget::item:focus {
+                border: 1px solid #4CAF50;
+                outline: none;
+            }
+
+            /* Đảm bảo hover hoạt động trên toàn bộ hàng */
+            QTableWidget QTableWidgetItem:hover {
+                background-color: #e8f5e9;
+            }
+
+            /* Selection cho inactive state */
+            QTableWidget::item:selected:!active {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            /* Tăng cường hiệu ứng hover cho các hàng alternate */
+            QTableWidget::item:alternate:hover {
+                background-color: #e8f5e9;
+            }
+
+            QTableWidget::item:alternate:selected {
+                background-color: #c8e6c9;
             }
         """)
         self.feed_import_history_table.setMinimumHeight(200)
@@ -1784,19 +1867,68 @@ class ChickenFarmApp(QMainWindow):
         self.import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.import_history_table.setAlternatingRowColors(True)
         self.import_history_table.setStyleSheet("""
+            /* QTableWidget với hiệu ứng hover và selection cả hàng */
             QTableWidget {
                 gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
-            }
-            QHeaderView::section {
-                background-color: #4CAF50;
-                color: white;
-                padding: 6px;
+                selection-background-color: #c8e6c9;
+                alternate-background-color: #f0f8f0;
                 border: 1px solid #ddd;
+                border-radius: 4px;
+                outline: none;
+
+                /* Thiết lập chế độ chọn cả hàng */
+                selection-behavior: select-rows;
             }
+
+            QHeaderView::section {
+                background-color: #2E7D32;
+                color: white;
+                padding: 8px;
+                border: 1px solid #1B5E20;
+                font-weight: bold;
+            }
+
+            /* Styling cho từng cell */
             QTableWidget::item {
-                padding: 4px;
+                padding: 8px;
+                border-bottom: 1px solid #eee;
+                border-right: none;
+                border-left: none;
+                border-top: none;
+            }
+
+
+            /* Selection effect cho cả hàng */
+            QTableWidget::item:selected {
+                background-color: #c8e6c9;
+                color: #000;
+                font-weight: bold;
+            }
+
+            /* Focus effect */
+            QTableWidget::item:focus {
+                border: 1px solid #4CAF50;
+                outline: none;
+            }
+
+            /* Đảm bảo hover hoạt động trên toàn bộ hàng */
+            QTableWidget QTableWidgetItem:hover {
+                background-color: #e8f5e9;
+            }
+
+            /* Selection cho inactive state */
+            QTableWidget::item:selected:!active {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            /* Tăng cường hiệu ứng hover cho các hàng alternate */
+            QTableWidget::item:alternate:hover {
+                background-color: #e8f5e9;
+            }
+
+            QTableWidget::item:alternate:selected {
+                background-color: #c8e6c9;
             }
         """)
         history_layout.addWidget(self.import_history_table)

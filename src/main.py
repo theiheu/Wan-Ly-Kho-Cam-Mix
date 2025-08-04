@@ -21,6 +21,7 @@ try:
     from src.core.formula_manager import FormulaManager
     from src.core.inventory_manager import InventoryManager
     from src.core.threshold_manager import ThresholdManager
+    from src.core.remaining_usage_calculator import RemainingUsageCalculator
     from src.utils.default_formulas import PACKAGING_INFO
     from src.utils.app_icon import create_app_icon
     from src.ui.threshold_settings_dialog import ThresholdSettingsDialog
@@ -30,6 +31,7 @@ except ImportError:
     from core.formula_manager import FormulaManager
     from core.inventory_manager import InventoryManager
     from core.threshold_manager import ThresholdManager
+    from core.remaining_usage_calculator import RemainingUsageCalculator
     from utils.default_formulas import PACKAGING_INFO
     from utils.app_icon import create_app_icon
     from ui.threshold_settings_dialog import ThresholdSettingsDialog
@@ -387,6 +389,7 @@ class ChickenFarmApp(QMainWindow):
         self.formula_manager = FormulaManager()
         self.inventory_manager = InventoryManager()
         self.threshold_manager = ThresholdManager()
+        self.remaining_usage_calculator = RemainingUsageCalculator()
 
         # Get formulas and inventory data
         self.feed_formula = self.formula_manager.get_feed_formula()
@@ -1816,30 +1819,62 @@ class ChickenFarmApp(QMainWindow):
         date_range_group.setLayout(date_range_layout)
         history_layout.addWidget(date_range_group)
 
-        # Import history table
+        # Import history table - Enhanced with merged datetime column
         self.import_history_table = QTableWidget()
         self.import_history_table.setFont(TABLE_CELL_FONT)
-        self.import_history_table.setColumnCount(6)
-        self.import_history_table.setHorizontalHeaderLabels(["Ngày", "Thời gian", "Loại", "Thành phần", "Số lượng (kg)", "Số bao"])
+        self.import_history_table.setColumnCount(9)
+        self.import_history_table.setHorizontalHeaderLabels([
+            "Thời gian", "Loại", "Thành phần", "Số lượng (kg)",
+            "Số bao", "Đơn giá (VNĐ)", "Thành tiền (VNĐ)", "Nhà cung cấp", "Ghi chú"
+        ])
         self.import_history_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
         self.import_history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.import_history_table.setAlternatingRowColors(True)
+
+        # Enhanced styling to match warehouse-specific tables
         self.import_history_table.setStyleSheet("""
             QTableWidget {
-                gridline-color: #aaa;
-                selection-background-color: #e0e0ff;
-                alternate-background-color: #f9f9f9;
+                gridline-color: #E0E0E0;
+                selection-background-color: #E3F2FD;
+                alternate-background-color: #F9F9F9;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
+                background-color: white;
             }
             QHeaderView::section {
-                background-color: #4CAF50;
+                background-color: #2196F3;
                 color: white;
-                padding: 6px;
-                border: 1px solid #ddd;
+                padding: 8px;
+                border: 1px solid #1976D2;
+                font-weight: bold;
+                text-align: center;
             }
             QTableWidget::item {
-                padding: 4px;
+                padding: 6px;
+                border-bottom: 1px solid #F0F0F0;
+            }
+            QTableWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+            }
+            QTableWidget::item:hover {
+                background-color: #F5F5F5;
             }
         """)
+
+        # Set optimal column widths for better data display (9 columns)
+        self.import_history_table.setColumnWidth(0, 140)  # Thời gian (merged datetime)
+        self.import_history_table.setColumnWidth(1, 60)   # Loại
+        self.import_history_table.setColumnWidth(2, 150)  # Thành phần
+        self.import_history_table.setColumnWidth(3, 100)  # Số lượng
+        self.import_history_table.setColumnWidth(4, 80)   # Số bao
+        self.import_history_table.setColumnWidth(5, 120)  # Đơn giá
+        self.import_history_table.setColumnWidth(6, 120)  # Thành tiền
+        self.import_history_table.setColumnWidth(7, 120)  # Nhà cung cấp
+        self.import_history_table.setColumnWidth(8, 150)  # Ghi chú
+
+        # Enable sorting
+        self.import_history_table.setSortingEnabled(True)
         history_layout.addWidget(self.import_history_table)
 
         import_history_tab.setLayout(history_layout)
@@ -2009,8 +2044,19 @@ class ChickenFarmApp(QMainWindow):
         QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho mix!")
 
     def save_import_history(self, import_type, ingredient, amount, date, note, unit_price=0, supplier="", bag_weight=None):
-        """Save import history to file with enhanced data"""
+        """Save import history to file with enhanced warehouse separation support"""
         try:
+            # Validate and normalize import type
+            if import_type not in ["feed", "mix"]:
+                # If import_type is not specified or invalid, determine from ingredient
+                if ingredient:
+                    determined_type = self.inventory_manager.determine_warehouse_type(ingredient)
+                    print(f"🔍 [Import History] Auto-determined warehouse type for '{ingredient}': {determined_type}")
+                    import_type = determined_type
+                else:
+                    print(f"⚠️ [Import History] Invalid import type '{import_type}' and no ingredient to determine type")
+                    import_type = "mix"  # Default fallback
+
             # Ensure date is in YYYY-MM-DD format
             if "/" in date:
                 # Convert dd/MM/yyyy to yyyy-MM-dd
@@ -2032,13 +2078,13 @@ class ChickenFarmApp(QMainWindow):
                         if not isinstance(imports, list):
                             imports = []
                 except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                    print(f"Warning: Could not read existing import file {filename}: {e}")
+                    print(f"⚠️ [Import History] Could not read existing import file {filename}: {e}")
                     imports = []
 
             # Add new import record with enhanced data
             import_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "type": import_type,
+                "type": import_type.lower(),  # Ensure lowercase for consistency
                 "ingredient": ingredient,
                 "amount": float(amount),  # Ensure amount is numeric
                 "unit_price": float(unit_price) if unit_price else 0,
@@ -2046,7 +2092,8 @@ class ChickenFarmApp(QMainWindow):
                 "supplier": str(supplier) if supplier else "",
                 "bag_weight": float(bag_weight) if bag_weight else None,
                 "num_bags": float(amount) / float(bag_weight) if bag_weight and bag_weight > 0 else None,
-                "note": str(note) if note else ""
+                "note": str(note) if note else "",
+                "warehouse_type": import_type.lower()  # Explicit warehouse type for clarity
             }
 
             imports.append(import_data)
@@ -2055,12 +2102,22 @@ class ChickenFarmApp(QMainWindow):
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(imports, f, ensure_ascii=False, indent=2)
 
-            print(f"✅ Import history saved successfully: {amount} kg {ingredient}")
+            print(f"✅ [Import History] Saved {import_type} import: {amount} kg {ingredient} to {filename}")
+
+            # Immediately refresh the appropriate import history table
+            try:
+                if import_type.lower() == "feed":
+                    self.update_feed_import_history()
+                elif import_type.lower() == "mix":
+                    self.update_mix_import_history()
+            except Exception as refresh_error:
+                print(f"⚠️ [Import History] Could not refresh import history table: {refresh_error}")
+
             return True
 
         except Exception as e:
             error_msg = f"Không thể lưu lịch sử nhập hàng: {str(e)}"
-            print(f"Error in save_import_history: {str(e)}")
+            print(f"❌ [Import History] Error in save_import_history: {str(e)}")
             print(f"Error details - Type: {import_type}, Ingredient: {ingredient}, Amount: {amount}, Date: {date}")
             import traceback
             traceback.print_exc()
@@ -2076,7 +2133,7 @@ class ChickenFarmApp(QMainWindow):
             return False
 
     def load_import_history(self):
-        """Tìm kiếm lịch sử nhập hàng từ ngày đến ngày"""
+        """Tìm kiếm lịch sử nhập hàng từ ngày đến ngày - Enhanced for warehouse separation"""
         from_date = self.import_history_from_date.date()
         to_date = self.import_history_to_date.date()
 
@@ -2085,104 +2142,241 @@ class ChickenFarmApp(QMainWindow):
             QMessageBox.warning(self, "Lỗi", "Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!")
             return
 
-        # Chuyển đổi ngày thành định dạng dd/MM/yyyy để đọc file
-        from_date_str = from_date.toString("dd/MM/yyyy")
-        to_date_str = to_date.toString("dd/MM/yyyy")
-
         # Lọc loại nhập kho
         filter_type = self.history_type_filter.currentText()
+
+        print(f"🔍 [Import Search] Searching imports from {from_date.toString('dd/MM/yyyy')} to {to_date.toString('dd/MM/yyyy')}")
+        print(f"📋 [Import Search] Filter type: {filter_type}")
 
         # Xóa dữ liệu cũ trong bảng
         self.import_history_table.setRowCount(0)
 
         # Danh sách lưu tất cả bản ghi nhập kho trong khoảng thời gian
         all_imports = []
+        files_found = 0
 
         # Tạo danh sách tất cả các ngày từ from_date đến to_date
         current_date = from_date
         while current_date <= to_date:
-            date_str = current_date.toString("dd/MM/yyyy")
-            filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
+            # Sử dụng định dạng yyyy-MM-dd cho tên file (đúng với cách lưu file)
+            date_str_filename = current_date.toString("yyyy-MM-dd")
+            date_str_display = current_date.toString("dd/MM/yyyy")
+            filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str_filename}.json")
 
             # Nếu có file dữ liệu cho ngày này
             if os.path.exists(filename):
-                with open(filename, "r", encoding="utf-8") as f:
-                    try:
+                files_found += 1
+                try:
+                    with open(filename, "r", encoding="utf-8") as f:
                         imports = json.load(f)
-                        for import_data in imports:
-                            # Thêm thông tin ngày vào mỗi bản ghi
-                            import_data["date"] = current_date.toString("dd/MM/yyyy")
-                            all_imports.append(import_data)
-                    except json.JSONDecodeError:
-                        print(f"Lỗi đọc file {filename}")
+
+                        if isinstance(imports, list):
+                            daily_imports = []
+                            for import_data in imports:
+                                # Thêm thông tin ngày vào mỗi bản ghi
+                                import_data_copy = import_data.copy()
+                                import_data_copy["date"] = date_str_display
+
+                                # Đảm bảo có trường type, nếu không thì xác định từ ingredient
+                                if "type" not in import_data_copy or not import_data_copy["type"]:
+                                    ingredient = import_data_copy.get("ingredient", "")
+                                    if ingredient:
+                                        warehouse_type = self.inventory_manager.determine_warehouse_type(ingredient)
+                                        import_data_copy["type"] = warehouse_type
+                                        print(f"🔍 [Import Search] Auto-determined type for '{ingredient}': {warehouse_type}")
+
+                                daily_imports.append(import_data_copy)
+
+                            all_imports.extend(daily_imports)
+                            print(f"📄 [Import Search] Found {len(daily_imports)} imports in {date_str_filename}")
+
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    print(f"⚠️ [Import Search] Error reading file {filename}: {e}")
 
             # Chuyển sang ngày tiếp theo
             current_date = current_date.addDays(1)
 
+        print(f"📊 [Import Search] Total files found: {files_found}, Total imports: {len(all_imports)}")
+
         # Lọc theo loại nếu cần
+        filtered_imports = all_imports
         if filter_type == "Cám":
-            all_imports = [imp for imp in all_imports if imp["type"] == "feed"]
+            filtered_imports = [imp for imp in all_imports if imp.get("type", "").lower() == "feed"]
+            print(f"🌾 [Import Search] Filtered to {len(filtered_imports)} feed imports")
         elif filter_type == "Mix":
-            all_imports = [imp for imp in all_imports if imp["type"] == "mix"]
+            filtered_imports = [imp for imp in all_imports if imp.get("type", "").lower() == "mix"]
+            print(f"🧪 [Import Search] Filtered to {len(filtered_imports)} mix imports")
+        else:
+            print(f"📋 [Import Search] No filter applied, showing all {len(filtered_imports)} imports")
 
         # Sắp xếp theo thời gian, mới nhất lên đầu
-        all_imports.sort(key=lambda x: (x["date"], x["timestamp"]), reverse=True)
+        filtered_imports.sort(key=lambda x: (x.get("timestamp", ""), x.get("date", "")), reverse=True)
 
-        # Hiển thị kết quả
-        self.import_history_table.setRowCount(len(all_imports))
+        # Hiển thị kết quả - Enhanced with merged datetime column
+        self.import_history_table.setRowCount(len(filtered_imports))
 
-        for row, import_data in enumerate(all_imports):
-            # Ngày
-            date_item = QTableWidgetItem(import_data["date"])
-            self.import_history_table.setItem(row, 0, date_item)
+        for row, import_data in enumerate(filtered_imports):
+            try:
+                # Thời gian (Column 0) - Merged datetime column
+                timestamp = import_data.get("timestamp", "")
+                date_part = import_data.get("date", "")
 
-            # Thời gian
-            time_item = QTableWidgetItem(import_data["timestamp"].split(" ")[1] if " " in import_data["timestamp"] else import_data["timestamp"])
-            self.import_history_table.setItem(row, 1, time_item)
+                # Create full datetime display
+                if timestamp and date_part:
+                    # If we have both timestamp and date, combine them properly
+                    if " " in timestamp:
+                        # timestamp already contains date and time
+                        datetime_display = timestamp
+                        # Convert to dd/MM/yyyy HH:mm format if needed
+                        try:
+                            # Parse the timestamp to reformat it
+                            from datetime import datetime as dt
+                            parsed_dt = dt.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+                            datetime_display = parsed_dt.strftime("%d/%m/%Y %H:%M")
+                        except:
+                            # If parsing fails, use original timestamp
+                            datetime_display = timestamp
+                    else:
+                        # timestamp only contains time, combine with date
+                        datetime_display = f"{date_part} {timestamp}"
+                elif timestamp:
+                    # Only timestamp available
+                    datetime_display = timestamp
+                elif date_part:
+                    # Only date available
+                    datetime_display = date_part
+                else:
+                    datetime_display = ""
 
-            # Loại
-            type_text = "Cám" if import_data["type"] == "feed" else "Mix"
-            type_item = QTableWidgetItem(type_text)
-            self.import_history_table.setItem(row, 2, type_item)
+                datetime_item = QTableWidgetItem(datetime_display)
+                datetime_item.setTextAlignment(Qt.AlignCenter)
+                self.import_history_table.setItem(row, 0, datetime_item)
 
-            # Thành phần
-            ingredient_item = QTableWidgetItem(import_data["ingredient"])
-            self.import_history_table.setItem(row, 3, ingredient_item)
+                # Loại (Column 1) - Shifted from column 2
+                import_type = import_data.get("type", "").lower()
+                type_text = "Cám" if import_type == "feed" else "Mix" if import_type == "mix" else "Không xác định"
+                type_item = QTableWidgetItem(type_text)
+                type_item.setTextAlignment(Qt.AlignCenter)
 
-            # Số lượng
-            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
-            amount_item.setTextAlignment(Qt.AlignCenter)
-            self.import_history_table.setItem(row, 4, amount_item)
+                # Color coding for warehouse types
+                if import_type == "feed":
+                    type_item.setBackground(QColor("#E8F5E9"))  # Light green for feed
+                    type_item.setForeground(QColor("#2E7D32"))  # Dark green text
+                elif import_type == "mix":
+                    type_item.setBackground(QColor("#FFF3E0"))  # Light orange for mix
+                    type_item.setForeground(QColor("#F57C00"))  # Dark orange text
 
-            # Số bao
-            ingredient_name = import_data["ingredient"]
-            amount = import_data["amount"]
-            bag_size = self.inventory_manager.get_bag_size(ingredient_name)
-            if bag_size > 0:
-                bags = amount / bag_size
-                bags_item = QTableWidgetItem(format_number(bags))
-            else:
-                bags_item = QTableWidgetItem("")
-            bags_item.setTextAlignment(Qt.AlignCenter)
-            self.import_history_table.setItem(row, 5, bags_item)
+                self.import_history_table.setItem(row, 1, type_item)
 
-        # Hiển thị thông báo kết quả
-        if len(all_imports) > 0:
-            QMessageBox.information(self, "Kết quả tìm kiếm", f"Tìm thấy {len(all_imports)} bản ghi nhập kho.")
+                # Thành phần (Column 2) - Shifted from column 3
+                ingredient = import_data.get("ingredient", "")
+                ingredient_item = QTableWidgetItem(ingredient)
+                self.import_history_table.setItem(row, 2, ingredient_item)
+
+                # Số lượng (Column 3) - Shifted from column 4
+                amount = import_data.get("amount", 0)
+                amount_item = QTableWidgetItem(format_number(amount))
+                amount_item.setTextAlignment(Qt.AlignCenter)
+                self.import_history_table.setItem(row, 3, amount_item)
+
+                # Số bao (Column 4) - Shifted from column 5
+                bag_size = self.inventory_manager.get_bag_size(ingredient)
+                if bag_size > 0 and amount > 0:
+                    bags = amount / bag_size
+                    bags_item = QTableWidgetItem(format_number(bags))
+                else:
+                    bags_item = QTableWidgetItem("")
+                bags_item.setTextAlignment(Qt.AlignCenter)
+                self.import_history_table.setItem(row, 4, bags_item)
+
+                # Đơn giá (Column 5) - Shifted from column 6
+                unit_price = import_data.get("unit_price", 0)
+                price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
+                price_item.setTextAlignment(Qt.AlignRight)
+                self.import_history_table.setItem(row, 5, price_item)
+
+                # Thành tiền (Column 6) - Shifted from column 7
+                total_cost = import_data.get("total_cost", 0)
+                if total_cost <= 0 and unit_price > 0:
+                    total_cost = amount * unit_price
+                total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
+                total_item.setTextAlignment(Qt.AlignRight)
+                self.import_history_table.setItem(row, 6, total_item)
+
+                # Nhà cung cấp (Column 7) - Shifted from column 8
+                supplier = import_data.get("supplier", "")
+                supplier_item = QTableWidgetItem(supplier)
+                self.import_history_table.setItem(row, 7, supplier_item)
+
+                # Ghi chú (Column 8) - Shifted from column 9
+                note = import_data.get("note", "")
+                note_item = QTableWidgetItem(note)
+                self.import_history_table.setItem(row, 8, note_item)
+
+            except Exception as e:
+                print(f"⚠️ [Import Search] Error processing row {row}: {e}")
+                continue
+
+        print(f"✅ [Import Search] Displayed {len(filtered_imports)} imports in search results")
+
+        # Enable sorting after data is populated
+        self.import_history_table.setSortingEnabled(True)
+
+        # Sort by date and time (newest first) by default
+        self.import_history_table.sortItems(0, Qt.DescendingOrder)
+
+        # Calculate and display summary statistics
+        if len(filtered_imports) > 0:
+            total_amount = sum(imp.get("amount", 0) for imp in filtered_imports)
+            total_cost = sum(imp.get("total_cost", 0) for imp in filtered_imports)
+            feed_count = len([imp for imp in filtered_imports if imp.get("type", "").lower() == "feed"])
+            mix_count = len([imp for imp in filtered_imports if imp.get("type", "").lower() == "mix"])
+
+            print(f"📊 [Import Search] Summary - Total: {len(filtered_imports)} imports, "
+                  f"Feed: {feed_count}, Mix: {mix_count}, "
+                  f"Amount: {total_amount:.1f} kg, Cost: {total_cost:,.0f} VNĐ")
+
+        # Hiển thị thông báo kết quả với thống kê
+        if len(filtered_imports) > 0:
+            filter_msg = f" (lọc: {filter_type})" if filter_type in ["Cám", "Mix"] else ""
+
+            # Create detailed result message
+            result_msg = f"Tìm thấy {len(filtered_imports)} bản ghi nhập kho{filter_msg}."
+
+            if len(filtered_imports) > 0:
+                total_amount = sum(imp.get("amount", 0) for imp in filtered_imports)
+                total_cost = sum(imp.get("total_cost", 0) for imp in filtered_imports)
+                feed_count = len([imp for imp in filtered_imports if imp.get("type", "").lower() == "feed"])
+                mix_count = len([imp for imp in filtered_imports if imp.get("type", "").lower() == "mix"])
+
+                result_msg += f"\n\nThống kê:"
+                if filter_type == "Tất cả":
+                    result_msg += f"\n• Cám: {feed_count} bản ghi"
+                    result_msg += f"\n• Mix: {mix_count} bản ghi"
+                result_msg += f"\n• Tổng số lượng: {total_amount:,.1f} kg"
+                if total_cost > 0:
+                    result_msg += f"\n• Tổng giá trị: {total_cost:,.0f} VNĐ"
+
+            QMessageBox.information(self, "Kết quả tìm kiếm", result_msg)
         else:
-            QMessageBox.information(self, "Kết quả tìm kiếm", "Không tìm thấy dữ liệu nhập kho nào trong khoảng thời gian đã chọn!")
+            filter_msg = f" với bộ lọc '{filter_type}'" if filter_type in ["Cám", "Mix"] else ""
+            QMessageBox.information(self, "Kết quả tìm kiếm",
+                                  f"Không tìm thấy dữ liệu nhập kho nào trong khoảng thời gian đã chọn{filter_msg}!")
 
     def update_feed_import_history(self):
-        """Cập nhật bảng lịch sử Nhập kho cám - 7 ngày gần nhất"""
+        """Cập nhật bảng lịch sử Nhập kho cám - Enhanced for warehouse separation"""
         try:
             # Xóa dữ liệu hiện tại
             self.feed_import_history_table.setRowCount(0)
 
-            # Lấy dữ liệu từ 7 ngày gần nhất
+            # Lấy dữ liệu từ nhiều ngày gần nhất (mở rộng từ 7 ngày lên 30 ngày)
             feed_imports = []
             current_date = QDate.currentDate()
 
-            for i in range(7):  # 7 ngày gần nhất
+            print(f"🔍 [Feed History] Searching for feed imports from {current_date.addDays(-30).toString('yyyy-MM-dd')} to {current_date.toString('yyyy-MM-dd')}")
+
+            # Tìm kiếm trong 30 ngày gần nhất để đảm bảo có dữ liệu
+            for i in range(30):
                 check_date = current_date.addDays(-i)
                 date_str = check_date.toString("yyyy-MM-dd")
                 filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
@@ -2193,72 +2387,110 @@ class ChickenFarmApp(QMainWindow):
                             imports = json.load(f)
 
                         if isinstance(imports, list):
-                            # Lọc chỉ lấy dữ liệu cám
-                            daily_feed_imports = [import_data for import_data in imports if import_data.get("type") == "feed"]
+                            # Lọc chỉ lấy dữ liệu cám (feed warehouse)
+                            daily_feed_imports = []
+                            for import_data in imports:
+                                import_type = import_data.get("type", "").lower()
+                                ingredient = import_data.get("ingredient", "")
+
+                                # Check if this is a feed import
+                                if import_type == "feed":
+                                    daily_feed_imports.append(import_data)
+                                elif import_type == "" and ingredient:
+                                    # For legacy imports without type, determine warehouse based on ingredient
+                                    warehouse_type = self.inventory_manager.determine_warehouse_type(ingredient)
+                                    if warehouse_type == "feed":
+                                        # Add type field for consistency
+                                        import_data["type"] = "feed"
+                                        daily_feed_imports.append(import_data)
+
                             feed_imports.extend(daily_feed_imports)
+                            if daily_feed_imports:
+                                print(f"📦 [Feed History] Found {len(daily_feed_imports)} feed imports in {date_str}")
 
                     except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                        print(f"Warning: Could not read import file {filename}: {e}")
+                        print(f"⚠️ [Feed History] Could not read import file {filename}: {e}")
                         continue
 
+            print(f"📊 [Feed History] Total feed imports found: {len(feed_imports)}")
+
         except Exception as e:
-            print(f"Error updating feed import history: {str(e)}")
+            print(f"❌ [Feed History] Error updating feed import history: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return
 
         # Sắp xếp theo thời gian, mới nhất lên đầu
-        feed_imports.sort(key=lambda x: x["timestamp"], reverse=True)
+        feed_imports.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        # Giới hạn hiển thị 50 bản ghi gần nhất để tránh làm chậm UI
+        feed_imports = feed_imports[:50]
 
         # Điền vào bảng
         self.feed_import_history_table.setRowCount(len(feed_imports))
 
         for row, import_data in enumerate(feed_imports):
-            # Thời gian
-            time_item = QTableWidgetItem(import_data["timestamp"])
-            self.feed_import_history_table.setItem(row, 0, time_item)
+            try:
+                # Thời gian
+                timestamp = import_data.get("timestamp", "")
+                time_item = QTableWidgetItem(timestamp)
+                self.feed_import_history_table.setItem(row, 0, time_item)
 
-            # Thành phần
-            ingredient_item = QTableWidgetItem(import_data["ingredient"])
-            self.feed_import_history_table.setItem(row, 1, ingredient_item)
+                # Thành phần
+                ingredient = import_data.get("ingredient", "")
+                ingredient_item = QTableWidgetItem(ingredient)
+                self.feed_import_history_table.setItem(row, 1, ingredient_item)
 
-            # Số lượng
-            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
-            amount_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_import_history_table.setItem(row, 2, amount_item)
+                # Số lượng
+                amount = import_data.get("amount", 0)
+                amount_item = QTableWidgetItem(format_number(amount))
+                amount_item.setTextAlignment(Qt.AlignCenter)
+                self.feed_import_history_table.setItem(row, 2, amount_item)
 
-            # Đơn giá
-            unit_price = import_data.get("unit_price", 0)
-            price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
-            price_item.setTextAlignment(Qt.AlignRight)
-            self.feed_import_history_table.setItem(row, 3, price_item)
+                # Đơn giá
+                unit_price = import_data.get("unit_price", 0)
+                price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
+                price_item.setTextAlignment(Qt.AlignRight)
+                self.feed_import_history_table.setItem(row, 3, price_item)
 
-            # Thành tiền
-            total_cost = import_data.get("total_cost", 0)
-            if total_cost <= 0 and unit_price > 0:
-                total_cost = import_data["amount"] * unit_price
-            total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
-            total_item.setTextAlignment(Qt.AlignRight)
-            self.feed_import_history_table.setItem(row, 4, total_item)
+                # Thành tiền
+                total_cost = import_data.get("total_cost", 0)
+                if total_cost <= 0 and unit_price > 0:
+                    total_cost = amount * unit_price
+                total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
+                total_item.setTextAlignment(Qt.AlignRight)
+                self.feed_import_history_table.setItem(row, 4, total_item)
 
-            # Nhà cung cấp
-            supplier = import_data.get("supplier", "")
-            supplier_item = QTableWidgetItem(supplier)
-            self.feed_import_history_table.setItem(row, 5, supplier_item)
+                # Nhà cung cấp
+                supplier = import_data.get("supplier", "")
+                supplier_item = QTableWidgetItem(supplier)
+                self.feed_import_history_table.setItem(row, 5, supplier_item)
 
-            # Ghi chú
-            note_item = QTableWidgetItem(import_data["note"])
-            self.feed_import_history_table.setItem(row, 6, note_item)
+                # Ghi chú
+                note = import_data.get("note", "")
+                note_item = QTableWidgetItem(note)
+                self.feed_import_history_table.setItem(row, 6, note_item)
+
+            except Exception as e:
+                print(f"⚠️ [Feed History] Error processing row {row}: {e}")
+                continue
+
+        print(f"✅ [Feed History] Updated feed import history table with {len(feed_imports)} records")
 
     def update_mix_import_history(self):
-        """Cập nhật bảng lịch sử Nhập kho mix - 7 ngày gần nhất"""
+        """Cập nhật bảng lịch sử Nhập kho mix - Enhanced for warehouse separation"""
         try:
             # Xóa dữ liệu hiện tại
             self.mix_import_history_table.setRowCount(0)
 
-            # Lấy dữ liệu từ 7 ngày gần nhất
+            # Lấy dữ liệu từ nhiều ngày gần nhất (mở rộng từ 7 ngày lên 30 ngày)
             mix_imports = []
             current_date = QDate.currentDate()
 
-            for i in range(7):  # 7 ngày gần nhất
+            print(f"🔍 [Mix History] Searching for mix imports from {current_date.addDays(-30).toString('yyyy-MM-dd')} to {current_date.toString('yyyy-MM-dd')}")
+
+            # Tìm kiếm trong 30 ngày gần nhất để đảm bảo có dữ liệu
+            for i in range(30):
                 check_date = current_date.addDays(-i)
                 date_str = check_date.toString("yyyy-MM-dd")
                 filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
@@ -2269,60 +2501,95 @@ class ChickenFarmApp(QMainWindow):
                             imports = json.load(f)
 
                         if isinstance(imports, list):
-                            # Lọc chỉ lấy dữ liệu mix
-                            daily_mix_imports = [import_data for import_data in imports if import_data.get("type") == "mix"]
+                            # Lọc chỉ lấy dữ liệu mix (mix warehouse)
+                            daily_mix_imports = []
+                            for import_data in imports:
+                                import_type = import_data.get("type", "").lower()
+                                ingredient = import_data.get("ingredient", "")
+
+                                # Check if this is a mix import
+                                if import_type == "mix":
+                                    daily_mix_imports.append(import_data)
+                                elif import_type == "" and ingredient:
+                                    # For legacy imports without type, determine warehouse based on ingredient
+                                    warehouse_type = self.inventory_manager.determine_warehouse_type(ingredient)
+                                    if warehouse_type == "mix":
+                                        # Add type field for consistency
+                                        import_data["type"] = "mix"
+                                        daily_mix_imports.append(import_data)
+
                             mix_imports.extend(daily_mix_imports)
+                            if daily_mix_imports:
+                                print(f"🧪 [Mix History] Found {len(daily_mix_imports)} mix imports in {date_str}")
 
                     except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                        print(f"Warning: Could not read import file {filename}: {e}")
+                        print(f"⚠️ [Mix History] Could not read import file {filename}: {e}")
                         continue
 
+            print(f"📊 [Mix History] Total mix imports found: {len(mix_imports)}")
+
         except Exception as e:
-            print(f"Error updating mix import history: {str(e)}")
+            print(f"❌ [Mix History] Error updating mix import history: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return
 
         # Sắp xếp theo thời gian, mới nhất lên đầu
-        mix_imports.sort(key=lambda x: x["timestamp"], reverse=True)
+        mix_imports.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        # Giới hạn hiển thị 50 bản ghi gần nhất để tránh làm chậm UI
+        mix_imports = mix_imports[:50]
 
         # Điền vào bảng
         self.mix_import_history_table.setRowCount(len(mix_imports))
 
         for row, import_data in enumerate(mix_imports):
-            # Thời gian
-            time_item = QTableWidgetItem(import_data["timestamp"])
-            self.mix_import_history_table.setItem(row, 0, time_item)
+            try:
+                # Thời gian
+                timestamp = import_data.get("timestamp", "")
+                time_item = QTableWidgetItem(timestamp)
+                self.mix_import_history_table.setItem(row, 0, time_item)
 
-            # Thành phần
-            ingredient_item = QTableWidgetItem(import_data["ingredient"])
-            self.mix_import_history_table.setItem(row, 1, ingredient_item)
+                # Thành phần
+                ingredient = import_data.get("ingredient", "")
+                ingredient_item = QTableWidgetItem(ingredient)
+                self.mix_import_history_table.setItem(row, 1, ingredient_item)
 
-            # Số lượng
-            amount_item = QTableWidgetItem(format_number(import_data["amount"]))
-            amount_item.setTextAlignment(Qt.AlignCenter)
-            self.mix_import_history_table.setItem(row, 2, amount_item)
+                # Số lượng
+                amount = import_data.get("amount", 0)
+                amount_item = QTableWidgetItem(format_number(amount))
+                amount_item.setTextAlignment(Qt.AlignCenter)
+                self.mix_import_history_table.setItem(row, 2, amount_item)
 
-            # Đơn giá
-            unit_price = import_data.get("unit_price", 0)
-            price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
-            price_item.setTextAlignment(Qt.AlignRight)
-            self.mix_import_history_table.setItem(row, 3, price_item)
+                # Đơn giá
+                unit_price = import_data.get("unit_price", 0)
+                price_item = QTableWidgetItem(f"{unit_price:,.0f}" if unit_price > 0 else "")
+                price_item.setTextAlignment(Qt.AlignRight)
+                self.mix_import_history_table.setItem(row, 3, price_item)
 
-            # Thành tiền
-            total_cost = import_data.get("total_cost", 0)
-            if total_cost <= 0 and unit_price > 0:
-                total_cost = import_data["amount"] * unit_price
-            total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
-            total_item.setTextAlignment(Qt.AlignRight)
-            self.mix_import_history_table.setItem(row, 4, total_item)
+                # Thành tiền
+                total_cost = import_data.get("total_cost", 0)
+                if total_cost <= 0 and unit_price > 0:
+                    total_cost = amount * unit_price
+                total_item = QTableWidgetItem(f"{total_cost:,.0f}" if total_cost > 0 else "")
+                total_item.setTextAlignment(Qt.AlignRight)
+                self.mix_import_history_table.setItem(row, 4, total_item)
 
-            # Nhà cung cấp
-            supplier = import_data.get("supplier", "")
-            supplier_item = QTableWidgetItem(supplier)
-            self.mix_import_history_table.setItem(row, 5, supplier_item)
+                # Nhà cung cấp
+                supplier = import_data.get("supplier", "")
+                supplier_item = QTableWidgetItem(supplier)
+                self.mix_import_history_table.setItem(row, 5, supplier_item)
 
-            # Ghi chú
-            note_item = QTableWidgetItem(import_data["note"])
-            self.mix_import_history_table.setItem(row, 6, note_item)
+                # Ghi chú
+                note = import_data.get("note", "")
+                note_item = QTableWidgetItem(note)
+                self.mix_import_history_table.setItem(row, 6, note_item)
+
+            except Exception as e:
+                print(f"⚠️ [Mix History] Error processing row {row}: {e}")
+                continue
+
+        print(f"✅ [Mix History] Updated mix import history table with {len(mix_imports)} records")
 
     def setup_formula_tab(self):
         """Setup the formula management tab"""
@@ -3526,270 +3793,370 @@ class ChickenFarmApp(QMainWindow):
             self.mix_formula_table.setRowHeight(row, 40)
 
     def update_feed_inventory_table(self):
-        """Update the feed inventory table with days until empty analysis"""
-        # Get feed warehouse inventory specifically
-        feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
-        feed_formula_ingredients = set(self.feed_formula.keys())
-
-        # Combine formula ingredients with all feed warehouse items
-        # Prioritize formula ingredients first, then add others from feed warehouse
-        feed_ingredients = list(feed_formula_ingredients)
-        for ingredient in feed_warehouse_inventory.keys():
-            if ingredient not in feed_formula_ingredients:
-                feed_ingredients.append(ingredient)
-
-        self.feed_inventory_table.setRowCount(len(feed_ingredients))
-
-        # Update inventory from manager
-        self.inventory = self.inventory_manager.get_inventory()
-
-        # Get consumption analysis for days until empty calculation
+        """Update the feed inventory table with enhanced remaining usage analysis"""
         try:
-            avg_daily_usage = self.inventory_manager.analyze_consumption_patterns(7)
-            days_remaining = self.inventory_manager.calculate_days_until_empty(avg_daily_usage)
+            print("🔄 [Feed Inventory] Starting enhanced inventory table update...")
+
+            # Get comprehensive usage analysis from the new calculator
+            usage_analysis = self.remaining_usage_calculator.get_comprehensive_usage_analysis(7)
+            feed_analysis = usage_analysis.get("feed", {})
+
+            # Get feed warehouse inventory specifically
+            feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
+            feed_formula_ingredients = set(self.feed_formula.keys())
+
+            # Combine formula ingredients with all feed warehouse items
+            # Prioritize formula ingredients first, then add others from feed warehouse
+            feed_ingredients = list(feed_formula_ingredients)
+            for ingredient in feed_warehouse_inventory.keys():
+                if ingredient not in feed_formula_ingredients:
+                    feed_ingredients.append(ingredient)
+
+            self.feed_inventory_table.setRowCount(len(feed_ingredients))
+
+            # Update inventory from manager
+            self.inventory = self.inventory_manager.get_inventory()
+
+            print(f"📦 [Feed Inventory] Processing {len(feed_ingredients)} feed ingredients")
+
         except Exception as e:
-            print(f"Error analyzing consumption patterns: {e}")
-            avg_daily_usage = {}
-            days_remaining = {}
+            print(f"❌ [Feed Inventory] Error in initialization: {e}")
+            # Fallback to basic inventory display
+            feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
+            feed_ingredients = list(feed_warehouse_inventory.keys())
+            self.feed_inventory_table.setRowCount(len(feed_ingredients))
+            self.inventory = self.inventory_manager.get_inventory()
+            feed_analysis = {}
 
         for i, ingredient in enumerate(feed_ingredients):
-            # Ingredient name with icon
-            ingredient_item = QTableWidgetItem(f"🌾 {ingredient}")
-            ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
-            ingredient_item.setToolTip(f"Nguyên liệu: {ingredient}")
-            self.feed_inventory_table.setItem(i, 0, ingredient_item)
+            try:
+                # Get analysis data for this ingredient
+                ingredient_data = feed_analysis.get(ingredient, {})
+                current_amount = ingredient_data.get("current_amount", self.inventory.get(ingredient, 0))
+                daily_usage = ingredient_data.get("daily_usage", 0.0)
+                remaining_days = ingredient_data.get("remaining_days", 999.0)
+                status = ingredient_data.get("status", "good")
 
-            # Current inventory
-            inventory_amount = self.inventory.get(ingredient, 0)
-            inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(TABLE_CELL_FONT)
-            self.feed_inventory_table.setItem(i, 1, inventory_item)
+                # Ingredient name with icon and status indicator
+                status_icon = {
+                    "critical": "🔴",
+                    "low": "🟡",
+                    "warning": "🟠",
+                    "good": "🟢"
+                }.get(status, "⚪")
 
-            # Bag size
-            bag_size = self.inventory_manager.get_bag_size(ingredient)
-            bag_size_item = QTableWidgetItem(format_number(bag_size))
-            bag_size_item.setFont(TABLE_CELL_FONT)
-            self.feed_inventory_table.setItem(i, 2, bag_size_item)
+                ingredient_item = QTableWidgetItem(f"{status_icon} 🌾 {ingredient}")
+                ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
 
-            # Number of bags
-            bags = self.inventory_manager.calculate_bags(ingredient, inventory_amount)
-            bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(TABLE_CELL_FONT)
-            self.feed_inventory_table.setItem(i, 3, bags_item)
+                # Enhanced tooltip with usage information
+                tooltip = f"Nguyên liệu: {ingredient}\n"
+                tooltip += f"Tồn kho: {current_amount:.1f} kg\n"
+                tooltip += f"Sử dụng hàng ngày: {daily_usage:.2f} kg\n"
+                tooltip += f"Còn lại: {self.remaining_usage_calculator.format_remaining_days(remaining_days)}\n"
+                tooltip += f"Trạng thái: {status.upper()}"
+                ingredient_item.setToolTip(tooltip)
 
-            # Days until empty (column 4)
-            days = days_remaining.get(ingredient, float('inf'))
-            if days == float('inf'):
-                days_text = "N/A"
-                days_item = QTableWidgetItem(days_text)
-                days_item.setBackground(QColor("#f5f5f5"))  # Light gray for N/A
-            else:
-                days_text = f"{days:.1f}"
-                days_item = QTableWidgetItem(days_text)
+                self.feed_inventory_table.setItem(i, 0, ingredient_item)
 
-                # Color coding: green (>14 days), yellow (7-14 days), red (<7 days)
-                if days > 14:
-                    days_item.setBackground(QColor("#d4edda"))  # Light green
-                    days_item.setForeground(QColor("#155724"))  # Dark green
-                elif days >= 7:
-                    days_item.setBackground(QColor("#fff3cd"))  # Light yellow
-                    days_item.setForeground(QColor("#856404"))  # Dark yellow
+                # Current inventory with color coding based on status
+                inventory_item = QTableWidgetItem(format_number(current_amount))
+                inventory_item.setFont(TABLE_CELL_FONT)
+
+                # Apply status color to inventory amount
+                bg_color, text_color = self.remaining_usage_calculator.get_ingredient_status_color(status)
+                inventory_item.setBackground(QColor(bg_color))
+                inventory_item.setForeground(QColor(text_color))
+
+                self.feed_inventory_table.setItem(i, 1, inventory_item)
+
+                # Bag size
+                bag_size = self.inventory_manager.get_bag_size(ingredient)
+                bag_size_item = QTableWidgetItem(format_number(bag_size))
+                bag_size_item.setFont(TABLE_CELL_FONT)
+                self.feed_inventory_table.setItem(i, 2, bag_size_item)
+
+                # Number of bags
+                bags = self.inventory_manager.calculate_bags(ingredient, current_amount)
+                bags_item = QTableWidgetItem(format_number(bags))
+                bags_item.setFont(TABLE_CELL_FONT)
+                self.feed_inventory_table.setItem(i, 3, bags_item)
+
+                # Days until empty (column 4) - Enhanced with new calculator data
+                if remaining_days >= 999:
+                    days_text = "∞"
+                    days_item = QTableWidgetItem(days_text)
+                    days_item.setBackground(QColor("#f5f5f5"))  # Light gray for infinite
+                    days_item.setForeground(QColor("#666666"))
                 else:
-                    days_item.setBackground(QColor("#f8d7da"))  # Light red
-                    days_item.setForeground(QColor("#721c24"))  # Dark red
+                    days_text = self.remaining_usage_calculator.format_remaining_days(remaining_days)
+                    days_item = QTableWidgetItem(days_text)
 
-            days_item.setFont(TABLE_CELL_FONT)
-            days_item.setTextAlignment(Qt.AlignCenter)
-            self.feed_inventory_table.setItem(i, 4, days_item)
+                    # Enhanced color coding based on status
+                    if status == "critical":
+                        days_item.setBackground(QColor("#FFEBEE"))  # Light red
+                        days_item.setForeground(QColor("#C62828"))  # Dark red
+                    elif status == "low":
+                        days_item.setBackground(QColor("#FFF3E0"))  # Light orange
+                        days_item.setForeground(QColor("#F57C00"))  # Dark orange
+                    elif status == "warning":
+                        days_item.setBackground(QColor("#FFFDE7"))  # Light yellow
+                        days_item.setForeground(QColor("#F9A825"))  # Dark yellow
+                    else:  # good
+                        days_item.setBackground(QColor("#E8F5E9"))  # Light green
+                        days_item.setForeground(QColor("#2E7D32"))  # Dark green
 
-            # Status column (column 5) with enhanced formatting
-            status_text, color_info = self.get_inventory_status_text(days, inventory_amount, ingredient)
+                days_item.setFont(TABLE_CELL_FONT)
+                days_item.setTextAlignment(Qt.AlignCenter)
+                self.feed_inventory_table.setItem(i, 4, days_item)
 
-            # Add appropriate emoji and formatting
-            if color_info == "red":
-                display_text = f"🔴 {status_text}"
-                tooltip_text = f"KHẨN CẤP: {ingredient} cần nhập hàng ngay lập tức!"
-            elif color_info == "yellow":
-                display_text = f"🟡 {status_text}"
-                tooltip_text = f"CẢNH BÁO: {ingredient} sắp hết, cần theo dõi và chuẩn bị nhập hàng"
-            elif color_info == "green":
-                display_text = f"🟢 {status_text}"
-                tooltip_text = f"ỔN ĐỊNH: {ingredient} có đủ tồn kho"
-            else:
-                display_text = f"⚪ {status_text}"
-                tooltip_text = f"CHƯA RÕ: Không có dữ liệu sử dụng cho {ingredient}"
+                # Status column (column 5) with enhanced formatting using new status system
+                status_text_map = {
+                    "critical": "KHẨN CẤP",
+                    "low": "SẮP HẾT",
+                    "warning": "CẢNH BÁO",
+                    "good": "ỔN ĐỊNH"
+                }
 
-            status_item = QTableWidgetItem(display_text)
-            status_item.setFont(QFont("Arial", 11, QFont.Bold))
-            status_item.setTextAlignment(Qt.AlignCenter)
-            status_item.setToolTip(tooltip_text)
+                status_emoji_map = {
+                    "critical": "🔴",
+                    "low": "🟡",
+                    "warning": "🟠",
+                    "good": "🟢"
+                }
 
-            # Apply enhanced color coding
-            if color_info == "gray":
-                status_item.setBackground(QColor("#f8f9fa"))  # Light gray
-                status_item.setForeground(QColor("#6c757d"))  # Dark gray
-            elif color_info == "green":
-                status_item.setBackground(QColor("#d1f2eb"))  # Light green
-                status_item.setForeground(QColor("#0d5345"))  # Dark green
-            elif color_info == "yellow":
-                status_item.setBackground(QColor("#fef9e7"))  # Light yellow
-                status_item.setForeground(QColor("#7d6608"))  # Dark yellow
-            elif color_info == "red":
-                status_item.setBackground(QColor("#fadbd8"))  # Light red
-                status_item.setForeground(QColor("#641e16"))  # Dark red
+                display_status = status_text_map.get(status, "CHƯA RÕ")
+                status_emoji = status_emoji_map.get(status, "⚪")
 
-            self.feed_inventory_table.setItem(i, 5, status_item)
+                display_text = f"{status_emoji} {display_status}"
+                tooltip_text = f"{ingredient}: {display_status}\n"
+                tooltip_text += f"Tồn kho: {current_amount:.1f} kg\n"
+                tooltip_text += f"Sử dụng/ngày: {daily_usage:.2f} kg\n"
+                tooltip_text += f"Còn lại: {self.remaining_usage_calculator.format_remaining_days(remaining_days)}"
 
-            # Edit button (column 6)
-            edit_button = self.create_action_button(
-                "✏️", "#2196F3",
-                lambda checked, name=ingredient: self.open_edit_item_dialog(name, "feed")
-            )
-            self.feed_inventory_table.setCellWidget(i, 6, edit_button)
+                status_item = QTableWidgetItem(display_text)
+                status_item.setFont(QFont("Arial", 11, QFont.Bold))
+                status_item.setTextAlignment(Qt.AlignCenter)
+                status_item.setToolTip(tooltip_text)
 
-            # Delete button (column 7)
-            delete_button = self.create_action_button(
-                "🗑️", "#F44336",
-                lambda checked, name=ingredient: self.open_delete_item_dialog(name, "feed")
-            )
-            self.feed_inventory_table.setCellWidget(i, 7, delete_button)
+                # Apply enhanced color coding based on status
+                bg_color, text_color = self.remaining_usage_calculator.get_ingredient_status_color(status)
+                status_item.setBackground(QColor(bg_color))
+                status_item.setForeground(QColor(text_color))
 
-        # Tăng chiều cao của các hàng để dễ nhìn hơn
+                self.feed_inventory_table.setItem(i, 5, status_item)
+
+                # Edit button (column 6)
+                edit_button = self.create_action_button(
+                    "✏️", "#2196F3",
+                    lambda checked, name=ingredient: self.open_edit_item_dialog(name, "feed")
+                )
+                self.feed_inventory_table.setCellWidget(i, 6, edit_button)
+
+                # Delete button (column 7)
+                delete_button = self.create_action_button(
+                    "🗑️", "#F44336",
+                    lambda checked, name=ingredient: self.open_delete_item_dialog(name, "feed")
+                )
+                self.feed_inventory_table.setCellWidget(i, 7, delete_button)
+
+            except Exception as e:
+                print(f"⚠️ [Feed Inventory] Error processing ingredient {ingredient}: {e}")
+                # Create basic row with error indication
+                error_item = QTableWidgetItem(f"❌ {ingredient}")
+                self.feed_inventory_table.setItem(i, 0, error_item)
+                for col in range(1, 8):
+                    error_cell = QTableWidgetItem("Error")
+                    error_cell.setBackground(QColor("#FFEBEE"))
+                    self.feed_inventory_table.setItem(i, col, error_cell)
+
+        # Set row heights for better visibility
         for row in range(self.feed_inventory_table.rowCount()):
             self.feed_inventory_table.setRowHeight(row, 45)  # Increased for buttons
 
+        print(f"✅ [Feed Inventory] Updated feed inventory table with {len(feed_ingredients)} ingredients")
+
     def update_mix_inventory_table(self):
-        """Update the mix inventory table with days until empty analysis"""
-        # Get mix warehouse inventory specifically
-        mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
-        mix_formula_ingredients = set(self.mix_formula.keys())
-
-        # Combine formula ingredients with all mix warehouse items
-        # Prioritize formula ingredients first, then add others from mix warehouse
-        mix_ingredients = list(mix_formula_ingredients)
-        for ingredient in mix_warehouse_inventory.keys():
-            if ingredient not in mix_formula_ingredients:
-                mix_ingredients.append(ingredient)
-
-        self.mix_inventory_table.setRowCount(len(mix_ingredients))
-
-        # Update inventory from manager
-        self.inventory = self.inventory_manager.get_inventory()
-
-        # Get consumption analysis for days until empty calculation
+        """Update the mix inventory table with enhanced remaining usage analysis"""
         try:
-            avg_daily_usage = self.inventory_manager.analyze_consumption_patterns(7)
-            days_remaining = self.inventory_manager.calculate_days_until_empty(avg_daily_usage)
+            print("🔄 [Mix Inventory] Starting enhanced inventory table update...")
+
+            # Get comprehensive usage analysis from the new calculator
+            usage_analysis = self.remaining_usage_calculator.get_comprehensive_usage_analysis(7)
+            mix_analysis = usage_analysis.get("mix", {})
+
+            # Get mix warehouse inventory specifically
+            mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
+            mix_formula_ingredients = set(self.mix_formula.keys())
+
+            # Combine formula ingredients with all mix warehouse items
+            # Prioritize formula ingredients first, then add others from mix warehouse
+            mix_ingredients = list(mix_formula_ingredients)
+            for ingredient in mix_warehouse_inventory.keys():
+                if ingredient not in mix_formula_ingredients:
+                    mix_ingredients.append(ingredient)
+
+            self.mix_inventory_table.setRowCount(len(mix_ingredients))
+
+            # Update inventory from manager
+            self.inventory = self.inventory_manager.get_inventory()
+
+            print(f"📦 [Mix Inventory] Processing {len(mix_ingredients)} mix ingredients")
+
         except Exception as e:
-            print(f"Error analyzing consumption patterns: {e}")
-            avg_daily_usage = {}
-            days_remaining = {}
+            print(f"❌ [Mix Inventory] Error in initialization: {e}")
+            # Fallback to basic inventory display
+            mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
+            mix_ingredients = list(mix_warehouse_inventory.keys())
+            self.mix_inventory_table.setRowCount(len(mix_ingredients))
+            self.inventory = self.inventory_manager.get_inventory()
+            mix_analysis = {}
 
         for i, ingredient in enumerate(mix_ingredients):
-            # Ingredient name with icon
-            ingredient_item = QTableWidgetItem(f"🧪 {ingredient}")
-            ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
-            ingredient_item.setToolTip(f"Nguyên liệu mix: {ingredient}")
-            self.mix_inventory_table.setItem(i, 0, ingredient_item)
+            try:
+                # Get analysis data for this ingredient
+                ingredient_data = mix_analysis.get(ingredient, {})
+                current_amount = ingredient_data.get("current_amount", self.inventory.get(ingredient, 0))
+                daily_usage = ingredient_data.get("daily_usage", 0.0)
+                remaining_days = ingredient_data.get("remaining_days", 999.0)
+                status = ingredient_data.get("status", "good")
 
-            # Current inventory
-            inventory_amount = self.inventory.get(ingredient, 0)
-            inventory_item = QTableWidgetItem(format_number(inventory_amount))
-            inventory_item.setFont(TABLE_CELL_FONT)
-            self.mix_inventory_table.setItem(i, 1, inventory_item)
+                # Ingredient name with icon and status indicator
+                status_icon = {
+                    "critical": "🔴",
+                    "low": "🟡",
+                    "warning": "🟠",
+                    "good": "🟢"
+                }.get(status, "⚪")
 
-            # Bag size
-            bag_size = self.inventory_manager.get_bag_size(ingredient)
-            bag_size_item = QTableWidgetItem(format_number(bag_size))
-            bag_size_item.setFont(TABLE_CELL_FONT)
-            self.mix_inventory_table.setItem(i, 2, bag_size_item)
+                ingredient_item = QTableWidgetItem(f"{status_icon} 🧪 {ingredient}")
+                ingredient_item.setFont(QFont("Arial", 11, QFont.Medium))
 
-            # Number of bags
-            bags = self.inventory_manager.calculate_bags(ingredient, inventory_amount)
-            bags_item = QTableWidgetItem(format_number(bags))
-            bags_item.setFont(TABLE_CELL_FONT)
-            self.mix_inventory_table.setItem(i, 3, bags_item)
+                # Enhanced tooltip with usage information
+                tooltip = f"Nguyên liệu mix: {ingredient}\n"
+                tooltip += f"Tồn kho: {current_amount:.1f} kg\n"
+                tooltip += f"Sử dụng hàng ngày: {daily_usage:.2f} kg\n"
+                tooltip += f"Còn lại: {self.remaining_usage_calculator.format_remaining_days(remaining_days)}\n"
+                tooltip += f"Trạng thái: {status.upper()}"
+                ingredient_item.setToolTip(tooltip)
 
-            # Days until empty (column 4)
-            days = days_remaining.get(ingredient, float('inf'))
-            if days == float('inf'):
-                days_text = "N/A"
-                days_item = QTableWidgetItem(days_text)
-                days_item.setBackground(QColor("#f5f5f5"))  # Light gray for N/A
-            else:
-                days_text = f"{days:.1f}"
-                days_item = QTableWidgetItem(days_text)
+                self.mix_inventory_table.setItem(i, 0, ingredient_item)
 
-                # Color coding: green (>14 days), yellow (7-14 days), red (<7 days)
-                if days > 14:
-                    days_item.setBackground(QColor("#d4edda"))  # Light green
-                    days_item.setForeground(QColor("#155724"))  # Dark green
-                elif days >= 7:
-                    days_item.setBackground(QColor("#fff3cd"))  # Light yellow
-                    days_item.setForeground(QColor("#856404"))  # Dark yellow
+                # Current inventory with color coding based on status
+                inventory_item = QTableWidgetItem(format_number(current_amount))
+                inventory_item.setFont(TABLE_CELL_FONT)
+
+                # Apply status color to inventory amount
+                bg_color, text_color = self.remaining_usage_calculator.get_ingredient_status_color(status)
+                inventory_item.setBackground(QColor(bg_color))
+                inventory_item.setForeground(QColor(text_color))
+
+                self.mix_inventory_table.setItem(i, 1, inventory_item)
+
+                # Bag size
+                bag_size = self.inventory_manager.get_bag_size(ingredient)
+                bag_size_item = QTableWidgetItem(format_number(bag_size))
+                bag_size_item.setFont(TABLE_CELL_FONT)
+                self.mix_inventory_table.setItem(i, 2, bag_size_item)
+
+                # Number of bags
+                bags = self.inventory_manager.calculate_bags(ingredient, current_amount)
+                bags_item = QTableWidgetItem(format_number(bags))
+                bags_item.setFont(TABLE_CELL_FONT)
+                self.mix_inventory_table.setItem(i, 3, bags_item)
+
+                # Days until empty (column 4) - Enhanced with new calculator data
+                if remaining_days >= 999:
+                    days_text = "∞"
+                    days_item = QTableWidgetItem(days_text)
+                    days_item.setBackground(QColor("#f5f5f5"))  # Light gray for infinite
+                    days_item.setForeground(QColor("#666666"))
                 else:
-                    days_item.setBackground(QColor("#f8d7da"))  # Light red
-                    days_item.setForeground(QColor("#721c24"))  # Dark red
+                    days_text = self.remaining_usage_calculator.format_remaining_days(remaining_days)
+                    days_item = QTableWidgetItem(days_text)
 
-            days_item.setFont(TABLE_CELL_FONT)
-            days_item.setTextAlignment(Qt.AlignCenter)
-            self.mix_inventory_table.setItem(i, 4, days_item)
+                    # Enhanced color coding based on status
+                    if status == "critical":
+                        days_item.setBackground(QColor("#FFEBEE"))  # Light red
+                        days_item.setForeground(QColor("#C62828"))  # Dark red
+                    elif status == "low":
+                        days_item.setBackground(QColor("#FFF3E0"))  # Light orange
+                        days_item.setForeground(QColor("#F57C00"))  # Dark orange
+                    elif status == "warning":
+                        days_item.setBackground(QColor("#FFFDE7"))  # Light yellow
+                        days_item.setForeground(QColor("#F9A825"))  # Dark yellow
+                    else:  # good
+                        days_item.setBackground(QColor("#E8F5E9"))  # Light green
+                        days_item.setForeground(QColor("#2E7D32"))  # Dark green
 
-            # Status column (column 5) with enhanced formatting
-            status_text, color_info = self.get_inventory_status_text(days, inventory_amount, ingredient)
+                days_item.setFont(TABLE_CELL_FONT)
+                days_item.setTextAlignment(Qt.AlignCenter)
+                self.mix_inventory_table.setItem(i, 4, days_item)
 
-            # Add appropriate emoji and formatting
-            if color_info == "red":
-                display_text = f"🔴 {status_text}"
-                tooltip_text = f"KHẨN CẤP: {ingredient} cần nhập hàng ngay lập tức!"
-            elif color_info == "yellow":
-                display_text = f"🟡 {status_text}"
-                tooltip_text = f"CẢNH BÁO: {ingredient} sắp hết, cần theo dõi và chuẩn bị nhập hàng"
-            elif color_info == "green":
-                display_text = f"🟢 {status_text}"
-                tooltip_text = f"ỔN ĐỊNH: {ingredient} có đủ tồn kho"
-            else:
-                display_text = f"⚪ {status_text}"
-                tooltip_text = f"CHƯA RÕ: Không có dữ liệu sử dụng cho {ingredient}"
+                # Status column (column 5) with enhanced formatting using new status system
+                status_text_map = {
+                    "critical": "KHẨN CẤP",
+                    "low": "SẮP HẾT",
+                    "warning": "CẢNH BÁO",
+                    "good": "ỔN ĐỊNH"
+                }
 
-            status_item = QTableWidgetItem(display_text)
-            status_item.setFont(QFont("Arial", 11, QFont.Bold))
-            status_item.setTextAlignment(Qt.AlignCenter)
-            status_item.setToolTip(tooltip_text)
+                status_emoji_map = {
+                    "critical": "🔴",
+                    "low": "🟡",
+                    "warning": "🟠",
+                    "good": "🟢"
+                }
 
-            # Apply enhanced color coding
-            if color_info == "gray":
-                status_item.setBackground(QColor("#f8f9fa"))  # Light gray
-                status_item.setForeground(QColor("#6c757d"))  # Dark gray
-            elif color_info == "green":
-                status_item.setBackground(QColor("#d1f2eb"))  # Light green
-                status_item.setForeground(QColor("#0d5345"))  # Dark green
-            elif color_info == "yellow":
-                status_item.setBackground(QColor("#fef9e7"))  # Light yellow
-                status_item.setForeground(QColor("#7d6608"))  # Dark yellow
-            elif color_info == "red":
-                status_item.setBackground(QColor("#fadbd8"))  # Light red
-                status_item.setForeground(QColor("#641e16"))  # Dark red
+                display_status = status_text_map.get(status, "CHƯA RÕ")
+                status_emoji = status_emoji_map.get(status, "⚪")
 
-            self.mix_inventory_table.setItem(i, 5, status_item)
+                display_text = f"{status_emoji} {display_status}"
+                tooltip_text = f"{ingredient}: {display_status}\n"
+                tooltip_text += f"Tồn kho: {current_amount:.1f} kg\n"
+                tooltip_text += f"Sử dụng/ngày: {daily_usage:.2f} kg\n"
+                tooltip_text += f"Còn lại: {self.remaining_usage_calculator.format_remaining_days(remaining_days)}"
 
-            # Edit button (column 6)
-            edit_button = self.create_action_button(
-                "✏️", "#2196F3",
-                lambda checked, name=ingredient: self.open_edit_item_dialog(name, "mix")
-            )
-            self.mix_inventory_table.setCellWidget(i, 6, edit_button)
+                status_item = QTableWidgetItem(display_text)
+                status_item.setFont(QFont("Arial", 11, QFont.Bold))
+                status_item.setTextAlignment(Qt.AlignCenter)
+                status_item.setToolTip(tooltip_text)
 
-            # Delete button (column 7)
-            delete_button = self.create_action_button(
-                "🗑️", "#F44336",
-                lambda checked, name=ingredient: self.open_delete_item_dialog(name, "mix")
-            )
-            self.mix_inventory_table.setCellWidget(i, 7, delete_button)
+                # Apply enhanced color coding based on status
+                bg_color, text_color = self.remaining_usage_calculator.get_ingredient_status_color(status)
+                status_item.setBackground(QColor(bg_color))
+                status_item.setForeground(QColor(text_color))
 
-        # Tăng chiều cao của các hàng để dễ nhìn hơn
+                self.mix_inventory_table.setItem(i, 5, status_item)
+
+                # Edit button (column 6)
+                edit_button = self.create_action_button(
+                    "✏️", "#2196F3",
+                    lambda checked, name=ingredient: self.open_edit_item_dialog(name, "mix")
+                )
+                self.mix_inventory_table.setCellWidget(i, 6, edit_button)
+
+                # Delete button (column 7)
+                delete_button = self.create_action_button(
+                    "🗑️", "#F44336",
+                    lambda checked, name=ingredient: self.open_delete_item_dialog(name, "mix")
+                )
+                self.mix_inventory_table.setCellWidget(i, 7, delete_button)
+
+            except Exception as e:
+                print(f"⚠️ [Mix Inventory] Error processing ingredient {ingredient}: {e}")
+                # Create basic row with error indication
+                error_item = QTableWidgetItem(f"❌ {ingredient}")
+                self.mix_inventory_table.setItem(i, 0, error_item)
+                for col in range(1, 8):
+                    error_cell = QTableWidgetItem("Error")
+                    error_cell.setBackground(QColor("#FFEBEE"))
+                    self.mix_inventory_table.setItem(i, col, error_cell)
+
+        # Set row heights for better visibility
         for row in range(self.mix_inventory_table.rowCount()):
             self.mix_inventory_table.setRowHeight(row, 45)  # Increased for buttons
+
+        print(f"✅ [Mix Inventory] Updated mix inventory table with {len(mix_ingredients)} ingredients")
 
     def calculate_feed_usage(self):
         """Calculate feed usage based on input values"""
