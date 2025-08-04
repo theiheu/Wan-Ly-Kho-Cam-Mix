@@ -476,6 +476,9 @@ class ChickenFarmApp(QMainWindow):
         # Create main tab widget
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
+
+        # Connect tab change handler to refresh data when switching tabs
+        self.tabs.currentChanged.connect(self.on_tab_changed)
         self.tabs.setStyleSheet("""
             QTabWidget::pane {
                 border: 1px solid #cccccc;
@@ -1606,7 +1609,7 @@ class ChickenFarmApp(QMainWindow):
         feed_import_layout.addWidget(feed_import_section)
 
         # Enhanced history section for feed
-        feed_history_group = QGroupBox("Lịch Sử Nhập Kho Cám")
+        feed_history_group = QGroupBox("Lịch Sử Nhập Kho Cám (7 ngày gần nhất)")
         feed_history_group.setFont(QFont("Arial", 12, QFont.Bold))
         feed_history_group.setStyleSheet("""
             QGroupBox {
@@ -1715,7 +1718,7 @@ class ChickenFarmApp(QMainWindow):
         mix_import_layout.addWidget(mix_import_section)
 
         # Enhanced history section for mix
-        mix_history_group = QGroupBox("Lịch Sử Nhập Kho Mix")
+        mix_history_group = QGroupBox("Lịch Sử Nhập Kho Mix (7 ngày gần nhất)")
         mix_history_group.setFont(QFont("Arial", 12, QFont.Bold))
         mix_history_group.setStyleSheet("""
             QGroupBox {
@@ -1896,14 +1899,28 @@ class ChickenFarmApp(QMainWindow):
             if self.show_employee_selection_dialog(date_filename, ingredient, amount, "feed"):
                 selected_employees = self.get_selected_employees()
 
-                # Update inventory
-                inventory = self.inventory_manager.get_inventory()
-                current_amount = inventory.get(ingredient, 0)
-                inventory[ingredient] = current_amount + amount
-                self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+                # Update inventory using inventory manager methods
+                current_inventory = self.inventory_manager.get_inventory()
+                current_amount = current_inventory.get(ingredient, 0)
+                new_amount = current_amount + amount
 
-                # Save import history
-                self.save_import_history("feed", ingredient, amount, date_filename, note)
+                # Use add_ingredients method for existing items or add_new_item for new ones
+                # Explicitly specify feed warehouse for feed imports
+                if ingredient in current_inventory:
+                    success_dict = self.inventory_manager.add_ingredients({ingredient: amount})
+                    success = bool(success_dict)
+                else:
+                    success = self.inventory_manager.add_new_item(ingredient, amount, 25, warehouse_type="feed")
+
+                if not success:
+                    QMessageBox.critical(self, "Lỗi", f"Không thể cập nhật tồn kho cho {ingredient}")
+                    return
+
+                # Refresh parent app inventory reference
+                self.inventory = self.inventory_manager.get_inventory()
+
+                # Save import history with all required parameters
+                self.save_import_history("feed", ingredient, amount, date_filename, note, 0, "", None)
 
                 # Save employee participation
                 self.save_employee_participation("feed", ingredient, amount, date_filename, note, selected_employees)
@@ -1917,11 +1934,8 @@ class ChickenFarmApp(QMainWindow):
             print(f"Error in import_feed: {str(e)}")
             return
 
-        # Update tables
-        self.update_feed_inventory_table()
-
-        # Update import history
-        self.update_feed_import_history()
+        # Refresh all inventory displays
+        self.refresh_all_inventory_displays()
 
         # Clear form
         self.feed_import_amount.setValue(0)
@@ -1951,14 +1965,27 @@ class ChickenFarmApp(QMainWindow):
             if self.show_employee_selection_dialog(date_filename, ingredient, amount, "mix"):
                 selected_employees = self.get_selected_employees()
 
-                # Update inventory
-                inventory = self.inventory_manager.get_inventory()
-                current_amount = inventory.get(ingredient, 0)
-                inventory[ingredient] = current_amount + amount
-                self.inventory_manager.update_inventory(ingredient, current_amount + amount)
+                # Update inventory using inventory manager methods
+                current_inventory = self.inventory_manager.get_inventory()
+                current_amount = current_inventory.get(ingredient, 0)
 
-                # Save import history
-                self.save_import_history("mix", ingredient, amount, date_filename, note)
+                # Use add_ingredients method for existing items or add_new_item for new ones
+                # Explicitly specify mix warehouse for mix imports
+                if ingredient in current_inventory:
+                    success_dict = self.inventory_manager.add_ingredients({ingredient: amount})
+                    success = bool(success_dict)
+                else:
+                    success = self.inventory_manager.add_new_item(ingredient, amount, 20, warehouse_type="mix")
+
+                if not success:
+                    QMessageBox.critical(self, "Lỗi", f"Không thể cập nhật tồn kho cho {ingredient}")
+                    return
+
+                # Refresh parent app inventory reference
+                self.inventory = self.inventory_manager.get_inventory()
+
+                # Save import history with all required parameters
+                self.save_import_history("mix", ingredient, amount, date_filename, note, 0, "", None)
 
                 # Save employee participation
                 self.save_employee_participation("mix", ingredient, amount, date_filename, note, selected_employees)
@@ -1972,11 +1999,8 @@ class ChickenFarmApp(QMainWindow):
             print(f"Error in import_mix: {str(e)}")
             return
 
-        # Update tables
-        self.update_mix_inventory_table()
-
-        # Update import history
-        self.update_mix_import_history()
+        # Refresh all inventory displays
+        self.refresh_all_inventory_displays()
 
         # Clear form
         self.mix_import_amount.setValue(0)
@@ -2031,30 +2055,25 @@ class ChickenFarmApp(QMainWindow):
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(imports, f, ensure_ascii=False, indent=2)
 
-            # Update history tables
-            self.update_feed_import_history()
-            self.update_mix_import_history()
-
-            # Show success message
-            QMessageBox.information(self, "Thành công", f"Đã nhập {amount} kg {ingredient} vào kho!")
-
-            # Reset form
-            if import_type == "feed":
-                self.feed_import_amount.setValue(0)
-                self.feed_import_note.clear()
-            else:
-                self.mix_import_amount.setValue(0)
-                self.mix_import_note.clear()
-
-        except Exception as e:
-            print(f"Error saving import history: {e}")
-            QMessageBox.warning(self, "Lỗi", f"Không thể lưu lịch sử nhập kho: {e}")
+            print(f"✅ Import history saved successfully: {amount} kg {ingredient}")
+            return True
 
         except Exception as e:
             error_msg = f"Không thể lưu lịch sử nhập hàng: {str(e)}"
-            QMessageBox.critical(self, "Lỗi", error_msg)
             print(f"Error in save_import_history: {str(e)}")
-            raise
+            print(f"Error details - Type: {import_type}, Ingredient: {ingredient}, Amount: {amount}, Date: {date}")
+            import traceback
+            traceback.print_exc()
+
+            # Show error message but don't raise exception to prevent blocking the import process
+            try:
+                QMessageBox.critical(self, "Lỗi", error_msg)
+            except:
+                # If QMessageBox fails, just print the error
+                print(f"Failed to show error dialog: {error_msg}")
+
+            # Return False to indicate failure but don't raise exception
+            return False
 
     def load_import_history(self):
         """Tìm kiếm lịch sử nhập hàng từ ngày đến ngày"""
@@ -2154,29 +2173,33 @@ class ChickenFarmApp(QMainWindow):
             QMessageBox.information(self, "Kết quả tìm kiếm", "Không tìm thấy dữ liệu nhập kho nào trong khoảng thời gian đã chọn!")
 
     def update_feed_import_history(self):
-        """Cập nhật bảng lịch sử Nhập kho cám"""
+        """Cập nhật bảng lịch sử Nhập kho cám - 7 ngày gần nhất"""
         try:
-            # Lấy ngày hiện tại với format đúng
-            current_date = QDate.currentDate().toString("yyyy-MM-dd")
-            filename = str(persistent_path_manager.data_path / "imports" / f"import_{current_date}.json")
-
             # Xóa dữ liệu hiện tại
             self.feed_import_history_table.setRowCount(0)
 
-            # Kiểm tra xem file có tồn tại không
-            if not os.path.exists(filename):
-                return
+            # Lấy dữ liệu từ 7 ngày gần nhất
+            feed_imports = []
+            current_date = QDate.currentDate()
 
-            # Đọc dữ liệu
-            with open(filename, "r", encoding="utf-8") as f:
-                imports = json.load(f)
+            for i in range(7):  # 7 ngày gần nhất
+                check_date = current_date.addDays(-i)
+                date_str = check_date.toString("yyyy-MM-dd")
+                filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
 
-            if not isinstance(imports, list):
-                print(f"Warning: Invalid data format in {filename}")
-                return
+                if os.path.exists(filename):
+                    try:
+                        with open(filename, "r", encoding="utf-8") as f:
+                            imports = json.load(f)
 
-            # Lọc chỉ lấy dữ liệu cám
-            feed_imports = [import_data for import_data in imports if import_data["type"] == "feed"]
+                        if isinstance(imports, list):
+                            # Lọc chỉ lấy dữ liệu cám
+                            daily_feed_imports = [import_data for import_data in imports if import_data.get("type") == "feed"]
+                            feed_imports.extend(daily_feed_imports)
+
+                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                        print(f"Warning: Could not read import file {filename}: {e}")
+                        continue
 
         except Exception as e:
             print(f"Error updating feed import history: {str(e)}")
@@ -2226,29 +2249,33 @@ class ChickenFarmApp(QMainWindow):
             self.feed_import_history_table.setItem(row, 6, note_item)
 
     def update_mix_import_history(self):
-        """Cập nhật bảng lịch sử Nhập kho mix"""
+        """Cập nhật bảng lịch sử Nhập kho mix - 7 ngày gần nhất"""
         try:
-            # Lấy ngày hiện tại với format đúng
-            current_date = QDate.currentDate().toString("yyyy-MM-dd")
-            filename = str(persistent_path_manager.data_path / "imports" / f"import_{current_date}.json")
-
             # Xóa dữ liệu hiện tại
             self.mix_import_history_table.setRowCount(0)
 
-            # Kiểm tra xem file có tồn tại không
-            if not os.path.exists(filename):
-                return
+            # Lấy dữ liệu từ 7 ngày gần nhất
+            mix_imports = []
+            current_date = QDate.currentDate()
 
-            # Đọc dữ liệu
-            with open(filename, "r", encoding="utf-8") as f:
-                imports = json.load(f)
+            for i in range(7):  # 7 ngày gần nhất
+                check_date = current_date.addDays(-i)
+                date_str = check_date.toString("yyyy-MM-dd")
+                filename = str(persistent_path_manager.data_path / "imports" / f"import_{date_str}.json")
 
-            if not isinstance(imports, list):
-                print(f"Warning: Invalid data format in {filename}")
-                return
+                if os.path.exists(filename):
+                    try:
+                        with open(filename, "r", encoding="utf-8") as f:
+                            imports = json.load(f)
 
-            # Lọc chỉ lấy dữ liệu mix
-            mix_imports = [import_data for import_data in imports if import_data["type"] == "mix"]
+                        if isinstance(imports, list):
+                            # Lọc chỉ lấy dữ liệu mix
+                            daily_mix_imports = [import_data for import_data in imports if import_data.get("type") == "mix"]
+                            mix_imports.extend(daily_mix_imports)
+
+                    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                        print(f"Warning: Could not read import file {filename}: {e}")
+                        continue
 
         except Exception as e:
             print(f"Error updating mix import history: {str(e)}")
@@ -3500,8 +3527,17 @@ class ChickenFarmApp(QMainWindow):
 
     def update_feed_inventory_table(self):
         """Update the feed inventory table with days until empty analysis"""
-        # Get relevant ingredients from feed formula
-        feed_ingredients = list(self.feed_formula.keys())
+        # Get feed warehouse inventory specifically
+        feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
+        feed_formula_ingredients = set(self.feed_formula.keys())
+
+        # Combine formula ingredients with all feed warehouse items
+        # Prioritize formula ingredients first, then add others from feed warehouse
+        feed_ingredients = list(feed_formula_ingredients)
+        for ingredient in feed_warehouse_inventory.keys():
+            if ingredient not in feed_formula_ingredients:
+                feed_ingredients.append(ingredient)
+
         self.feed_inventory_table.setRowCount(len(feed_ingredients))
 
         # Update inventory from manager
@@ -3624,7 +3660,17 @@ class ChickenFarmApp(QMainWindow):
 
     def update_mix_inventory_table(self):
         """Update the mix inventory table with days until empty analysis"""
-        mix_ingredients = list(self.mix_formula.keys())
+        # Get mix warehouse inventory specifically
+        mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
+        mix_formula_ingredients = set(self.mix_formula.keys())
+
+        # Combine formula ingredients with all mix warehouse items
+        # Prioritize formula ingredients first, then add others from mix warehouse
+        mix_ingredients = list(mix_formula_ingredients)
+        for ingredient in mix_warehouse_inventory.keys():
+            if ingredient not in mix_formula_ingredients:
+                mix_ingredients.append(ingredient)
+
         self.mix_inventory_table.setRowCount(len(mix_ingredients))
 
         # Update inventory from manager
@@ -7313,6 +7359,94 @@ class ChickenFarmApp(QMainWindow):
 
         # Convert back to hex
         return f"#{r:02x}{g:02x}{b:02x}"
+
+    def show_notification(self, message, notification_type="info"):
+        """Show a notification message to the user"""
+        try:
+            if notification_type == "success":
+                QMessageBox.information(self, "Thành công", message)
+            elif notification_type == "warning":
+                QMessageBox.warning(self, "Cảnh báo", message)
+            elif notification_type == "error":
+                QMessageBox.critical(self, "Lỗi", message)
+            else:  # info or default
+                QMessageBox.information(self, "Thông báo", message)
+        except Exception as e:
+            print(f"Error showing notification: {e}")
+            print(f"Notification message: {message}")
+
+    def refresh_all_inventory_displays(self):
+        """Refresh all inventory-related displays after data changes"""
+        try:
+            # Refresh inventory reference from manager
+            self.inventory = self.inventory_manager.get_inventory()
+
+            # Update inventory tables
+            if hasattr(self, 'update_feed_inventory_table'):
+                self.update_feed_inventory_table()
+            if hasattr(self, 'update_mix_inventory_table'):
+                self.update_mix_inventory_table()
+
+            # Update import history tables
+            if hasattr(self, 'update_feed_import_history'):
+                self.update_feed_import_history()
+            if hasattr(self, 'update_mix_import_history'):
+                self.update_mix_import_history()
+
+            # Refresh analysis if available
+            if hasattr(self, 'refresh_inventory_analysis'):
+                self.refresh_inventory_analysis()
+
+            print("✅ All inventory displays refreshed")
+
+        except Exception as e:
+            print(f"Error refreshing inventory displays: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def on_tab_changed(self, index):
+        """Handle tab changes to refresh data when switching between tabs"""
+        try:
+            # Get the current tab widget
+            current_tab = self.tabs.widget(index)
+
+            if not current_tab:
+                return
+
+            # Refresh data based on which tab is active
+            if current_tab == getattr(self, 'inventory_tab', None):
+                # Inventory tab - refresh inventory displays
+                self.refresh_all_inventory_displays()
+                print("🔄 Refreshed inventory tab data")
+
+            elif current_tab == getattr(self, 'import_tab', None):
+                # Import tab - refresh import history
+                if hasattr(self, 'update_feed_import_history'):
+                    self.update_feed_import_history()
+                if hasattr(self, 'update_mix_import_history'):
+                    self.update_mix_import_history()
+                print("🔄 Refreshed import tab data")
+
+            elif current_tab == getattr(self, 'formula_tab', None):
+                # Formula tab - refresh formula displays
+                if hasattr(self, 'update_feed_formula_table'):
+                    self.update_feed_formula_table()
+                if hasattr(self, 'update_mix_formula_table'):
+                    self.update_mix_formula_table()
+                print("🔄 Refreshed formula tab data")
+
+            elif current_tab == getattr(self, 'history_tab', None):
+                # History tab - refresh history data
+                if hasattr(self, 'load_history_data'):
+                    self.load_history_data(show_warnings=False)
+                print("🔄 Refreshed history tab data")
+
+            # Always refresh inventory reference to ensure consistency
+            self.inventory = self.inventory_manager.get_inventory()
+
+        except Exception as e:
+            print(f"Error handling tab change: {e}")
+            # Don't show error to user as this is background refresh
 
     def open_bulk_operations_dialog(self):
         """Open bulk operations dialog"""
@@ -12611,17 +12745,29 @@ class DeleteInventoryItemDialog(QDialog):
             success = self.parent_app.inventory_manager.remove_item(self.item_name)
 
             if success:
+                # Refresh inventory data in parent app
+                if hasattr(self.parent_app, 'inventory'):
+                    self.parent_app.inventory = self.parent_app.inventory_manager.get_inventory()
+
                 # Update inventory displays
                 if hasattr(self.parent_app, 'update_feed_inventory_table'):
                     self.parent_app.update_feed_inventory_table()
                 if hasattr(self.parent_app, 'update_mix_inventory_table'):
                     self.parent_app.update_mix_inventory_table()
 
+                # Refresh analysis if available
+                if hasattr(self.parent_app, 'refresh_inventory_analysis'):
+                    self.parent_app.refresh_inventory_analysis()
+
                 # Show success message
                 QMessageBox.information(
                     self,
                     "Thành công",
-                    f"✅ Đã xóa mặt hàng '{self.item_name}' thành công!"
+                    f"✅ Đã xóa mặt hàng '{self.item_name}' thành công!\n\n"
+                    f"Mặt hàng đã được xóa hoàn toàn khỏi:\n"
+                    f"• Danh sách tồn kho\n"
+                    f"• Thông tin đóng gói\n"
+                    f"• Thông tin giá cả"
                 )
                 self.accept()
             else:
@@ -13491,7 +13637,7 @@ class EnhancedWarehouseImportDialog(QDialog):
                 border-color: #4CAF50;
             }
         """)
-        price_label = QLabel("Đơn giá: *")
+        price_label = QLabel("Đơn giá:")
         price_label.setFont(QFont("Arial", 12, QFont.Bold))
         price_label.setStyleSheet("color: #333333;")
         form_layout.addRow(price_label, self.unit_price_input)
@@ -13884,9 +14030,10 @@ class EnhancedWarehouseImportDialog(QDialog):
             is_valid = False
             error_messages.append("Số lượng nhập phải > 0")
 
-        if self.unit_price_input.value() <= 0:
+        # Unit price is optional - only validate if provided
+        if self.unit_price_input.value() < 0:
             is_valid = False
-            error_messages.append("Đơn giá phải > 0")
+            error_messages.append("Đơn giá không được âm")
 
         # Enhanced validation: Allow new ingredients and provide helpful feedback
         ingredient_name = self.ingredient_combo.currentText().strip()
@@ -14105,68 +14252,89 @@ class EnhancedWarehouseImportDialog(QDialog):
     def import_inventory_item(self, import_data):
         """Import item to inventory and update related systems - unified with AddInventoryItemDialog"""
         try:
-            # Update inventory using existing inventory system (consistent with add_inventory_item)
+            # Update inventory using inventory manager methods
             try:
-                # Get current inventory
-                if hasattr(self.parent_app, 'inventory'):
-                    inventory = self.parent_app.inventory.copy()
-                elif hasattr(self.parent_app, 'inventory_manager') and hasattr(self.parent_app.inventory_manager, 'get_inventory'):
-                    inventory = self.parent_app.inventory_manager.get_inventory()
+                ingredient_name = import_data['ingredient']
+                quantity = import_data['quantity']
+
+                # Check if ingredient already exists
+                current_inventory = self.parent_app.inventory_manager.get_inventory()
+
+                if ingredient_name in current_inventory:
+                    # If exists, add to existing quantity using add_ingredients
+                    success_dict = self.parent_app.inventory_manager.add_ingredients({ingredient_name: quantity})
+                    success = bool(success_dict)
+
+                    if success:
+                        new_amount = current_inventory.get(ingredient_name, 0) + quantity
+                        print(f"✅ Added {quantity} to existing ingredient: {ingredient_name} = {new_amount}")
+                    else:
+                        print(f"❌ Failed to add to existing ingredient: {ingredient_name}")
+                        return False
                 else:
-                    # Fallback: create new inventory dict
-                    inventory = {}
+                    # If new ingredient, add as new item with default bag size
+                    # Determine warehouse type based on import type
+                    import_type = import_data.get('type', 'mix')  # Default to mix if not specified
+                    warehouse_type = "feed" if import_type == "feed" else "mix"
+                    default_bag_size = 25 if warehouse_type == "feed" else 20
 
-                # Update inventory amount
-                current_amount = inventory.get(import_data['ingredient'], 0)
-                new_amount = current_amount + import_data['quantity']
-                inventory[import_data['ingredient']] = new_amount
+                    success = self.parent_app.inventory_manager.add_new_item(
+                        ingredient_name, quantity, default_bag_size, warehouse_type=warehouse_type
+                    )
 
-                # Save inventory using available method
-                if hasattr(self.parent_app, 'inventory'):
-                    self.parent_app.inventory = inventory
-                    # Try to save to file if method exists
-                    if hasattr(self.parent_app, 'save_inventory_to_file'):
-                        self.parent_app.save_inventory_to_file()
-                elif hasattr(self.parent_app.inventory_manager, 'save_inventory'):
-                    self.parent_app.inventory_manager.save_inventory(inventory)
-                else:
-                    # Direct file save as fallback
-                    self.save_inventory_direct(inventory)
+                    if success:
+                        print(f"✅ Added new ingredient: {ingredient_name} = {quantity}")
+                    else:
+                        print(f"❌ Failed to add new ingredient: {ingredient_name}")
+                        return False
 
-                print(f"✅ Successfully updated inventory: {import_data['ingredient']} = {new_amount}")
+                # Update parent app inventory reference
+                self.parent_app.inventory = self.parent_app.inventory_manager.get_inventory()
 
             except Exception as e:
                 print(f"❌ Error updating inventory: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
 
             # Save import history using existing method with enhanced data
-            date_str = import_data['date'].toString("yyyy-MM-dd")
-            self.parent_app.save_import_history(
-                import_data['type'],
-                import_data['ingredient'],
-                import_data['quantity'],
-                date_str,
-                import_data['notes'],
-                import_data['unit_price'],
-                import_data['supplier'],
-                import_data['bag_weight']
-            )
+            try:
+                date_str = import_data['date'].toString("yyyy-MM-dd")
+                history_saved = self.parent_app.save_import_history(
+                    import_data['type'],
+                    import_data['ingredient'],
+                    import_data['quantity'],
+                    date_str,
+                    import_data['notes'],
+                    import_data['unit_price'],
+                    import_data['supplier'],
+                    import_data['bag_weight']
+                )
 
-            # Update inventory displays (same as AddInventoryItemDialog)
-            if hasattr(self.parent_app, 'update_feed_inventory_table'):
-                self.parent_app.update_feed_inventory_table()
-            if hasattr(self.parent_app, 'update_mix_inventory_table'):
-                self.parent_app.update_mix_inventory_table()
+                if history_saved == False:
+                    print("⚠️ Warning: Import history could not be saved, but inventory was updated successfully")
+                else:
+                    print("✅ Import history saved successfully")
 
-            # Update import history tables (specific to import workflow)
-            if hasattr(self.parent_app, 'update_feed_import_history'):
-                self.parent_app.update_feed_import_history()
-            if hasattr(self.parent_app, 'update_mix_import_history'):
-                self.parent_app.update_mix_import_history()
+            except Exception as e:
+                print(f"⚠️ Warning: Error saving import history: {e}")
+                # Continue with the import process even if history saving fails
 
-            # Refresh inventory analysis to include updated amounts (consistent with AddInventoryItemDialog)
-            if hasattr(self.parent_app, 'refresh_inventory_analysis'):
-                self.parent_app.refresh_inventory_analysis()
+            # Refresh all inventory displays using unified method
+            if hasattr(self.parent_app, 'refresh_all_inventory_displays'):
+                self.parent_app.refresh_all_inventory_displays()
+            else:
+                # Fallback to individual updates if method not available
+                if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                    self.parent_app.update_feed_inventory_table()
+                if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                    self.parent_app.update_mix_inventory_table()
+                if hasattr(self.parent_app, 'update_feed_import_history'):
+                    self.parent_app.update_feed_import_history()
+                if hasattr(self.parent_app, 'update_mix_import_history'):
+                    self.parent_app.update_mix_import_history()
+                if hasattr(self.parent_app, 'refresh_inventory_analysis'):
+                    self.parent_app.refresh_inventory_analysis()
 
             # Auto-add to formula if enabled and ingredient is new (enhanced feature)
             formula_additions = []

@@ -8,73 +8,288 @@ except ImportError:
     from utils.persistent_paths import get_data_file_path, get_config_file_path
 
 class InventoryManager:
-    """Class to manage inventory of feed and mix ingredients"""
+    """Class to manage inventory of feed and mix ingredients with separate warehouses"""
 
-    def __init__(self):
-        self.inventory_file = str(get_config_file_path("inventory.json"))
-        self.packaging_file = str(get_config_file_path("packaging_info.json"))
-        self.inventory = self.load_inventory()
-        self.packaging_info = self.load_packaging_info()
+    def __init__(self, warehouse_type=None):
+        """
+        Initialize inventory manager for specific warehouse type or both
 
-    def load_inventory(self) -> Dict[str, float]:
-        """Load inventory from JSON file"""
+        Args:
+            warehouse_type (str): 'feed', 'mix', or None for both warehouses
+        """
+        self.warehouse_type = warehouse_type
+
+        # File paths for separate warehouses
+        self.feed_inventory_file = str(get_config_file_path("feed_inventory.json"))
+        self.mix_inventory_file = str(get_config_file_path("mix_inventory.json"))
+        self.legacy_inventory_file = str(get_config_file_path("inventory.json"))
+
+        # Packaging info files (separate for each warehouse)
+        self.feed_packaging_file = str(get_config_file_path("feed_packaging_info.json"))
+        self.mix_packaging_file = str(get_config_file_path("mix_packaging_info.json"))
+        self.legacy_packaging_file = str(get_config_file_path("packaging_info.json"))
+
+        # Load inventory and packaging data
+        self.feed_inventory = self.load_warehouse_inventory("feed")
+        self.mix_inventory = self.load_warehouse_inventory("mix")
+        self.feed_packaging_info = self.load_warehouse_packaging_info("feed")
+        self.mix_packaging_info = self.load_warehouse_packaging_info("mix")
+
+        # For backward compatibility, provide unified view
+        self.inventory = self.get_unified_inventory()
+        self.packaging_info = self.get_unified_packaging_info()
+
+    def load_warehouse_inventory(self, warehouse_type: str) -> Dict[str, float]:
+        """Load inventory from warehouse-specific JSON file"""
         try:
-            if os.path.exists(self.inventory_file):
-                with open(self.inventory_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            return {}
-        except Exception as e:
-            print(f"Error loading inventory: {e}")
-            return {}
+            if warehouse_type == "feed":
+                file_path = self.feed_inventory_file
+            elif warehouse_type == "mix":
+                file_path = self.mix_inventory_file
+            else:
+                raise ValueError(f"Invalid warehouse type: {warehouse_type}")
 
-    def save_inventory(self) -> bool:
-        """Save inventory to JSON file"""
-        try:
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(self.inventory_file), exist_ok=True)
-
-            with open(self.inventory_file, 'w', encoding='utf-8') as f:
-                json.dump(self.inventory, f, ensure_ascii=False, indent=4)
-            return True
-        except Exception as e:
-            print(f"Error saving inventory: {e}")
-            return False
-
-    def load_packaging_info(self) -> Dict[str, int]:
-        """Load packaging information from JSON file"""
-        try:
-            if os.path.exists(self.packaging_file):
-                with open(self.packaging_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             else:
-                # Return default packaging info if file doesn't exist
-                default_packaging = {
-                    "DCP": 25,  # 1 bag = 25kg
-                    "Đá hạt": 50,  # 1 bag = 50kg
-                    "Đá bột mịn": 50,  # 1 bag = 50kg
-                    "Cám gạo": 40,  # 1 bag = 40kg
-                    "L-Lysine": 25,
-                    "DL-Methionine": 25,
-                    "Bio-Choline": 25,
-                    "Phytast": 25,
-                    "Performix 0.25% layer": 25,
-                    "Miamix": 25,
-                    "Premix 0.25% layer": 25,
-                    "Compound Enzyme FE808E": 25,
-                    "Carophy Red": 25,
-                    "P-Zym": 25,
-                    "Immunewall": 25,
-                    "Lysoforte Dry": 25,
-                    "Defitox L1": 25,
-                    "Men Ecobiol": 25,
-                    "Lactic LD": 25,
-                    "Sodium bicarbonate": 25,
-                    "Bột đá mịn": 50,
-                    "Muối": 50
-                }
-                # Save default packaging info
-                self.save_packaging_info_data(default_packaging)
-                return default_packaging
+                # Try to migrate from legacy file if warehouse files don't exist
+                return self.migrate_from_legacy_inventory(warehouse_type)
+        except Exception as e:
+            print(f"Error loading {warehouse_type} inventory: {e}")
+            return {}
+
+    def load_inventory(self) -> Dict[str, float]:
+        """Legacy method - load unified inventory for backward compatibility"""
+        return self.get_unified_inventory()
+
+    def save_warehouse_inventory(self, warehouse_type: str) -> bool:
+        """Save inventory to warehouse-specific JSON file"""
+        try:
+            if warehouse_type == "feed":
+                file_path = self.feed_inventory_file
+                inventory_data = self.feed_inventory
+            elif warehouse_type == "mix":
+                file_path = self.mix_inventory_file
+                inventory_data = self.mix_inventory
+            else:
+                raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(inventory_data, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"Error saving {warehouse_type} inventory: {e}")
+            return False
+
+    def save_inventory(self) -> bool:
+        """Legacy method - save both warehouses for backward compatibility"""
+        feed_success = self.save_warehouse_inventory("feed")
+        mix_success = self.save_warehouse_inventory("mix")
+        return feed_success and mix_success
+
+    def load_warehouse_packaging_info(self, warehouse_type: str) -> Dict[str, int]:
+        """Load packaging information from warehouse-specific JSON file"""
+        try:
+            if warehouse_type == "feed":
+                file_path = self.feed_packaging_file
+            elif warehouse_type == "mix":
+                file_path = self.mix_packaging_file
+            else:
+                raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            else:
+                # Try to migrate from legacy file if warehouse files don't exist
+                return self.migrate_packaging_from_legacy(warehouse_type)
+        except Exception as e:
+            print(f"Error loading {warehouse_type} packaging info: {e}")
+            return {}
+
+    def load_packaging_info(self) -> Dict[str, int]:
+        """Legacy method - load unified packaging info for backward compatibility"""
+        return self.get_unified_packaging_info()
+
+    def get_unified_inventory(self) -> Dict[str, float]:
+        """Get unified view of both warehouses for backward compatibility"""
+        unified = {}
+        unified.update(self.feed_inventory)
+        unified.update(self.mix_inventory)
+        return unified
+
+    def get_unified_packaging_info(self) -> Dict[str, int]:
+        """Get unified view of both warehouse packaging info for backward compatibility"""
+        unified = {}
+        unified.update(self.feed_packaging_info)
+        unified.update(self.mix_packaging_info)
+        return unified
+
+    def migrate_from_legacy_inventory(self, warehouse_type: str) -> Dict[str, float]:
+        """Migrate inventory data from legacy inventory.json file"""
+        try:
+            if not os.path.exists(self.legacy_inventory_file):
+                return {}
+
+            # Load categorization analysis
+            categorization_file = "inventory_categorization_analysis.json"
+            if os.path.exists(categorization_file):
+                with open(categorization_file, 'r', encoding='utf-8') as f:
+                    categorization = json.load(f)
+
+                if warehouse_type == "feed":
+                    return categorization.get("feed_warehouse", {})
+                elif warehouse_type == "mix":
+                    return categorization.get("mix_warehouse", {})
+
+            # Fallback: load legacy file and return empty (will be populated by migration script)
+            return {}
+
+        except Exception as e:
+            print(f"Error migrating from legacy inventory for {warehouse_type}: {e}")
+            return {}
+
+    def migrate_packaging_from_legacy(self, warehouse_type: str) -> Dict[str, int]:
+        """Migrate packaging data from legacy packaging_info.json file"""
+        try:
+            if not os.path.exists(self.legacy_packaging_file):
+                return self.get_default_packaging_info()
+
+            with open(self.legacy_packaging_file, 'r', encoding='utf-8') as f:
+                legacy_packaging = json.load(f)
+
+            # Filter packaging info based on warehouse inventory
+            warehouse_inventory = getattr(self, f"{warehouse_type}_inventory", {})
+            warehouse_packaging = {}
+
+            for ingredient in warehouse_inventory.keys():
+                if ingredient in legacy_packaging:
+                    warehouse_packaging[ingredient] = legacy_packaging[ingredient]
+                else:
+                    # Default bag size
+                    warehouse_packaging[ingredient] = 25 if warehouse_type == "feed" else 20
+
+            return warehouse_packaging
+
+        except Exception as e:
+            print(f"Error migrating packaging info for {warehouse_type}: {e}")
+            return self.get_default_packaging_info()
+
+    def get_default_packaging_info(self) -> Dict[str, int]:
+        """Get default packaging info"""
+        default_packaging = {
+            "DCP": 25,  # 1 bag = 25kg
+            "Đá hạt": 50,  # 1 bag = 50kg
+            "Đá bột mịn": 50,  # 1 bag = 50kg
+            "Cám gạo": 40,  # 1 bag = 40kg
+            "L-Lysine": 25,
+            "DL-Methionine": 25,
+            "Bio-Choline": 25,
+            "Phytast": 25,
+            "Performix 0.25% layer": 25,
+            "Miamix": 25,
+            "Premix 0.25% layer": 25,
+            "Compound Enzyme FE808E": 25,
+            "Carophy Red": 25,
+            "P-Zym": 25,
+            "Immunewall": 25,
+            "Lysoforte Dry": 25,
+            "Defitox L1": 25,
+            "Men Ecobiol": 25,
+            "Lactic LD": 25,
+            "Sodium bicarbonate": 25,
+            "Bột đá mịn": 50,
+            "Muối": 50
+        }
+        # Save default packaging info
+        self.save_packaging_info_data(default_packaging)
+        return default_packaging
+
+    def determine_warehouse_type(self, ingredient_name: str) -> str:
+        """Determine which warehouse an ingredient belongs to based on formulas and patterns"""
+        try:
+            # Load formulas to check ingredient usage
+            feed_formula_file = str(get_config_file_path("feed_formula.json"))
+            mix_formula_file = str(get_config_file_path("mix_formula.json"))
+
+            feed_formula = {}
+            mix_formula = {}
+
+            if os.path.exists(feed_formula_file):
+                with open(feed_formula_file, 'r', encoding='utf-8') as f:
+                    feed_formula = json.load(f)
+
+            if os.path.exists(mix_formula_file):
+                with open(mix_formula_file, 'r', encoding='utf-8') as f:
+                    mix_formula = json.load(f)
+
+            # Check if ingredient is in formulas
+            in_feed_formula = ingredient_name in feed_formula
+            in_mix_formula = ingredient_name in mix_formula
+
+            # If in both, use categorization rules
+            if in_feed_formula and in_mix_formula:
+                # These are typically feed ingredients even if used in mix
+                feed_priority_ingredients = ["DCP", "Đá hạt", "Đá bột mịn"]
+                if ingredient_name in feed_priority_ingredients:
+                    return "feed"
+                else:
+                    return "mix"  # Default to mix for shared additives
+
+            # If only in one formula, use that
+            if in_feed_formula:
+                return "feed"
+            if in_mix_formula:
+                return "mix"
+
+            # If not in any formula, categorize based on name patterns
+            ingredient_lower = ingredient_name.lower()
+
+            # Feed ingredients patterns
+            feed_patterns = ['cám', 'bắp', 'nành', 'dầu', 'gạo', 'nguyên liệu']
+            if any(pattern in ingredient_lower for pattern in feed_patterns):
+                return "feed"
+
+            # Mix ingredients patterns (additives, supplements, etc.)
+            mix_patterns = ['performix', 'premix', 'enzyme', 'lysine', 'methionine', 'choline',
+                           'phytast', 'miamix', 'carophy', 'zym', 'tetracylin', 'tiamulin',
+                           'amox', 'immune', 'lysoforte', 'nutriprotect', 'defitox', 'ecobiol',
+                           'lactic', 'sodium', 'bicarbonate']
+            if any(pattern in ingredient_lower for pattern in mix_patterns):
+                return "mix"
+
+            # Default to mix for unknown ingredients (typically additives)
+            return "mix"
+
+        except Exception as e:
+            print(f"Error determining warehouse type for {ingredient_name}: {e}")
+            return "mix"  # Default to mix
+
+    def save_warehouse_packaging_info(self, warehouse_type: str) -> bool:
+        """Save packaging info to warehouse-specific JSON file"""
+        try:
+            if warehouse_type == "feed":
+                file_path = self.feed_packaging_file
+                packaging_data = self.feed_packaging_info
+            elif warehouse_type == "mix":
+                file_path = self.mix_packaging_file
+                packaging_data = self.mix_packaging_info
+            else:
+                raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(packaging_data, f, ensure_ascii=False, indent=4)
+            return True
+        except Exception as e:
+            print(f"Error saving {warehouse_type} packaging info: {e}")
+            return False
         except Exception as e:
             print(f"Error loading packaging info: {e}")
             return {}
@@ -101,9 +316,32 @@ class InventoryManager:
         return self.inventory
 
     def update_inventory(self, ingredient: str, amount: float) -> bool:
-        """Update the inventory for a specific ingredient"""
-        self.inventory[ingredient] = amount
-        return self.save_inventory()
+        """Update the inventory for a specific ingredient in appropriate warehouse"""
+        try:
+            # Find which warehouse contains this ingredient
+            if ingredient in self.feed_inventory:
+                self.feed_inventory[ingredient] = amount
+                warehouse_type = "feed"
+            elif ingredient in self.mix_inventory:
+                self.mix_inventory[ingredient] = amount
+                warehouse_type = "mix"
+            else:
+                # If ingredient doesn't exist, determine warehouse and add it
+                warehouse_type = self.determine_warehouse_type(ingredient)
+                if warehouse_type == "feed":
+                    self.feed_inventory[ingredient] = amount
+                else:
+                    self.mix_inventory[ingredient] = amount
+
+            # Update unified view
+            self.inventory = self.get_unified_inventory()
+
+            # Save appropriate warehouse
+            return self.save_warehouse_inventory(warehouse_type)
+
+        except Exception as e:
+            print(f"Error updating inventory for {ingredient}: {e}")
+            return False
 
     def update_multiple(self, updates: Dict[str, float]) -> bool:
         """Update multiple inventory items at once"""
@@ -111,51 +349,102 @@ class InventoryManager:
             self.inventory[ingredient] = amount
         return self.save_inventory()
 
-    def add_new_item(self, item_name: str, initial_quantity: float = 0, bag_size: int = 25) -> bool:
-        """Add a new inventory item with initial quantity and bag size"""
+    def add_new_item(self, item_name: str, initial_quantity: float = 0, bag_size: int = 25, warehouse_type: str = None) -> bool:
+        """Add a new inventory item with initial quantity and bag size to appropriate warehouse"""
         try:
-            # Check if item already exists
-            if item_name in self.inventory:
+            # Determine warehouse type if not specified
+            if warehouse_type is None:
+                warehouse_type = self.determine_warehouse_type(item_name)
+
+            # Check if item already exists in any warehouse
+            if item_name in self.feed_inventory or item_name in self.mix_inventory:
                 print(f"Item '{item_name}' already exists in inventory")
                 return False
 
-            # Add to inventory
-            self.inventory[item_name] = initial_quantity
+            # Add to appropriate warehouse
+            if warehouse_type == "feed":
+                self.feed_inventory[item_name] = initial_quantity
+                self.feed_packaging_info[item_name] = bag_size
+            elif warehouse_type == "mix":
+                self.mix_inventory[item_name] = initial_quantity
+                self.mix_packaging_info[item_name] = bag_size
+            else:
+                print(f"Invalid warehouse type: {warehouse_type}")
+                return False
 
-            # Add packaging information
-            self.packaging_info[item_name] = bag_size
+            # Update unified views
+            self.inventory = self.get_unified_inventory()
+            self.packaging_info = self.get_unified_packaging_info()
 
-            # Save both inventory and packaging info
-            success = self.save_inventory()
-            if success:
-                self.save_packaging_info()
+            # Save warehouse files
+            inventory_saved = self.save_warehouse_inventory(warehouse_type)
+            packaging_saved = self.save_warehouse_packaging_info(warehouse_type)
 
-            return success
+            if inventory_saved and packaging_saved:
+                print(f"Successfully added new item: {item_name} with {initial_quantity} units to {warehouse_type} warehouse")
+                return True
+            else:
+                print(f"Error saving data for new item: {item_name}")
+                return False
 
         except Exception as e:
             print(f"Error adding new item '{item_name}': {e}")
             return False
 
     def remove_item(self, item_name: str) -> bool:
-        """Remove an item from inventory and packaging info"""
+        """Remove an item from inventory and packaging info from appropriate warehouse"""
         try:
-            # Remove from inventory
-            if item_name in self.inventory:
-                del self.inventory[item_name]
+            removed_from_inventory = False
+            removed_from_packaging = False
+            warehouse_type = None
 
-            # Remove from packaging info
-            if item_name in self.packaging_info:
-                del self.packaging_info[item_name]
+            # Remove from feed warehouse
+            if item_name in self.feed_inventory:
+                del self.feed_inventory[item_name]
+                removed_from_inventory = True
+                warehouse_type = "feed"
+                print(f"Removed '{item_name}' from feed inventory")
 
-            # Save both
-            success = self.save_inventory()
-            if success:
-                self.save_packaging_info()
+            # Remove from mix warehouse
+            if item_name in self.mix_inventory:
+                del self.mix_inventory[item_name]
+                removed_from_inventory = True
+                warehouse_type = "mix"
+                print(f"Removed '{item_name}' from mix inventory")
 
-            return success
+            # Remove from feed packaging info
+            if item_name in self.feed_packaging_info:
+                del self.feed_packaging_info[item_name]
+                removed_from_packaging = True
+                print(f"Removed '{item_name}' from feed packaging_info")
+
+            # Remove from mix packaging info
+            if item_name in self.mix_packaging_info:
+                del self.mix_packaging_info[item_name]
+                removed_from_packaging = True
+                print(f"Removed '{item_name}' from mix packaging_info")
+
+            # Update unified views
+            self.inventory = self.get_unified_inventory()
+            self.packaging_info = self.get_unified_packaging_info()
+
+            # Save warehouse files
+            success = True
+            if warehouse_type:
+                inventory_success = self.save_warehouse_inventory(warehouse_type)
+                packaging_success = self.save_warehouse_packaging_info(warehouse_type)
+                success = inventory_success and packaging_success
+
+                if success:
+                    print(f"Successfully saved {warehouse_type} warehouse data after removing '{item_name}'")
+
+            # Return True if item was found and removed from at least one location
+            return success and (removed_from_inventory or removed_from_packaging)
 
         except Exception as e:
             print(f"Error removing item '{item_name}': {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def validate_item_data(self, item_name: str, quantity: float, bag_size: int) -> Tuple[bool, str]:
@@ -516,20 +805,136 @@ class InventoryManager:
 
     def add_ingredients(self, ingredients_added: Dict[str, float]) -> Dict[str, float]:
         """Add ingredients to inventory and return updated inventory"""
-        for ingredient, amount in ingredients_added.items():
-            current = self.inventory.get(ingredient, 0)
-            self.inventory[ingredient] = current + amount
+        warehouses_to_save = set()
 
-        self.save_inventory()
+        for ingredient, amount in ingredients_added.items():
+            # Find which warehouse contains this ingredient
+            if ingredient in self.feed_inventory:
+                current = self.feed_inventory.get(ingredient, 0)
+                self.feed_inventory[ingredient] = current + amount
+                warehouses_to_save.add("feed")
+            elif ingredient in self.mix_inventory:
+                current = self.mix_inventory.get(ingredient, 0)
+                self.mix_inventory[ingredient] = current + amount
+                warehouses_to_save.add("mix")
+            else:
+                # If ingredient doesn't exist, determine warehouse and add it
+                warehouse_type = self.determine_warehouse_type(ingredient)
+                if warehouse_type == "feed":
+                    current = self.feed_inventory.get(ingredient, 0)
+                    self.feed_inventory[ingredient] = current + amount
+                    warehouses_to_save.add("feed")
+                else:
+                    current = self.mix_inventory.get(ingredient, 0)
+                    self.mix_inventory[ingredient] = current + amount
+                    warehouses_to_save.add("mix")
+
+        # Update unified view
+        self.inventory = self.get_unified_inventory()
+
+        # Save affected warehouses
+        for warehouse_type in warehouses_to_save:
+            self.save_warehouse_inventory(warehouse_type)
+
         return self.inventory
 
     def get_packaging_info(self) -> Dict[str, int]:
         """Get packaging information for all ingredients"""
         return self.packaging_info
 
+    def get_warehouse_inventory(self, warehouse_type: str) -> Dict[str, float]:
+        """Get inventory for specific warehouse"""
+        if warehouse_type == "feed":
+            return self.feed_inventory.copy()
+        elif warehouse_type == "mix":
+            return self.mix_inventory.copy()
+        else:
+            raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+    def get_warehouse_packaging_info(self, warehouse_type: str) -> Dict[str, int]:
+        """Get packaging info for specific warehouse"""
+        if warehouse_type == "feed":
+            return self.feed_packaging_info.copy()
+        elif warehouse_type == "mix":
+            return self.mix_packaging_info.copy()
+        else:
+            raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
     def get_bag_size(self, ingredient: str) -> int:
         """Get bag size for a specific ingredient"""
         return self.packaging_info.get(ingredient, 0)
+
+    def check_ingredient_availability(self, ingredient: str, required_amount: float, warehouse_type: str = None) -> bool:
+        """Check if ingredient is available in sufficient quantity in specified warehouse"""
+        if warehouse_type is None:
+            # Check in unified inventory
+            available = self.inventory.get(ingredient, 0)
+        elif warehouse_type == "feed":
+            available = self.feed_inventory.get(ingredient, 0)
+        elif warehouse_type == "mix":
+            available = self.mix_inventory.get(ingredient, 0)
+        else:
+            raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+        return available >= required_amount
+
+    def get_ingredient_warehouse(self, ingredient: str) -> str:
+        """Determine which warehouse contains the ingredient"""
+        if ingredient in self.feed_inventory:
+            return "feed"
+        elif ingredient in self.mix_inventory:
+            return "mix"
+        else:
+            # If not found, determine based on patterns
+            return self.determine_warehouse_type(ingredient)
+
+    def validate_formula_ingredients(self, formula: Dict[str, float], formula_type: str) -> Dict[str, Any]:
+        """Validate that all formula ingredients are available in appropriate warehouse"""
+        validation_result = {
+            "valid": True,
+            "missing_ingredients": [],
+            "insufficient_ingredients": [],
+            "wrong_warehouse_ingredients": [],
+            "details": {}
+        }
+
+        expected_warehouse = "feed" if formula_type == "feed" else "mix"
+
+        for ingredient, required_amount in formula.items():
+            ingredient_warehouse = self.get_ingredient_warehouse(ingredient)
+            available_amount = self.inventory.get(ingredient, 0)
+
+            # Check if ingredient exists
+            if available_amount == 0 and ingredient not in self.inventory:
+                validation_result["missing_ingredients"].append(ingredient)
+                validation_result["valid"] = False
+
+            # Check if sufficient quantity available
+            elif available_amount < required_amount:
+                validation_result["insufficient_ingredients"].append({
+                    "ingredient": ingredient,
+                    "required": required_amount,
+                    "available": available_amount
+                })
+                validation_result["valid"] = False
+
+            # Check if ingredient is in expected warehouse
+            elif ingredient_warehouse != expected_warehouse:
+                validation_result["wrong_warehouse_ingredients"].append({
+                    "ingredient": ingredient,
+                    "expected_warehouse": expected_warehouse,
+                    "actual_warehouse": ingredient_warehouse
+                })
+                # This is a warning, not an error - formulas can use ingredients from other warehouses
+
+            validation_result["details"][ingredient] = {
+                "required": required_amount,
+                "available": available_amount,
+                "warehouse": ingredient_warehouse,
+                "sufficient": available_amount >= required_amount
+            }
+
+        return validation_result
 
     def calculate_bags(self, ingredient: str, amount: float) -> float:
         """Calculate number of bags for a given amount of ingredient"""

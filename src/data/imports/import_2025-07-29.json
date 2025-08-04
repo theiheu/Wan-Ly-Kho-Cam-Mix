@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2025-07-29 10:00:00",
+    "type": "feed",
+    "ingredient": "Test Feed Day 7",
+    "amount": 160.0,
+    "unit_price": 15000,
+    "total_cost": 2400000.0,
+    "supplier": "Supplier 7",
+    "bag_weight": 25.0,
+    "num_bags": 6.4,
+    "note": "Test import for day 7"
+  },
+  {
+    "timestamp": "2025-07-29 14:00:00",
+    "type": "mix",
+    "ingredient": "Test Mix Day 7",
+    "amount": 80.0,
+    "unit_price": 12000,
+    "total_cost": 960000.0,
+    "supplier": "Mix Supplier 7",
+    "bag_weight": 20.0,
+    "num_bags": 4.0,
+    "note": "Test mix import for day 7"
+  }
+]

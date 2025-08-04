@@ -1,30 +1,239 @@
 {
-  "date": "20250729",
-  "display_date": "29/07/2025",
-  "feed_usage": {
-    "Khu 1": {
-      "Trại 1": {
-        "Sáng": 1,
-        "Chiều": 1
-      }
+    "date": "20250729",
+    "display_date": "29/07/2025",
+    "feed_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": 0.4,
+                "Chiều": 1.3
+            },
+            "T2": {
+                "Sáng": 0.0,
+                "Chiều": 0.1
+            },
+            "T4": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T6": {
+                "Sáng": 0.8,
+                "Chiều": 1.5
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            },
+            "T2": {
+                "Sáng": 1.2,
+                "Chiều": 1.5
+            },
+            "T4": {
+                "Sáng": 0.4,
+                "Chiều": 0.6
+            },
+            "T6": {
+                "Sáng": 0.8,
+                "Chiều": 0.7
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": 0.7,
+                "Chiều": 0.4
+            },
+            "2D": {
+                "Sáng": 0.8,
+                "Chiều": 0.3
+            },
+            "4D": {
+                "Sáng": 0.3,
+                "Chiều": 0.0
+            },
+            "2N": {
+                "Sáng": 1.2,
+                "Chiều": 0.3
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": 0.4,
+                "Chiều": 0.1
+            },
+            "T4": {
+                "Sáng": 0.0,
+                "Chiều": 1.0
+            },
+            "T6": {
+                "Sáng": 0.6,
+                "Chiều": 1.1
+            },
+            "T8": {
+                "Sáng": 0.7,
+                "Chiều": 0.0
+            },
+            "Trại 1 khu 4": {
+                "Sáng": 0.0,
+                "Chiều": 0.9
+            }
+        },
+        "Khu 5": {
+            "": {
+                "Sáng": 0.3,
+                "Chiều": 0.3
+            }
+        }
+    },
+    "formula_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            },
+            "T2": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T4": {
+                "Sáng": "GD",
+                "Chiều": "CT3"
+            },
+            "T6": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T2": {
+                "Sáng": "GD",
+                "Chiều": "CT3"
+            },
+            "T4": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            },
+            "T6": {
+                "Sáng": "CT2",
+                "Chiều": "CT2"
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "2D": {
+                "Sáng": "CT3",
+                "Chiều": "CT2"
+            },
+            "4D": {
+                "Sáng": "CT2",
+                "Chiều": "CT2"
+            },
+            "2N": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": "GD",
+                "Chiều": "CT3"
+            },
+            "T4": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T6": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T8": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "Trại 1 khu 4": {
+                "Sáng": "CT2",
+                "Chiều": "GD"
+            }
+        },
+        "Khu 5": {
+            "": {
+                "Sáng": "CT3",
+                "Chiều": "GD"
+            }
+        }
+    },
+    "feed_ingredients": {
+        "Bắp": 19109.1,
+        "Nành": 8036.7,
+        "Dầu": 155.0,
+        "Nguyên liệu tổ hợp": 626.0,
+        "DCP": 520.9,
+        "Đá hạt": 673.1,
+        "Đá bột mịn": 791.0,
+        "Cám gạo": 4597.0
+    },
+    "mix_ingredients": {
+        "L-Lysine": 26.6,
+        "DL-Methionine": 53.1,
+        "Bio-Choline": 6.7,
+        "Phytast": 5.1,
+        "Performix 0.25% layer": 0.0,
+        "Miamix": 8.4,
+        "Premix 0.25% layer": 107.3,
+        "Compound Enzyme FE808E": 6.2,
+        "Carophy Red (Màu đỏ)": 9.6,
+        "P-Zym": 8.3,
+        "Oxytetracylin": 1.0,
+        "Tiamulin": 0.9,
+        "Amox": 0.0,
+        "Immunewall": 3.8,
+        "Lysoforte Dry": 10.6,
+        "Nutriprotect": 2.5,
+        "Defitox L1": 31.7,
+        "Men Ecobiol": 9.8,
+        "Lactic LD (axit hữu cơ)": 34.2,
+        "Sodium bicarbonate": 35.0,
+        "Bột đá mịn": 87.7,
+        "Muối": 126.8,
+        "DCP": 19.2
+    },
+    "total_batches": 18.700000000000003,
+    "total_batches_by_area": {
+        "Khu 1": 4.1,
+        "Khu 2": 5.2,
+        "Khu 3": 4.0,
+        "Khu 4": 4.800000000000001,
+        "Khu 5": 0.6
+    },
+    "default_formula": "GD",
+    "total_feed": 34508.8,
+    "total_mix": 594.5,
+    "batch_count": 18.700000000000003,
+    "column_mix_formulas": {
+        "0": "Khu 4(6, 7, 8)",
+        "1": "Khu 2(1, 2, 3, 6)",
+        "2": "Khu 2(4,5)",
+        "3": "Khu 4(2, 3, 4, 5)",
+        "4": "Khu 4(2, 3, 4, 5)",
+        "5": "Khu 1-5",
+        "6": "Khu 2(4,5)",
+        "7": "Khu 4(2, 3, 4, 5)",
+        "8": "Khu 4(6, 7, 8)",
+        "9": "Khu 2(4,5)",
+        "10": "Khu 4(6, 7, 8)",
+        "11": "Khu 2(1, 2, 3, 6)",
+        "12": "Khu 3 - Gà con công thức",
+        "13": "Khu 4(2, 3, 4, 5)",
+        "14": "Khu 4(6, 7, 8)",
+        "15": "Khu 1-5",
+        "16": "Khu 4(2, 3, 4, 5)",
+        "17": "Khu 4(2, 3, 4, 5)"
     }
-  },
-  "formula_usage": {
-    "Khu 1": {
-      "Trại 1": {
-        "Sáng": "Test Formula",
-        "Chiều": "Test Formula"
-      }
-    }
-  },
-  "feed_ingredients": {
-    "Test Ingredient": 100.0
-  },
-  "mix_ingredients": {
-    "Test Mix": 50.0
-  },
-  "total_batches": 2,
-  "total_feed": 100.0,
-  "total_mix": 50.0,
-  "batch_count": 2
 }

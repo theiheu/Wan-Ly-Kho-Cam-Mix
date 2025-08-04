@@ -1,16 +1,26 @@
 [
   {
-    "timestamp": "2025-08-03 23:49:43",
-    "type": "mix",
-    "ingredient": "Vitamino",
-    "amount": 1500.0,
-    "note": ""
+    "timestamp": "2025-08-03 10:00:00",
+    "type": "feed",
+    "ingredient": "Test Feed Day 2",
+    "amount": 110.0,
+    "unit_price": 15000,
+    "total_cost": 1650000.0,
+    "supplier": "Supplier 2",
+    "bag_weight": 25.0,
+    "num_bags": 4.4,
+    "note": "Test import for day 2"
   },
   {
-    "timestamp": "2025-08-03 23:52:53",
-    "type": "feed",
-    "ingredient": "Bắpk",
-    "amount": 32323.0,
-    "note": ""
+    "timestamp": "2025-08-03 14:00:00",
+    "type": "mix",
+    "ingredient": "Test Mix Day 2",
+    "amount": 55.0,
+    "unit_price": 12000,
+    "total_cost": 660000.0,
+    "supplier": "Mix Supplier 2",
+    "bag_weight": 20.0,
+    "num_bags": 2.75,
+    "note": "Test mix import for day 2"
   }
 ]

@@ -1,0 +1,266 @@
+{
+    "date": "20250907",
+    "display_date": "07/09/2025",
+    "scenario": "Ngày sản xuất thấp",
+    "weather": {
+        "condition": "cloudy",
+        "impact": 0.9,
+        "description": "Nhiều mây"
+    },
+    "production_notes": [
+        "Tình huống: Ngày sản xuất thấp",
+        "Thời tiết: Nhiều mây (ảnh hưởng 90%)"
+    ],
+    "feed_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": 0.8,
+                "Chiều": 0.6
+            },
+            "T2": {
+                "Sáng": 0.6,
+                "Chiều": 0.3
+            },
+            "T4": {
+                "Sáng": 0.8,
+                "Chiều": 0.5
+            },
+            "T6": {
+                "Sáng": 0.7,
+                "Chiều": 0.4
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": 0.3,
+                "Chiều": 0.6
+            },
+            "T2": {
+                "Sáng": 0.6,
+                "Chiều": 0.8
+            },
+            "T4": {
+                "Sáng": 0.9,
+                "Chiều": 0.3
+            },
+            "T6": {
+                "Sáng": 0.5,
+                "Chiều": 0.9
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": 0.6,
+                "Chiều": 0.5
+            },
+            "2D": {
+                "Sáng": 0.4,
+                "Chiều": 0.4
+            },
+            "4D": {
+                "Sáng": 0.5,
+                "Chiều": 0.8
+            },
+            "2N": {
+                "Sáng": 0.9,
+                "Chiều": 0.5
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": 0.7,
+                "Chiều": 0.8
+            },
+            "T4": {
+                "Sáng": 0.8,
+                "Chiều": 0.7
+            },
+            "T6": {
+                "Sáng": 0.6,
+                "Chiều": 0.6
+            },
+            "T8": {
+                "Sáng": 0.5,
+                "Chiều": 0.6
+            },
+            "Trại 1 khu 4": {
+                "Sáng": 0.6,
+                "Chiều": 0.6
+            }
+        },
+        "Khu 5": {
+            "": {
+                "Sáng": 0.0,
+                "Chiều": 0.0
+            }
+        }
+    },
+    "formula_usage": {
+        "Khu 1": {
+            "T1": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            },
+            "T2": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            },
+            "T4": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T6": {
+                "Sáng": "CT2",
+                "Chiều": "GD"
+            }
+        },
+        "Khu 2": {
+            "T1": {
+                "Sáng": "CT2",
+                "Chiều": "GD"
+            },
+            "T2": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "T4": {
+                "Sáng": "CT2",
+                "Chiều": "GD"
+            },
+            "T6": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            }
+        },
+        "Khu 3": {
+            "1D": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "2D": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "4D": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            },
+            "2N": {
+                "Sáng": "GD",
+                "Chiều": "GD"
+            }
+        },
+        "Khu 4": {
+            "T2": {
+                "Sáng": "CT2",
+                "Chiều": "CT2"
+            },
+            "T4": {
+                "Sáng": "CT2",
+                "Chiều": "GD"
+            },
+            "T6": {
+                "Sáng": "CT2",
+                "Chiều": "CT2"
+            },
+            "T8": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            },
+            "Trại 1 khu 4": {
+                "Sáng": "GD",
+                "Chiều": "CT2"
+            }
+        },
+        "Khu 5": {
+            "": {
+                "Sáng": "CT2",
+                "Chiều": "CT3"
+            }
+        }
+    },
+    "feed_ingredients": {
+        "L-Lysine": 17.3,
+        "DL-Methionine": 36.0,
+        "Bio-Choline": 5.6,
+        "Phytast": 4.0,
+        "Performix 0.25% layer": 0.0,
+        "Miamix": 5.9,
+        "Premix 0.25% layer": 67.9,
+        "Compound Enzyme FE808E": 4.6,
+        "Carophy Red (Màu đỏ)": 7.3,
+        "P-Zym": 4.4,
+        "Oxytetracylin": 0.8,
+        "Tiamulin": 0.8,
+        "Amox": 0.0,
+        "Immunewall": 2.9,
+        "Lysoforte Dry": 7.4,
+        "Nutriprotect": 1.8,
+        "Defitox L1": 24.2,
+        "Men Ecobiol": 6.9,
+        "Lactic LD (axit hữu cơ)": 30.3,
+        "Sodium bicarbonate": 27.4,
+        "Bột đá mịn": 59.9,
+        "Muối": 90.8,
+        "DCP": 13.9
+    },
+    "mix_ingredients": {
+        "L-Lysine": 24.8,
+        "DL-Methionine": 41.6,
+        "Bio-Choline": 5.6,
+        "Phytast": 4.0,
+        "Performix 0.25% layer": 0.0,
+        "Miamix": 5.4,
+        "Premix 0.25% layer": 93.0,
+        "Compound Enzyme FE808E": 4.4,
+        "Carophy Red (Màu đỏ)": 7.1,
+        "P-Zym": 5.4,
+        "Oxytetracylin": 0.7,
+        "Tiamulin": 0.5,
+        "Amox": 0.0,
+        "Immunewall": 3.1,
+        "Lysoforte Dry": 7.2,
+        "Nutriprotect": 1.6,
+        "Defitox L1": 19.5,
+        "Men Ecobiol": 6.6,
+        "Lactic LD (axit hữu cơ)": 29.6,
+        "Sodium bicarbonate": 24.7,
+        "Bột đá mịn": 59.1,
+        "Muối": 90.2,
+        "DCP": 10.6
+    },
+    "total_batches": 20.7,
+    "total_batches_by_area": {
+        "Khu 1": 4.699999999999999,
+        "Khu 2": 4.9,
+        "Khu 3": 4.6,
+        "Khu 4": 6.500000000000001,
+        "Khu 5": 0.0
+    },
+    "default_formula": "GD",
+    "total_feed": 420.1,
+    "total_mix": 444.7,
+    "batch_count": 20.7,
+    "column_mix_formulas": {
+        "0": "Khu 2(1, 2, 3, 6)",
+        "1": "Khu 4(2, 3, 4, 5)",
+        "2": "Khu 1-5",
+        "3": "Khu 2(4,5)",
+        "4": "Khu 2(1, 2, 3, 6)",
+        "5": "Khu 3 - Gà con công thức",
+        "6": "Khu 3 - Gà con công thức",
+        "7": "Khu 2(4,5)",
+        "8": "Khu 4(2, 3, 4, 5)",
+        "9": "Khu 3 - Gà con công thức",
+        "10": "Khu 1-5",
+        "11": "Khu 1-5",
+        "12": "Khu 4(2, 3, 4, 5)",
+        "13": "Khu 3 - Gà con công thức",
+        "14": "Khu 2(4,5)",
+        "15": "Khu 4(2, 3, 4, 5)",
+        "16": "Khu 4(2, 3, 4, 5)",
+        "17": "Khu 2(4,5)"
+    },
+    "efficiency_score": 91.1,
+    "quality_score": 97.2
+}
