@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Chú Phi",
+    "position": "Tổ trưởng",
+    "created_date": "2025-08-04 10:00:00"
+  },
+  {
+    "id": 2,
+    "name": "Anh Hưng",
+    "position": "Công nhân",
+    "created_date": "2025-08-04 10:00:00"
+  },
+  {
+    "id": 3,
+    "name": "Anh Liêm",
+    "position": "Công nhân",
+    "created_date": "2025-08-04 10:00:00"
+  },
+  {
+    "id": 4,
+    "name": "Anh Chươl",
+    "position": "Công nhân",
+    "created_date": "2025-08-04 10:00:00"
+  },
+  {
+    "id": 5,
+    "name": "Luân",
+    "position": "Công nhân",
+    "created_date": "2025-08-04 10:00:00"
+  }
+]

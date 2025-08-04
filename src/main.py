@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QTabWidget, QWidget, QVB
                             QMenu, QAction, QAbstractSpinBox, QAbstractItemView, QCalendarWidget,
                             QCheckBox, QListWidget, QListWidgetItem, QTextEdit, QFormLayout,
                             QDialogButtonBox, QFrame)
-from PyQt5.QtCore import Qt, QDate, QTimer
+from PyQt5.QtCore import Qt, QDate, QDateTime, QTimer
 from PyQt5.QtGui import QFont, QColor, QCursor, QBrush
 
 # Kiểm tra xem đang chạy từ thư mục gốc hay từ thư mục src
@@ -10289,7 +10289,7 @@ class ChickenFarmApp(QMainWindow):
     def load_employees(self):
         """Load employees from JSON file"""
         try:
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -10468,7 +10468,7 @@ class ChickenFarmApp(QMainWindow):
 
         try:
             # Load existing employees
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -10604,7 +10604,7 @@ class ChickenFarmApp(QMainWindow):
 
         try:
             # Load existing employees
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             with open(employees_file, 'r', encoding='utf-8') as f:
                 employees_data = json.load(f)
 
@@ -10654,7 +10654,7 @@ class ChickenFarmApp(QMainWindow):
         if reply == QMessageBox.Yes:
             try:
                 # Load existing employees
-                employees_file = str(get_data_file_path("employees.json"))
+                employees_file = str(get_data_file_path("business/employees.json"))
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
 
@@ -10685,7 +10685,7 @@ class ChickenFarmApp(QMainWindow):
     def load_attendance_data(self):
         """Load attendance data and update calendar"""
         try:
-            attendance_file = str(get_data_file_path("attendance.json"))
+            attendance_file = str(get_data_file_path("business/attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     self.attendance_data = json.load(f)
@@ -10761,7 +10761,7 @@ class ChickenFarmApp(QMainWindow):
 
         # Show all employees' absence status for this date
         try:
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -10847,7 +10847,7 @@ class ChickenFarmApp(QMainWindow):
                 }
 
                 # Save to file
-                attendance_file = str(get_data_file_path("attendance.json"))
+                attendance_file = str(get_data_file_path("business/attendance.json"))
                 Path(attendance_file).parent.mkdir(parents=True, exist_ok=True)
                 with open(attendance_file, 'w', encoding='utf-8') as f:
                     json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
@@ -10904,7 +10904,7 @@ class ChickenFarmApp(QMainWindow):
                     del self.attendance_data[employee_id]
 
                 # Save to file
-                attendance_file = str(get_data_file_path("attendance.json"))
+                attendance_file = str(get_data_file_path("business/attendance.json"))
                 with open(attendance_file, 'w', encoding='utf-8') as f:
                     json.dump(self.attendance_data, f, ensure_ascii=False, indent=2)
 
@@ -10927,7 +10927,7 @@ class ChickenFarmApp(QMainWindow):
             self.import_tracking_table.setRowCount(0)
 
             # Load participation data
-            participation_file = str(get_data_file_path("import_participation.json"))
+            participation_file = str(get_data_file_path("business/import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -11145,6 +11145,46 @@ class ChickenFarmApp(QMainWindow):
         self.load_import_tracking_data()
         QMessageBox.information(self, "Thành công", "Đã làm mới dữ liệu nhập kho!")
 
+    def refresh_team_management_tab(self):
+        """Refresh team management tab to show updated bonus data"""
+        try:
+            print("🔄 [Refresh] Starting team management tab refresh...")
+
+            # Always try to refresh, regardless of current tab
+            current_date = QDate.currentDate()
+
+            # Set current month/year in combo boxes if they exist
+            if hasattr(self, 'bonus_month_combo') and hasattr(self, 'bonus_year_combo'):
+                print(f"🔄 [Refresh] Setting combo boxes to current date: {current_date.month()}/{current_date.year()}")
+
+                # Set month
+                for i in range(self.bonus_month_combo.count()):
+                    if self.bonus_month_combo.itemData(i) == current_date.month():
+                        self.bonus_month_combo.setCurrentIndex(i)
+                        print(f"🔄 [Refresh] Set month combo to index {i} (month {current_date.month()})")
+                        break
+
+                # Set year
+                for i in range(self.bonus_year_combo.count()):
+                    if self.bonus_year_combo.itemData(i) == current_date.year():
+                        self.bonus_year_combo.setCurrentIndex(i)
+                        print(f"🔄 [Refresh] Set year combo to index {i} (year {current_date.year()})")
+                        break
+
+                # Auto-calculate bonus to show updated data
+                print("🔄 [Refresh] Triggering bonus calculation...")
+                self.calculate_monthly_bonus()
+                print("✅ [Refresh] Auto-refreshed team management tab with current month bonus")
+            else:
+                print("❌ [Refresh] Bonus combo boxes not found, cannot auto-refresh")
+                print(f"   Has bonus_month_combo: {hasattr(self, 'bonus_month_combo')}")
+                print(f"   Has bonus_year_combo: {hasattr(self, 'bonus_year_combo')}")
+
+        except Exception as e:
+            print(f"❌ [Refresh] Error refreshing team management tab: {e}")
+            import traceback
+            traceback.print_exc()
+
     def filter_import_tracking_data(self):
         """Filter import tracking data based on date range and material type"""
         from_date = self.import_tracking_from_date.date()
@@ -11293,7 +11333,7 @@ class ChickenFarmApp(QMainWindow):
         """Get employees available on a specific date (not on leave)"""
         try:
             # Load all employees
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if not os.path.exists(employees_file):
                 return []
 
@@ -11301,7 +11341,7 @@ class ChickenFarmApp(QMainWindow):
                 all_employees = json.load(f)
 
             # Load attendance data
-            attendance_file = str(get_data_file_path("attendance.json"))
+            attendance_file = str(get_data_file_path("business/attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -11347,7 +11387,7 @@ class ChickenFarmApp(QMainWindow):
                     })
 
             # Load existing participation data
-            participation_file = str(get_data_file_path("import_participation.json"))
+            participation_file = str(get_data_file_path("business/import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -11401,7 +11441,7 @@ class ChickenFarmApp(QMainWindow):
             })
 
             # Load participation data
-            participation_file = str(get_data_file_path("import_participation.json"))
+            participation_file = str(get_data_file_path("business/import_participation.json"))
             if not os.path.exists(participation_file):
                 QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu tham gia nhập kho!")
                 return
@@ -11409,8 +11449,23 @@ class ChickenFarmApp(QMainWindow):
             with open(participation_file, 'r', encoding='utf-8') as f:
                 participation_data = json.load(f)
 
+            print(f"🔍 [Team Management] Loaded {len(participation_data)} participation records")
+            print(f"📅 [Team Management] Calculating for {selected_month}/{selected_year}")
+
+            # Debug: Show sample of participation data
+            sample_keys = list(participation_data.keys())[:3]
+            print(f"📋 [Team Management] Sample records: {sample_keys}")
+
+            # Count records for target month
+            target_month_count = 0
+            for key, record in participation_data.items():
+                import_date = record.get('date', '')
+                if import_date.startswith(f"{selected_year}-{selected_month:02d}-"):
+                    target_month_count += 1
+            print(f"🎯 [Team Management] Found {target_month_count} records for {selected_year}-{selected_month:02d}")
+
             # Load employees data
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if not os.path.exists(employees_file):
                 QMessageBox.warning(self, "Cảnh báo", "Chưa có dữ liệu nhân viên!")
                 return
@@ -11419,7 +11474,7 @@ class ChickenFarmApp(QMainWindow):
                 employees_data = json.load(f)
 
             # Load attendance data to exclude sick leave
-            attendance_file = str(get_data_file_path("attendance.json"))
+            attendance_file = str(get_data_file_path("business/attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -11440,6 +11495,9 @@ class ChickenFarmApp(QMainWindow):
                     if len(date_parts) == 3:
                         year, month, day = map(int, date_parts)
                         if year == selected_year and month == selected_month:
+                            print(f"📦 [Team Management] Processing import: {import_key}")
+                            print(f"   📅 Date: {import_date}, Material: {material_type}, Participants: {len(participants)}")
+
                             # Count participation for each employee
                             if material_type not in material_participation:
                                 material_participation[material_type] = {}
@@ -11460,7 +11518,11 @@ class ChickenFarmApp(QMainWindow):
                                     if employee_id not in material_participation[material_type]:
                                         material_participation[material_type][employee_id] = 0
                                     material_participation[material_type][employee_id] += 1
-                except:
+                                    print(f"   👤 Counted participation for employee {employee_id} ({participant.get('name', 'Unknown')})")
+                        else:
+                            print(f"⏭️  [Team Management] Skipping import {import_key}: {year}-{month} (not {selected_year}-{selected_month})")
+                except Exception as e:
+                    print(f"❌ [Team Management] Error processing import {import_key}: {e}")
                     continue
 
             # Calculate bonus for each employee
@@ -11550,7 +11612,7 @@ class ChickenFarmApp(QMainWindow):
     def save_bonus_calculation(self, employee_bonuses, month, year):
         """Save bonus calculation results to file"""
         try:
-            bonus_file = str(get_data_file_path("bonus_calculation.json"))
+            bonus_file = str(get_data_file_path("business/bonus_calculation.json"))
 
             # Load existing data
             if os.path.exists(bonus_file):
@@ -11621,7 +11683,7 @@ class ChickenFarmApp(QMainWindow):
     def create_employee_sheet(self, writer):
         """Create employee list sheet"""
         try:
-            employees_file = str(get_data_file_path("employees.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
             if os.path.exists(employees_file):
                 with open(employees_file, 'r', encoding='utf-8') as f:
                     employees_data = json.load(f)
@@ -11644,8 +11706,8 @@ class ChickenFarmApp(QMainWindow):
     def create_attendance_sheet(self, writer):
         """Create attendance data sheet"""
         try:
-            attendance_file = str(get_data_file_path("attendance.json"))
-            employees_file = str(get_data_file_path("employees.json"))
+            attendance_file = str(get_data_file_path("business/attendance.json"))
+            employees_file = str(get_data_file_path("business/employees.json"))
 
             if os.path.exists(attendance_file) and os.path.exists(employees_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
@@ -11681,7 +11743,7 @@ class ChickenFarmApp(QMainWindow):
     def create_import_tracking_sheet(self, writer):
         """Create import tracking sheet"""
         try:
-            participation_file = str(get_data_file_path("import_participation.json"))
+            participation_file = str(get_data_file_path("business/import_participation.json"))
 
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
@@ -11973,7 +12035,7 @@ class ChickenFarmApp(QMainWindow):
             import_key = f"{date}_{timestamp}_{ingredient}_{amount}"
 
             # Load existing participation data
-            participation_file = str(get_data_file_path("import_participation.json"))
+            participation_file = str(get_data_file_path("business/import_participation.json"))
             if os.path.exists(participation_file):
                 with open(participation_file, 'r', encoding='utf-8') as f:
                     participation_data = json.load(f)
@@ -12528,7 +12590,7 @@ class ChickenFarmApp(QMainWindow):
     def load_attendance_data_for_salary(self, month, year):
         """Load attendance data for salary calculation"""
         try:
-            attendance_file = str(get_data_file_path("attendance.json"))
+            attendance_file = str(get_data_file_path("business/attendance.json"))
             if os.path.exists(attendance_file):
                 with open(attendance_file, 'r', encoding='utf-8') as f:
                     attendance_data = json.load(f)
@@ -14160,6 +14222,389 @@ class BulkEditDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Lỗi", f"Lỗi không mong muốn: {str(e)}")
 
+class WorkerSelectionDialog(QDialog):
+    """Dialog for selecting workers to receive bonus from import"""
+
+    def __init__(self, parent=None, selected_workers=None):
+        super().__init__(parent)
+        self.parent_app = parent.parent_app if hasattr(parent, 'parent_app') else parent
+        self.selected_workers = selected_workers or []
+        self.all_workers = []
+
+        self.setWindowTitle("Chọn nhân viên nhận thưởng")
+        self.setModal(True)
+        self.resize(500, 400)
+
+        self.setup_ui()
+        self.load_workers()
+
+    def setup_ui(self):
+        """Setup the dialog UI"""
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("Chọn nhân viên nhận thưởng từ nhập hàng")
+        header.setFont(QFont("Arial", 12, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("color: #2E7D32; padding: 10px; background-color: #E8F5E9; border-radius: 5px;")
+        layout.addWidget(header)
+
+        # Worker list
+        self.worker_list = QListWidget()
+        self.worker_list.setFont(QFont("Arial", 11))
+        self.worker_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid #CCCCCC;
+                border-radius: 5px;
+                background-color: white;
+                selection-background-color: #E3F2FD;
+            }
+            QListWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #F0F0F0;
+            }
+            QListWidget::item:hover {
+                background-color: #F5F5F5;
+            }
+            QListWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+            }
+        """)
+        layout.addWidget(self.worker_list)
+
+        # Selection controls
+        controls_layout = QHBoxLayout()
+
+        select_all_btn = QPushButton("Chọn tất cả")
+        select_all_btn.setFont(QFont("Arial", 10))
+        select_all_btn.clicked.connect(self.select_all)
+        controls_layout.addWidget(select_all_btn)
+
+        clear_all_btn = QPushButton("Bỏ chọn tất cả")
+        clear_all_btn.setFont(QFont("Arial", 10))
+        clear_all_btn.clicked.connect(self.clear_all)
+        controls_layout.addWidget(clear_all_btn)
+
+        controls_layout.addStretch()
+        layout.addLayout(controls_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setFont(QFont("Arial", 11))
+        cancel_btn.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_btn)
+
+        ok_btn = QPushButton("Xác nhận")
+        ok_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        ok_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45A049;
+            }
+        """)
+        ok_btn.clicked.connect(self.accept)
+        button_layout.addWidget(ok_btn)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def load_workers(self):
+        """Load workers from the team management system"""
+        try:
+            employees_data = []
+
+            # Try multiple methods to load employee data
+            try:
+                # Method 1: Try to get from parent app
+                if hasattr(self.parent_app, 'load_employees'):
+                    employees_data = self.parent_app.load_employees()
+                    print(f"Loaded {len(employees_data)} employees from parent app")
+            except Exception as e:
+                print(f"Failed to load from parent app: {e}")
+
+            # Method 2: Load directly from file if no data yet
+            if not employees_data:
+                try:
+                    employees_file = str(get_data_file_path("business/employees.json"))
+                    print(f"Trying to load from file: {employees_file}")
+
+                    if os.path.exists(employees_file):
+                        with open(employees_file, 'r', encoding='utf-8') as f:
+                            employees_data = json.load(f)
+                        print(f"Loaded {len(employees_data)} employees from file")
+                    else:
+                        print(f"Employee file not found: {employees_file}")
+                except Exception as e:
+                    print(f"Failed to load from file: {e}")
+
+            # Method 3: Create sample data if still no data
+            if not employees_data:
+                print("No employee data found, creating sample data")
+                employees_data = [
+                    {"id": 1, "name": "Chú Phi", "position": "Tổ trưởng"},
+                    {"id": 2, "name": "Anh Hưng", "position": "Công nhân"},
+                    {"id": 3, "name": "Anh Liêm", "position": "Công nhân"},
+                    {"id": 4, "name": "Anh Chươl", "position": "Công nhân"},
+                    {"id": 5, "name": "Luân", "position": "Công nhân"}
+                ]
+
+            self.all_workers = employees_data
+            print(f"Total workers loaded: {len(self.all_workers)}")
+
+            # Populate the list
+            self.worker_list.clear()
+            selected_ids = [w.get('id') for w in self.selected_workers if w.get('id')]
+
+            for worker in self.all_workers:
+                try:
+                    worker_name = worker.get('name', 'Unknown')
+                    worker_position = worker.get('position', 'Unknown')
+                    worker_id = worker.get('id')
+
+                    item_text = f"{worker_name} - {worker_position}"
+                    item = QListWidgetItem(item_text)
+                    item.setData(Qt.UserRole, worker)
+
+                    # Set check state
+                    is_selected = worker_id in selected_ids
+                    item.setCheckState(Qt.Checked if is_selected else Qt.Unchecked)
+
+                    self.worker_list.addItem(item)
+                    print(f"Added worker: {item_text} (ID: {worker_id})")
+
+                except Exception as e:
+                    print(f"Error adding worker {worker}: {e}")
+
+            print(f"Worker list populated with {self.worker_list.count()} items")
+
+        except Exception as e:
+            print(f"Error loading workers: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.warning(self, "Lỗi", f"Không thể tải danh sách nhân viên: {str(e)}\n\nVui lòng kiểm tra file employees.json trong thư mục data.")
+
+    def select_all(self):
+        """Select all workers"""
+        for i in range(self.worker_list.count()):
+            item = self.worker_list.item(i)
+            item.setCheckState(Qt.Checked)
+
+    def clear_all(self):
+        """Clear all selections"""
+        for i in range(self.worker_list.count()):
+            item = self.worker_list.item(i)
+            item.setCheckState(Qt.Unchecked)
+
+    def accept(self):
+        """Accept dialog and update selected workers"""
+        self.selected_workers = []
+
+        for i in range(self.worker_list.count()):
+            item = self.worker_list.item(i)
+            if item.checkState() == Qt.Checked:
+                worker_data = item.data(Qt.UserRole)
+                self.selected_workers.append(worker_data)
+
+        super().accept()
+
+
+class BonusPreviewDialog(QDialog):
+    """Dialog for previewing and adjusting bonus distribution"""
+
+    def __init__(self, parent=None, bonus_distribution=None):
+        super().__init__(parent)
+        self.bonus_distribution = bonus_distribution or {}
+
+        self.setWindowTitle("Xem trước phân chia thưởng")
+        self.setModal(True)
+        self.resize(600, 400)
+
+        self.setup_ui()
+        self.load_distribution()
+
+    def setup_ui(self):
+        """Setup the dialog UI"""
+        layout = QVBoxLayout()
+
+        # Header
+        header = QLabel("Xem trước phân chia tiền thưởng")
+        header.setFont(QFont("Arial", 12, QFont.Bold))
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("color: #2E7D32; padding: 10px; background-color: #E8F5E9; border-radius: 5px;")
+        layout.addWidget(header)
+
+        # Distribution table
+        self.distribution_table = QTableWidget()
+        self.distribution_table.setFont(QFont("Arial", 11))
+        self.distribution_table.setColumnCount(4)
+        self.distribution_table.setHorizontalHeaderLabels(["Nhân viên", "Vị trí", "Số tiền", "Thao tác"])
+
+        # Set column widths
+        header = self.distribution_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
+
+        self.distribution_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #e0e0e0;
+                background-color: white;
+                border: 1px solid #d0d0d0;
+                border-radius: 5px;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid #4CAF50;
+                font-weight: bold;
+            }
+        """)
+        layout.addWidget(self.distribution_table)
+
+        # Total display
+        total_layout = QHBoxLayout()
+        total_layout.addStretch()
+
+        self.total_label = QLabel("Tổng cộng: 0 VNĐ")
+        self.total_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.total_label.setStyleSheet("color: #E65100; padding: 5px;")
+        total_layout.addWidget(self.total_label)
+
+        layout.addLayout(total_layout)
+
+        # Buttons
+        button_layout = QHBoxLayout()
+
+        cancel_btn = QPushButton("Hủy")
+        cancel_btn.setFont(QFont("Arial", 11))
+        cancel_btn.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_btn)
+
+        ok_btn = QPushButton("Xác nhận")
+        ok_btn.setFont(QFont("Arial", 11, QFont.Bold))
+        ok_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45A049;
+            }
+        """)
+        ok_btn.clicked.connect(self.accept)
+        button_layout.addWidget(ok_btn)
+
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def load_distribution(self):
+        """Load bonus distribution into table"""
+        try:
+            self.distribution_table.setRowCount(len(self.bonus_distribution))
+
+            total_amount = 0
+            row = 0
+
+            for worker_id, data in self.bonus_distribution.items():
+                # Name
+                name_item = QTableWidgetItem(data['name'])
+                self.distribution_table.setItem(row, 0, name_item)
+
+                # Position
+                position_item = QTableWidgetItem(data['position'])
+                self.distribution_table.setItem(row, 1, position_item)
+
+                # Amount (editable)
+                amount_spin = QDoubleSpinBox()
+                amount_spin.setRange(0, 999999999)
+                amount_spin.setDecimals(0)
+                amount_spin.setSuffix(" VNĐ")
+                amount_spin.setValue(data['amount'])
+                amount_spin.valueChanged.connect(self.update_total)
+                self.distribution_table.setCellWidget(row, 2, amount_spin)
+
+                # Edit button
+                edit_btn = QPushButton("Sửa")
+                edit_btn.setFont(QFont("Arial", 9))
+                edit_btn.clicked.connect(lambda checked, r=row: self.edit_amount(r))
+                self.distribution_table.setCellWidget(row, 3, edit_btn)
+
+                total_amount += data['amount']
+                row += 1
+
+            self.update_total()
+
+        except Exception as e:
+            print(f"Error loading distribution: {e}")
+
+    def update_total(self):
+        """Update total amount display"""
+        try:
+            total = 0
+            for row in range(self.distribution_table.rowCount()):
+                amount_widget = self.distribution_table.cellWidget(row, 2)
+                if amount_widget:
+                    total += amount_widget.value()
+
+            self.total_label.setText(f"Tổng cộng: {total:,.0f} VNĐ")
+
+        except Exception as e:
+            print(f"Error updating total: {e}")
+
+    def edit_amount(self, row):
+        """Edit amount for specific worker"""
+        try:
+            amount_widget = self.distribution_table.cellWidget(row, 2)
+            if amount_widget:
+                current_value = amount_widget.value()
+                new_value, ok = QInputDialog.getDouble(
+                    self, "Sửa số tiền thưởng",
+                    "Nhập số tiền thưởng (VNĐ):",
+                    current_value, 0, 999999999, 0
+                )
+                if ok:
+                    amount_widget.setValue(new_value)
+                    self.update_total()
+
+        except Exception as e:
+            print(f"Error editing amount: {e}")
+
+    def accept(self):
+        """Accept and update bonus distribution"""
+        try:
+            # Update distribution with new values
+            row = 0
+            for worker_id, data in self.bonus_distribution.items():
+                amount_widget = self.distribution_table.cellWidget(row, 2)
+                if amount_widget:
+                    data['amount'] = amount_widget.value()
+                row += 1
+
+            super().accept()
+
+        except Exception as e:
+            print(f"Error accepting distribution: {e}")
+            super().accept()
+
+
 class EnhancedWarehouseImportDialog(QDialog):
     """Enhanced warehouse import dialog that matches the Add New interface"""
 
@@ -14170,344 +14615,347 @@ class EnhancedWarehouseImportDialog(QDialog):
         self.init_ui()
 
     def init_ui(self):
-        """Initialize the dialog UI with consistent styling"""
+        """Initialize the dialog UI with compact, screen-friendly design"""
         self.setWindowTitle(f"Nhập Kho - {'Cám' if self.item_type == 'feed' else 'Mix'}")
         self.setModal(True)
 
-        # Set responsive dialog size
+        # Set compact dialog size - optimized for screen real estate
         if hasattr(self.parent_app, 'get_responsive_dialog_size'):
             width, height = self.parent_app.get_responsive_dialog_size()
-            self.resize(min(600, width), min(500, height))
+            # Use wider but shorter dimensions for better screen fit
+            self.resize(min(800, width), min(650, height))
         else:
-            self.resize(600, 500)
+            self.resize(800, 650)
 
-        # Main layout
+        # Main layout - compact design
         layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)  # Reduced spacing
+        layout.setContentsMargins(15, 15, 15, 15)  # Reduced margins
 
-        # Header
+        # Compact header
         header = QLabel(f"Nhập Hàng Vào {'Kho Cám' if self.item_type == 'feed' else 'Kho Mix'}")
-        header.setFont(QFont("Arial", 16, QFont.Bold))
+        header.setFont(QFont("Arial", 14, QFont.Bold))  # Smaller font
         header.setAlignment(Qt.AlignCenter)
         header.setStyleSheet("""
             QLabel {
                 color: #2E7D32;
-                padding: 15px;
+                padding: 8px;
                 background-color: #E8F5E9;
-                border-radius: 8px;
+                border-radius: 5px;
                 border: 2px solid #4CAF50;
             }
         """)
         layout.addWidget(header)
 
-        # Form container
+        # Form container with compact design
         form_frame = QFrame()
         form_frame.setStyleSheet("""
             QFrame {
                 background-color: #FAFAFA;
                 border: 1px solid #E0E0E0;
-                border-radius: 8px;
-                padding: 15px;
+                border-radius: 6px;
+                padding: 10px;
             }
         """)
-        form_layout = QFormLayout()
-        form_layout.setSpacing(15)
-        form_layout.setContentsMargins(20, 20, 20, 20)
 
-        # Ingredient selection field (required)
+        # Use grid layout for better space utilization
+        form_layout = QGridLayout()
+        form_layout.setSpacing(8)  # Reduced spacing
+        form_layout.setContentsMargins(10, 10, 10, 10)  # Reduced margins
+
+        # Row 0: Ingredient selection (spans 2 columns)
+        ingredient_label = QLabel("Thành phần: *")
+        ingredient_label.setFont(QFont("Arial", 11, QFont.Bold))
+        ingredient_label.setStyleSheet("color: #333333;")
+        form_layout.addWidget(ingredient_label, 0, 0)
+
         self.ingredient_combo = QComboBox()
-        self.ingredient_combo.setFont(QFont("Arial", 12))
+        self.ingredient_combo.setFont(QFont("Arial", 11))
         self.ingredient_combo.setEditable(True)
         self.ingredient_combo.setStyleSheet("""
             QComboBox {
-                padding: 10px;
+                padding: 8px;
                 border: 2px solid #CCCCCC;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 11px;
                 background-color: white;
+                min-width: 200px;
             }
             QComboBox:focus {
                 border-color: #4CAF50;
             }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #666;
-            }
         """)
-
-        # Populate ingredients based on item type
         self.populate_ingredients()
+        form_layout.addWidget(self.ingredient_combo, 0, 1, 1, 3)  # Span 3 columns
 
-        ingredient_label = QLabel("Thành phần: *")
-        ingredient_label.setFont(QFont("Arial", 12, QFont.Bold))
-        ingredient_label.setStyleSheet("color: #333333;")
-
-        # Create a container for ingredient combo and status
-        ingredient_container = QWidget()
-        ingredient_layout = QVBoxLayout()
-        ingredient_layout.setContentsMargins(0, 0, 0, 0)
-        ingredient_layout.setSpacing(5)
-
-        ingredient_layout.addWidget(self.ingredient_combo)
-
-        # Add status label for ingredient
+        # Ingredient status label (spans full width)
         self.ingredient_status_label = QLabel()
-        self.ingredient_status_label.setFont(QFont("Arial", 10))
+        self.ingredient_status_label.setFont(QFont("Arial", 9))
         self.ingredient_status_label.setVisible(False)
         self.ingredient_status_label.setStyleSheet("""
             QLabel {
                 color: #666666;
                 background-color: #F0F0F0;
-                padding: 4px 8px;
+                padding: 3px 6px;
                 border-radius: 3px;
                 border-left: 3px solid #2196F3;
             }
         """)
-        ingredient_layout.addWidget(self.ingredient_status_label)
+        form_layout.addWidget(self.ingredient_status_label, 1, 0, 1, 4)  # Span all columns
 
-        ingredient_container.setLayout(ingredient_layout)
-        form_layout.addRow(ingredient_label, ingredient_container)
+        # Row 2: Quantity and Unit (side by side)
+        quantity_label = QLabel("Số lượng: *")
+        quantity_label.setFont(QFont("Arial", 11, QFont.Bold))
+        quantity_label.setStyleSheet("color: #333333;")
+        form_layout.addWidget(quantity_label, 2, 0)
 
-        # Import quantity field (required)
         self.quantity_input = QDoubleSpinBox()
-        self.quantity_input.setFont(QFont("Arial", 12))
+        self.quantity_input.setFont(QFont("Arial", 11))
         self.quantity_input.setRange(0, 999999)
         self.quantity_input.setDecimals(2)
         self.quantity_input.setSuffix(" kg")
         self.quantity_input.setStyleSheet("""
             QDoubleSpinBox {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #CCCCCC;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                min-width: 120px;
             }
             QDoubleSpinBox:focus {
                 border-color: #4CAF50;
             }
         """)
-        quantity_label = QLabel("Số lượng nhập: *")
-        quantity_label.setFont(QFont("Arial", 12, QFont.Bold))
-        quantity_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(quantity_label, self.quantity_input)
+        form_layout.addWidget(self.quantity_input, 2, 1)
 
-        # Unit of measure field (required)
+        unit_label = QLabel("Đơn vị: *")
+        unit_label.setFont(QFont("Arial", 11, QFont.Bold))
+        unit_label.setStyleSheet("color: #333333;")
+        form_layout.addWidget(unit_label, 2, 2)
+
         self.unit_combo = QComboBox()
-        self.unit_combo.setFont(QFont("Arial", 12))
+        self.unit_combo.setFont(QFont("Arial", 11))
         self.unit_combo.addItems(["kg", "pieces", "liters", "bags", "tons"])
         self.unit_combo.setCurrentText("kg")
         self.unit_combo.setStyleSheet("""
             QComboBox {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #CCCCCC;
-                border-radius: 6px;
-                font-size: 12px;
-                background-color: white;
+                border-radius: 4px;
+                font-size: 11px;
+                min-width: 80px;
             }
             QComboBox:focus {
                 border-color: #4CAF50;
             }
         """)
-        unit_label = QLabel("Đơn vị đo: *")
-        unit_label.setFont(QFont("Arial", 12, QFont.Bold))
-        unit_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(unit_label, self.unit_combo)
+        form_layout.addWidget(self.unit_combo, 2, 3)
 
-        # Import date field (required)
+        # Row 3: Date and Price (side by side)
+        date_label = QLabel("Ngày nhập: *")
+        date_label.setFont(QFont("Arial", 11, QFont.Bold))
+        date_label.setStyleSheet("color: #333333;")
+        form_layout.addWidget(date_label, 3, 0)
+
         self.import_date = QDateEdit()
-        self.import_date.setFont(QFont("Arial", 12))
+        self.import_date.setFont(QFont("Arial", 11))
         self.import_date.setDate(QDate.currentDate())
         self.import_date.setCalendarPopup(True)
         self.import_date.setDisplayFormat("dd/MM/yyyy")
         self.import_date.setStyleSheet("""
             QDateEdit {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #CCCCCC;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                min-width: 120px;
             }
             QDateEdit:focus {
                 border-color: #4CAF50;
             }
         """)
-        date_label = QLabel("Ngày nhập: *")
-        date_label.setFont(QFont("Arial", 12, QFont.Bold))
-        date_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(date_label, self.import_date)
+        form_layout.addWidget(self.import_date, 3, 1)
 
-        # Unit price field (required)
+        price_label = QLabel("Đơn giá:")
+        price_label.setFont(QFont("Arial", 11, QFont.Bold))
+        price_label.setStyleSheet("color: #333333;")
+        form_layout.addWidget(price_label, 3, 2)
+
         self.unit_price_input = QDoubleSpinBox()
-        self.unit_price_input.setFont(QFont("Arial", 12))
+        self.unit_price_input.setFont(QFont("Arial", 11))
         self.unit_price_input.setRange(0, 999999999)
         self.unit_price_input.setDecimals(0)
         self.unit_price_input.setSuffix(" VNĐ")
         self.unit_price_input.setValue(0)
         self.unit_price_input.setStyleSheet("""
             QDoubleSpinBox {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #CCCCCC;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                min-width: 120px;
             }
             QDoubleSpinBox:focus {
                 border-color: #4CAF50;
             }
         """)
-        price_label = QLabel("Đơn giá:")
-        price_label.setFont(QFont("Arial", 12, QFont.Bold))
-        price_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(price_label, self.unit_price_input)
+        form_layout.addWidget(self.unit_price_input, 3, 3)
 
-        # Bag weight field (optional)
+        # Row 4: Packaging information (bag weight and count side by side)
+        bag_weight_label = QLabel("Kg/bao:")
+        bag_weight_label.setFont(QFont("Arial", 11))
+        bag_weight_label.setStyleSheet("color: #666666;")
+        form_layout.addWidget(bag_weight_label, 4, 0)
+
         self.bag_weight_input = QDoubleSpinBox()
-        self.bag_weight_input.setFont(QFont("Arial", 12))
+        self.bag_weight_input.setFont(QFont("Arial", 11))
         self.bag_weight_input.setRange(0, 1000)
         self.bag_weight_input.setDecimals(1)
-        self.bag_weight_input.setSuffix(" kg/bao")
+        self.bag_weight_input.setSuffix(" kg")
         self.bag_weight_input.setValue(0.0)
         self.bag_weight_input.setStyleSheet("""
             QDoubleSpinBox {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #E0E0E0;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                min-width: 100px;
             }
             QDoubleSpinBox:focus {
                 border-color: #4CAF50;
             }
         """)
-        bag_weight_label = QLabel("Số kg/bao:")
-        bag_weight_label.setFont(QFont("Arial", 12))
-        bag_weight_label.setStyleSheet("color: #666666;")
-        form_layout.addRow(bag_weight_label, self.bag_weight_input)
+        form_layout.addWidget(self.bag_weight_input, 4, 1)
 
-        # Optional fields separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("color: #CCCCCC;")
-        form_layout.addRow(separator)
+        bag_count_label = QLabel("Số bao:")
+        bag_count_label.setFont(QFont("Arial", 11))
+        bag_count_label.setStyleSheet("color: #666666;")
+        form_layout.addWidget(bag_count_label, 4, 2)
 
+        self.bag_count_display = QLineEdit()
+        self.bag_count_display.setFont(QFont("Arial", 11))
+        self.bag_count_display.setReadOnly(True)
+        self.bag_count_display.setPlaceholderText("Tự động tính...")
+        self.bag_count_display.setStyleSheet("""
+            QLineEdit {
+                padding: 6px;
+                border: 2px solid #E0E0E0;
+                border-radius: 4px;
+                font-size: 11px;
+                background-color: #F8F9FA;
+                color: #495057;
+                min-width: 100px;
+            }
+        """)
+        form_layout.addWidget(self.bag_count_display, 4, 3)
+
+        # Row 5: Optional fields section header
         optional_label = QLabel("Thông tin tùy chọn:")
-        optional_label.setFont(QFont("Arial", 12, QFont.Bold))
-        optional_label.setStyleSheet("color: #666666; margin-top: 10px;")
-        form_layout.addRow(optional_label)
+        optional_label.setFont(QFont("Arial", 11, QFont.Bold))
+        optional_label.setStyleSheet("color: #666666; margin-top: 8px;")
+        form_layout.addWidget(optional_label, 5, 0, 1, 4)  # Span all columns
 
-        # Supplier field (optional)
+        # Row 6: Supplier and Notes (side by side)
+        supplier_label = QLabel("Nhà cung cấp:")
+        supplier_label.setFont(QFont("Arial", 10))
+        supplier_label.setStyleSheet("color: #666666;")
+        form_layout.addWidget(supplier_label, 6, 0)
+
         self.supplier_input = QLineEdit()
-        self.supplier_input.setFont(QFont("Arial", 12))
-        self.supplier_input.setPlaceholderText("Nhà cung cấp (tùy chọn)...")
+        self.supplier_input.setFont(QFont("Arial", 10))
+        self.supplier_input.setPlaceholderText("Nhà cung cấp...")
         self.supplier_input.setStyleSheet("""
             QLineEdit {
-                padding: 10px;
+                padding: 6px;
                 border: 2px solid #E0E0E0;
-                border-radius: 6px;
-                font-size: 12px;
+                border-radius: 4px;
+                font-size: 10px;
+                min-width: 150px;
             }
             QLineEdit:focus {
                 border-color: #4CAF50;
             }
         """)
-        supplier_label = QLabel("Nhà cung cấp:")
-        supplier_label.setFont(QFont("Arial", 12))
-        supplier_label.setStyleSheet("color: #666666;")
-        form_layout.addRow(supplier_label, self.supplier_input)
+        form_layout.addWidget(self.supplier_input, 6, 1)
 
-        # Notes field (optional)
-        self.notes_input = QTextEdit()
-        self.notes_input.setFont(QFont("Arial", 12))
-        self.notes_input.setPlaceholderText("Ghi chú thêm (tùy chọn)...")
-        self.notes_input.setMaximumHeight(80)
-        self.notes_input.setStyleSheet("""
-            QTextEdit {
-                padding: 10px;
-                border: 2px solid #E0E0E0;
-                border-radius: 6px;
-                font-size: 12px;
-            }
-            QTextEdit:focus {
-                border-color: #4CAF50;
-            }
-        """)
         notes_label = QLabel("Ghi chú:")
-        notes_label.setFont(QFont("Arial", 12))
+        notes_label.setFont(QFont("Arial", 10))
         notes_label.setStyleSheet("color: #666666;")
-        form_layout.addRow(notes_label, self.notes_input)
+        form_layout.addWidget(notes_label, 6, 2)
 
-        # Auto-add to formula option (new feature)
-        formula_separator = QFrame()
-        formula_separator.setFrameShape(QFrame.HLine)
-        formula_separator.setFrameShadow(QFrame.Sunken)
-        formula_separator.setStyleSheet("color: #CCCCCC;")
-        form_layout.addRow(formula_separator)
-
-        formula_options_label = QLabel("Tùy chọn công thức:")
-        formula_options_label.setFont(QFont("Arial", 12, QFont.Bold))
-        formula_options_label.setStyleSheet("color: #666666; margin-top: 10px;")
-        form_layout.addRow(formula_options_label)
-
-        # Auto-add to formula checkbox
-        self.auto_add_formula_checkbox = QCheckBox()
-        self.auto_add_formula_checkbox.setChecked(True)  # Default enabled
-        self.auto_add_formula_checkbox.setFont(QFont("Arial", 11))
-        self.auto_add_formula_checkbox.setStyleSheet("""
-            QCheckBox {
-                color: #333333;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border: 2px solid #CCCCCC;
+        self.notes_input = QLineEdit()  # Changed from QTextEdit to QLineEdit for compactness
+        self.notes_input.setFont(QFont("Arial", 10))
+        self.notes_input.setPlaceholderText("Ghi chú...")
+        self.notes_input.setStyleSheet("""
+            QLineEdit {
+                padding: 6px;
+                border: 2px solid #E0E0E0;
                 border-radius: 4px;
-                background-color: white;
+                font-size: 10px;
+                min-width: 150px;
             }
-            QCheckBox::indicator:checked {
-                background-color: #4CAF50;
-                border-color: #4CAF50;
-                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDNMNC41IDguNUwyIDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=);
-            }
-            QCheckBox::indicator:hover {
+            QLineEdit:focus {
                 border-color: #4CAF50;
             }
         """)
+        form_layout.addWidget(self.notes_input, 6, 3)
 
-        auto_add_text = f"Tự động thêm vào công thức {'cám' if self.item_type == 'feed' else 'mix'} nếu chưa tồn tại"
+        # Row 7: Formula options (collapsible section)
+        self.formula_toggle_btn = QPushButton("▶ Tùy chọn công thức")
+        self.formula_toggle_btn.setFont(QFont("Arial", 10, QFont.Bold))
+        self.formula_toggle_btn.setStyleSheet("""
+            QPushButton {
+                text-align: left;
+                padding: 4px 8px;
+                border: none;
+                background-color: transparent;
+                color: #666666;
+            }
+            QPushButton:hover {
+                color: #4CAF50;
+            }
+        """)
+        self.formula_toggle_btn.clicked.connect(self.toggle_formula_section)
+        form_layout.addWidget(self.formula_toggle_btn, 7, 0, 1, 4)
+
+        # Formula options container (initially hidden)
+        self.formula_options_widget = QWidget()
+        formula_options_layout = QHBoxLayout()
+        formula_options_layout.setContentsMargins(0, 0, 0, 0)
+        formula_options_layout.setSpacing(10)
+
+        # Auto-add checkbox
+        self.auto_add_formula_checkbox = QCheckBox()
+        self.auto_add_formula_checkbox.setChecked(False)  # Default disabled
+        self.auto_add_formula_checkbox.setFont(QFont("Arial", 10))
+        formula_options_layout.addWidget(self.auto_add_formula_checkbox)
+
+        auto_add_text = f"Thêm vào công thức {'cám' if self.item_type == 'feed' else 'mix'}"
         auto_add_label = QLabel(auto_add_text)
-        auto_add_label.setFont(QFont("Arial", 11))
+        auto_add_label.setFont(QFont("Arial", 10))
         auto_add_label.setStyleSheet("color: #333333;")
-        auto_add_label.setWordWrap(True)
+        formula_options_layout.addWidget(auto_add_label)
 
-        # Create horizontal layout for checkbox and label
-        auto_add_layout = QHBoxLayout()
-        auto_add_layout.addWidget(self.auto_add_formula_checkbox)
-        auto_add_layout.addWidget(auto_add_label)
-        auto_add_layout.addStretch()
+        # Percentage input
+        percentage_label = QLabel("Tỷ lệ:")
+        percentage_label.setFont(QFont("Arial", 10))
+        percentage_label.setStyleSheet("color: #666666;")
+        formula_options_layout.addWidget(percentage_label)
 
-        auto_add_widget = QWidget()
-        auto_add_widget.setLayout(auto_add_layout)
-        form_layout.addRow("", auto_add_widget)
-
-        # Default percentage for new ingredients
         self.default_percentage_input = QDoubleSpinBox()
-        self.default_percentage_input.setFont(QFont("Arial", 11))
+        self.default_percentage_input.setFont(QFont("Arial", 10))
         self.default_percentage_input.setRange(0, 100)
         self.default_percentage_input.setDecimals(1)
-        self.default_percentage_input.setValue(0.0)  # Default to 0%
+        self.default_percentage_input.setValue(0.0)
         self.default_percentage_input.setSuffix(" %")
-        self.default_percentage_input.setEnabled(self.auto_add_formula_checkbox.isChecked())
+        self.default_percentage_input.setEnabled(False)
+        self.default_percentage_input.setMaximumWidth(80)
         self.default_percentage_input.setStyleSheet("""
             QDoubleSpinBox {
-                padding: 8px;
+                padding: 4px;
                 border: 2px solid #E0E0E0;
-                border-radius: 4px;
-                font-size: 11px;
+                border-radius: 3px;
+                font-size: 10px;
             }
             QDoubleSpinBox:focus {
                 border-color: #4CAF50;
@@ -14517,51 +14965,287 @@ class EnhancedWarehouseImportDialog(QDialog):
                 color: #999999;
             }
         """)
+        formula_options_layout.addWidget(self.default_percentage_input)
+        formula_options_layout.addStretch()
 
-        percentage_label = QLabel("Tỷ lệ mặc định:")
-        percentage_label.setFont(QFont("Arial", 11))
-        percentage_label.setStyleSheet("color: #666666;")
-        form_layout.addRow(percentage_label, self.default_percentage_input)
+        self.formula_options_widget.setLayout(formula_options_layout)
+        self.formula_options_widget.setVisible(False)  # Initially hidden
+        form_layout.addWidget(self.formula_options_widget, 8, 0, 1, 4)
 
-        # Connect checkbox to enable/disable percentage input and update status
+        # Connect checkbox to enable/disable percentage input
         self.auto_add_formula_checkbox.toggled.connect(self.default_percentage_input.setEnabled)
         self.auto_add_formula_checkbox.toggled.connect(self.update_ingredient_status)
         self.default_percentage_input.valueChanged.connect(self.update_ingredient_status)
 
+        # Row 9: Bonus calculation (collapsible section)
+        self.bonus_toggle_btn = QPushButton("▶ Tính toán tiền thưởng")
+        self.bonus_toggle_btn.setFont(QFont("Arial", 10, QFont.Bold))
+        self.bonus_toggle_btn.setStyleSheet("""
+            QPushButton {
+                text-align: left;
+                padding: 4px 8px;
+                border: none;
+                background-color: transparent;
+                color: #666666;
+            }
+            QPushButton:hover {
+                color: #FF9800;
+            }
+        """)
+        self.bonus_toggle_btn.clicked.connect(self.toggle_bonus_section)
+        form_layout.addWidget(self.bonus_toggle_btn, 9, 0, 1, 4)
+
+        # Bonus calculation container (initially hidden)
+        self.bonus_calculation_widget = QWidget()
+        bonus_calc_layout = QHBoxLayout()
+        bonus_calc_layout.setContentsMargins(0, 0, 0, 0)
+        bonus_calc_layout.setSpacing(10)
+
+        # Enable bonus checkbox
+        self.enable_bonus_checkbox = QCheckBox("Bật tính thưởng")
+        self.enable_bonus_checkbox.setChecked(False)
+        self.enable_bonus_checkbox.setFont(QFont("Arial", 10))
+        self.enable_bonus_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #333333;
+                spacing: 6px;
+            }
+            QCheckBox::indicator {
+                width: 14px;
+                height: 14px;
+                border: 2px solid #CCCCCC;
+                border-radius: 3px;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #FF9800;
+                border-color: #FF9800;
+            }
+        """)
+        bonus_calc_layout.addWidget(self.enable_bonus_checkbox)
+
+        self.bonus_calculation_widget.setLayout(bonus_calc_layout)
+        self.bonus_calculation_widget.setVisible(False)  # Initially hidden
+        form_layout.addWidget(self.bonus_calculation_widget, 10, 0, 1, 4)
+
+        # Bonus details (shown when bonus is enabled)
+        self.bonus_details_widget = QWidget()
+        bonus_details_layout = QVBoxLayout()
+        bonus_details_layout.setContentsMargins(0, 0, 0, 0)
+        bonus_details_layout.setSpacing(6)
+
+        # First row: Bonus calculation method selection
+        method_layout = QHBoxLayout()
+        method_layout.setSpacing(8)
+
+        method_label = QLabel("Phương thức:")
+        method_label.setFont(QFont("Arial", 10))
+        method_label.setStyleSheet("color: #666666;")
+        method_layout.addWidget(method_label)
+
+        self.bonus_method_combo = QComboBox()
+        self.bonus_method_combo.setFont(QFont("Arial", 10))
+        self.bonus_method_combo.addItem("Tự động tính theo nguyên liệu", "auto")
+        self.bonus_method_combo.addItem("Nhập thủ công", "manual")
+        self.bonus_method_combo.setMaximumWidth(180)
+        self.bonus_method_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px;
+                border: 2px solid #E0E0E0;
+                border-radius: 3px;
+                font-size: 10px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #FF9800;
+            }
+        """)
+        self.bonus_method_combo.currentIndexChanged.connect(self.on_bonus_method_changed)
+        method_layout.addWidget(self.bonus_method_combo)
+        method_layout.addStretch()
+
+        bonus_details_layout.addLayout(method_layout)
+
+        # Second row: Auto calculation controls
+        self.auto_bonus_widget = QWidget()
+        auto_layout = QHBoxLayout()
+        auto_layout.setContentsMargins(0, 0, 0, 0)
+        auto_layout.setSpacing(8)
+
+        # Bonus rate selection
+        rate_label = QLabel("Mức:")
+        rate_label.setFont(QFont("Arial", 10))
+        rate_label.setStyleSheet("color: #666666;")
+        auto_layout.addWidget(rate_label)
+
+        self.bonus_rate_combo = QComboBox()
+        self.bonus_rate_combo.setFont(QFont("Arial", 10))
+        self.bonus_rate_combo.setMaximumWidth(150)
+        self.bonus_rate_combo.setStyleSheet("""
+            QComboBox {
+                padding: 4px;
+                border: 2px solid #E0E0E0;
+                border-radius: 3px;
+                font-size: 10px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #FF9800;
+            }
+        """)
+        self.load_bonus_rates_for_import()
+        auto_layout.addWidget(self.bonus_rate_combo)
+        auto_layout.addStretch()
+
+        self.auto_bonus_widget.setLayout(auto_layout)
+        bonus_details_layout.addWidget(self.auto_bonus_widget)
+
+        # Third row: Manual bonus input
+        self.manual_bonus_widget = QWidget()
+        manual_layout = QHBoxLayout()
+        manual_layout.setContentsMargins(0, 0, 0, 0)
+        manual_layout.setSpacing(8)
+
+        manual_label = QLabel("Số tiền:")
+        manual_label.setFont(QFont("Arial", 10))
+        manual_label.setStyleSheet("color: #666666;")
+        manual_layout.addWidget(manual_label)
+
+        self.manual_bonus_input = QDoubleSpinBox()
+        self.manual_bonus_input.setFont(QFont("Arial", 10))
+        self.manual_bonus_input.setRange(0, 999999999)
+        self.manual_bonus_input.setDecimals(0)
+        self.manual_bonus_input.setSuffix(" VNĐ")
+        self.manual_bonus_input.setValue(0)
+        self.manual_bonus_input.setMaximumWidth(150)
+        self.manual_bonus_input.setStyleSheet("""
+            QDoubleSpinBox {
+                padding: 4px;
+                border: 2px solid #E0E0E0;
+                border-radius: 3px;
+                font-size: 10px;
+                background-color: white;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #FF9800;
+            }
+        """)
+        self.manual_bonus_input.valueChanged.connect(self.update_bonus_display)
+        manual_layout.addWidget(self.manual_bonus_input)
+        manual_layout.addStretch()
+
+        self.manual_bonus_widget.setLayout(manual_layout)
+        self.manual_bonus_widget.setVisible(False)  # Initially hidden
+        bonus_details_layout.addWidget(self.manual_bonus_widget)
+
+        # Fourth row: Worker selection
+        worker_layout = QHBoxLayout()
+        worker_layout.setSpacing(8)
+
+        worker_label = QLabel("Nhân viên:")
+        worker_label.setFont(QFont("Arial", 10))
+        worker_label.setStyleSheet("color: #666666;")
+        worker_layout.addWidget(worker_label)
+
+        self.worker_selection_btn = QPushButton("Chọn nhân viên...")
+        self.worker_selection_btn.setFont(QFont("Arial", 10))
+        self.worker_selection_btn.setMaximumWidth(120)
+        self.worker_selection_btn.setStyleSheet("""
+            QPushButton {
+                padding: 4px 8px;
+                border: 2px solid #E0E0E0;
+                border-radius: 3px;
+                font-size: 10px;
+                background-color: white;
+                text-align: left;
+            }
+            QPushButton:hover {
+                border-color: #FF9800;
+                background-color: #FFF8E1;
+            }
+        """)
+        self.worker_selection_btn.clicked.connect(self.show_worker_selection_dialog)
+        worker_layout.addWidget(self.worker_selection_btn)
+
+        # Selected workers count display
+        self.selected_workers_label = QLabel("(0 người)")
+        self.selected_workers_label.setFont(QFont("Arial", 9))
+        self.selected_workers_label.setStyleSheet("color: #999999;")
+        worker_layout.addWidget(self.selected_workers_label)
+
+        # Preview button
+        self.preview_btn = QPushButton("Xem trước")
+        self.preview_btn.setFont(QFont("Arial", 9))
+        self.preview_btn.setMaximumWidth(80)
+        self.preview_btn.setStyleSheet("""
+            QPushButton {
+                padding: 3px 6px;
+                border: 1px solid #FF9800;
+                border-radius: 3px;
+                font-size: 9px;
+                background-color: #FFF8E1;
+                color: #FF9800;
+            }
+            QPushButton:hover {
+                background-color: #FF9800;
+                color: white;
+            }
+        """)
+        self.preview_btn.clicked.connect(self.show_bonus_preview)
+        worker_layout.addWidget(self.preview_btn)
+
+        worker_layout.addStretch()
+
+        bonus_details_layout.addLayout(worker_layout)
+
+        # Initialize worker selection data
+        self.selected_workers = []
+        self.worker_bonus_distribution = {}
+
+        self.bonus_details_widget.setLayout(bonus_details_layout)
+        self.bonus_details_widget.setVisible(False)  # Initially hidden
+        form_layout.addWidget(self.bonus_details_widget, 11, 0, 1, 4)
+
+        # Connect bonus checkbox to show/hide details and calculate bonus
+        self.enable_bonus_checkbox.toggled.connect(self.toggle_bonus_details)
+        self.bonus_rate_combo.currentIndexChanged.connect(self.calculate_import_bonus)
+        self.quantity_input.valueChanged.connect(self.calculate_import_bonus)
+
         form_frame.setLayout(form_layout)
         layout.addWidget(form_frame)
 
-        # Error message label
+        # Error message label (compact)
         self.error_label = QLabel()
-        self.error_label.setFont(QFont("Arial", 11))
+        self.error_label.setFont(QFont("Arial", 10))
         self.error_label.setStyleSheet("""
             QLabel {
                 color: #D32F2F;
                 background-color: #FFEBEE;
                 border: 1px solid #FFCDD2;
-                border-radius: 4px;
-                padding: 10px;
+                border-radius: 3px;
+                padding: 6px;
             }
         """)
         self.error_label.setVisible(False)
         layout.addWidget(self.error_label)
 
-        # Buttons
+        # Compact buttons
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        button_layout.setSpacing(8)
 
         # Cancel button
         cancel_button = QPushButton("Hủy")
-        cancel_button.setFont(QFont("Arial", 12, QFont.Bold))
-        cancel_button.setMinimumHeight(40)
+        cancel_button.setFont(QFont("Arial", 11, QFont.Bold))
+        cancel_button.setMinimumHeight(32)  # Reduced height
         cancel_button.setStyleSheet("""
             QPushButton {
                 background-color: #757575;
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 10px 20px;
+                border-radius: 4px;
+                padding: 6px 16px;
                 font-weight: bold;
+                min-width: 80px;
             }
             QPushButton:hover {
                 background-color: #616161;
@@ -14574,16 +15258,17 @@ class EnhancedWarehouseImportDialog(QDialog):
 
         # Import button
         self.import_button = QPushButton("Nhập Kho")
-        self.import_button.setFont(QFont("Arial", 12, QFont.Bold))
-        self.import_button.setMinimumHeight(40)
+        self.import_button.setFont(QFont("Arial", 11, QFont.Bold))
+        self.import_button.setMinimumHeight(32)  # Reduced height
         self.import_button.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 10px 20px;
+                border-radius: 4px;
+                padding: 6px 16px;
                 font-weight: bold;
+                min-width: 100px;
             }
             QPushButton:hover {
                 background-color: #45A049;
@@ -14608,6 +15293,8 @@ class EnhancedWarehouseImportDialog(QDialog):
         # Connect validation to input changes
         self.ingredient_combo.currentTextChanged.connect(self.on_ingredient_changed)
         self.quantity_input.valueChanged.connect(self.validate_form)
+        self.quantity_input.valueChanged.connect(self.auto_update_bag_count)  # Auto-update bag count when quantity changes
+        self.bag_weight_input.valueChanged.connect(self.auto_update_bag_count)  # Auto-update bag count when bag weight changes
         self.unit_price_input.valueChanged.connect(self.validate_form)
 
         # Initial validation
@@ -14656,7 +15343,601 @@ class EnhancedWarehouseImportDialog(QDialog):
     def on_ingredient_changed(self):
         """Handle ingredient selection change and update status"""
         self.update_ingredient_status()
+        self.auto_populate_packaging_info()
         self.validate_form()
+
+    def auto_populate_packaging_info(self):
+        """Auto-populate packaging information when ingredient is selected"""
+        try:
+            ingredient_name = self.ingredient_combo.currentText().strip()
+
+            if not ingredient_name or ingredient_name == "--- Nhập thành phần mới ---":
+                return
+
+            # Get packaging info from inventory manager
+            if hasattr(self.parent_app, 'inventory_manager'):
+                packaging_info = self.parent_app.inventory_manager.get_packaging_info()
+
+                # Auto-populate bag weight if available
+                if ingredient_name in packaging_info:
+                    bag_weight = packaging_info[ingredient_name]
+                    self.bag_weight_input.setValue(bag_weight)
+
+                    # Auto-update bag count if quantity is already set
+                    self.auto_update_bag_count()
+                else:
+                    # Use default from PACKAGING_INFO if available
+                    if ingredient_name in PACKAGING_INFO:
+                        default_bag_weight = PACKAGING_INFO[ingredient_name]
+                        self.bag_weight_input.setValue(default_bag_weight)
+                        self.auto_update_bag_count()
+
+        except Exception as e:
+            print(f"Error auto-populating packaging info: {e}")
+
+    def auto_update_bag_count(self):
+        """Auto-update bag count based on quantity and bag weight"""
+        try:
+            quantity = self.quantity_input.value()
+            bag_weight = self.bag_weight_input.value()
+
+            if quantity > 0 and bag_weight > 0:
+                # Calculate number of bags
+                bag_count = quantity / bag_weight
+
+                # Update the bag count display
+                if bag_count == int(bag_count):
+                    self.bag_count_display.setText(f"{int(bag_count)} bao")
+                else:
+                    self.bag_count_display.setText(f"{bag_count:.2f} bao")
+            else:
+                self.bag_count_display.setText("")
+
+        except Exception as e:
+            print(f"Error auto-updating bag count: {e}")
+            self.bag_count_display.setText("")
+
+    def load_bonus_rates_for_import(self):
+        """Load bonus rates for import bonus calculation"""
+        try:
+            print("Loading bonus rates for import...")
+
+            # Try to load bonus configuration from team management system
+            bonus_config = {}
+            default_rates = {}
+
+            try:
+                if hasattr(self.parent_app, 'load_bonus_rates'):
+                    bonus_config = self.parent_app.load_bonus_rates()
+                    default_rates = bonus_config.get("default_rates", {})
+                    print(f"Loaded bonus config from parent app: {len(default_rates)} rates")
+            except Exception as e:
+                print(f"Failed to load from parent app: {e}")
+
+            # Add bonus rate options
+            self.bonus_rate_combo.clear()
+
+            # Add specific ingredient rates if available
+            if default_rates:
+                for ingredient, rate in default_rates.items():
+                    self.bonus_rate_combo.addItem(f"{ingredient}: {rate:,} VNĐ/lần", rate)
+                    print(f"Added rate: {ingredient} = {rate}")
+            else:
+                # Use fallback rates - giá tiền/1 lần xuống hàng
+                print("Using fallback bonus rates")
+                fallback_rates = {
+                    "Bắp": 50000,        # 50,000 VNĐ/lần xuống hàng
+                    "Nành": 50000,       # 50,000 VNĐ/lần xuống hàng
+                    "Cám gạo": 40000,    # 40,000 VNĐ/lần xuống hàng
+                    "Dầu": 45000,        # 45,000 VNĐ/lần xuống hàng
+                    "DCP": 35000,        # 35,000 VNĐ/lần xuống hàng
+                    "Đá hạt": 30000,     # 30,000 VNĐ/lần xuống hàng
+                    "Khác": 40000        # 40,000 VNĐ/lần xuống hàng
+                }
+
+                for ingredient, rate in fallback_rates.items():
+                    self.bonus_rate_combo.addItem(f"{ingredient}: {rate:,} VNĐ/lần", rate)
+                    print(f"Added fallback rate: {ingredient} = {rate}")
+
+            print(f"Bonus rate combo populated with {self.bonus_rate_combo.count()} items")
+
+        except Exception as e:
+            print(f"Error loading bonus rates: {e}")
+            import traceback
+            traceback.print_exc()
+
+            # Emergency fallback
+            self.bonus_rate_combo.clear()
+            self.bonus_rate_combo.addItem("Bắp: 50,000 VNĐ/lần", 50000)
+            self.bonus_rate_combo.addItem("Nành: 50,000 VNĐ/lần", 50000)
+            self.bonus_rate_combo.addItem("Cám gạo: 40,000 VNĐ/lần", 40000)
+            self.bonus_rate_combo.addItem("Khác: 40,000 VNĐ/lần", 40000)
+            print("Used emergency fallback rates")
+
+    def calculate_import_bonus(self):
+        """Calculate bonus amount based on selected rate (fixed amount per import)"""
+        try:
+            print("Starting bonus calculation...")
+
+            if not self.enable_bonus_checkbox.isChecked():
+                print("Bonus checkbox not checked, clearing display")
+                return
+
+            selected_rate = self.bonus_rate_combo.currentData()
+
+            print(f"Selected rate: {selected_rate}")
+
+            if not selected_rate or selected_rate <= 0:
+                print("Invalid rate, clearing display")
+                return
+
+            # Fixed bonus amount per import (no quantity multiplier)
+            calculated_bonus = selected_rate
+
+            print(f"Calculated bonus: {calculated_bonus}")
+
+            # Calculate distribution among selected workers (equal split)
+            if self.selected_workers:
+                bonus_per_worker = calculated_bonus / len(self.selected_workers)
+                print(f"Bonus per worker: {bonus_per_worker} (for {len(self.selected_workers)} workers)")
+
+                # Update worker bonus distribution
+                self.worker_bonus_distribution = {}
+                for worker in self.selected_workers:
+                    self.worker_bonus_distribution[worker['id']] = {
+                        'name': worker['name'],
+                        'position': worker['position'],
+                        'amount': bonus_per_worker
+                    }
+
+        except Exception as e:
+            print(f"Error calculating import bonus: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def toggle_formula_section(self):
+        """Toggle the visibility of the formula options section"""
+        is_visible = self.formula_options_widget.isVisible()
+        self.formula_options_widget.setVisible(not is_visible)
+
+        # Update button text
+        if is_visible:
+            self.formula_toggle_btn.setText("▶ Tùy chọn công thức")
+        else:
+            self.formula_toggle_btn.setText("▼ Tùy chọn công thức")
+
+    def toggle_bonus_section(self):
+        """Toggle the visibility of the bonus calculation section"""
+        is_visible = self.bonus_calculation_widget.isVisible()
+        self.bonus_calculation_widget.setVisible(not is_visible)
+
+        # Update button text
+        if is_visible:
+            self.bonus_toggle_btn.setText("▶ Tính toán tiền thưởng")
+            # Also hide bonus details when section is collapsed
+            self.bonus_details_widget.setVisible(False)
+            self.enable_bonus_checkbox.setChecked(False)
+        else:
+            self.bonus_toggle_btn.setText("▼ Tính toán tiền thưởng")
+
+    def toggle_bonus_details(self):
+        """Toggle the visibility of bonus calculation details"""
+        is_enabled = self.enable_bonus_checkbox.isChecked()
+        self.bonus_details_widget.setVisible(is_enabled)
+
+        if is_enabled:
+            self.on_bonus_method_changed()  # Initialize based on current method
+        else:
+            self.bonus_amount_display.setText("")
+
+    def on_bonus_method_changed(self):
+        """Handle bonus calculation method change"""
+        try:
+            method = self.bonus_method_combo.currentData()
+            print(f"Bonus method changed to: {method}")
+
+            if method == "auto":
+                # Show auto calculation controls, hide manual input
+                self.auto_bonus_widget.setVisible(True)
+                self.manual_bonus_widget.setVisible(False)
+                print("Showing auto bonus widget, calculating bonus...")
+                self.calculate_import_bonus()
+            elif method == "manual":
+                # Show manual input, hide auto calculation controls
+                self.auto_bonus_widget.setVisible(False)
+                self.manual_bonus_widget.setVisible(True)
+                print("Showing manual bonus widget, updating display...")
+                self.update_bonus_display()
+            else:
+                print(f"Unknown bonus method: {method}")
+                # Default to auto if method is unknown
+                self.auto_bonus_widget.setVisible(True)
+                self.manual_bonus_widget.setVisible(False)
+                self.calculate_import_bonus()
+
+        except Exception as e:
+            print(f"Error changing bonus method: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def update_bonus_display(self):
+        """Update bonus amount display based on current method"""
+        try:
+            method = self.bonus_method_combo.currentData()
+            print(f"Updating bonus display for method: {method}")
+
+            if method == "manual":
+                # Use manual input value
+                manual_amount = self.manual_bonus_input.value()
+                print(f"Manual bonus amount: {manual_amount}")
+
+                # Calculate distribution among selected workers (equal split)
+                if self.selected_workers and manual_amount > 0:
+                    bonus_per_worker = manual_amount / len(self.selected_workers)
+                    print(f"Manual bonus per worker: {bonus_per_worker} (for {len(self.selected_workers)} workers)")
+
+                    # Update worker bonus distribution
+                    self.worker_bonus_distribution = {}
+                    for worker in self.selected_workers:
+                        self.worker_bonus_distribution[worker['id']] = {
+                            'name': worker['name'],
+                            'position': worker['position'],
+                            'amount': bonus_per_worker
+                        }
+                elif manual_amount == 0:
+                    self.worker_bonus_distribution = {}
+                    print("Cleared bonus distribution (amount is 0)")
+            else:
+                # Use auto calculation
+                print("Using auto calculation...")
+                self.calculate_import_bonus()
+
+        except Exception as e:
+            print(f"Error updating bonus display: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def show_worker_selection_dialog(self):
+        """Show dialog for selecting workers to receive bonus"""
+        try:
+            dialog = WorkerSelectionDialog(self, self.selected_workers)
+            if dialog.exec_() == QDialog.Accepted:
+                self.selected_workers = dialog.selected_workers
+                self.update_worker_selection_display()
+                self.update_bonus_preview()
+
+        except Exception as e:
+            print(f"Error showing worker selection dialog: {e}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể mở dialog chọn nhân viên: {str(e)}")
+
+    def update_worker_selection_display(self):
+        """Update the worker selection button text and count"""
+        try:
+            count = len(self.selected_workers)
+            if count == 0:
+                self.worker_selection_btn.setText("Chọn nhân viên...")
+                self.selected_workers_label.setText("(0 người)")
+            elif count == 1:
+                # Show single worker name if only one selected
+                worker_name = self.selected_workers[0].get('name', 'Unknown')
+                self.worker_selection_btn.setText(f"{worker_name}")
+                self.selected_workers_label.setText("(1 người)")
+            else:
+                # Show count if multiple workers selected
+                self.worker_selection_btn.setText(f"{count} nhân viên")
+                self.selected_workers_label.setText(f"({count} người)")
+
+            # Update bonus calculation when workers change
+            self.update_bonus_display()
+
+        except Exception as e:
+            print(f"Error updating worker selection display: {e}")
+
+    def update_bonus_preview(self):
+        """Update bonus distribution preview"""
+        try:
+            if not self.selected_workers or not self.enable_bonus_checkbox.isChecked():
+                self.worker_bonus_distribution = {}
+                return
+
+            # Get total bonus amount
+            total_bonus = 0
+            method = self.bonus_method_combo.currentData()
+
+            if method == "manual":
+                total_bonus = self.manual_bonus_input.value()
+            else:
+                # Get from selected rate (fixed amount per import)
+                selected_rate = self.bonus_rate_combo.currentData()
+                if selected_rate and selected_rate > 0:
+                    total_bonus = selected_rate
+
+            if total_bonus <= 0:
+                self.worker_bonus_distribution = {}
+                return
+
+            # Always use equal distribution (chia đều)
+            self.worker_bonus_distribution = self.calculate_bonus_distribution(
+                total_bonus, self.selected_workers, "equal"
+            )
+
+        except Exception as e:
+            print(f"Error updating bonus preview: {e}")
+            self.worker_bonus_distribution = {}
+
+    def calculate_bonus_distribution(self, total_bonus, workers, method):
+        """Calculate how bonus should be distributed among workers"""
+        try:
+            distribution = {}
+
+            if not workers or total_bonus <= 0:
+                return distribution
+
+            if method == "equal":
+                # Equal distribution
+                amount_per_worker = total_bonus / len(workers)
+                for worker in workers:
+                    distribution[worker['id']] = {
+                        'name': worker['name'],
+                        'position': worker['position'],
+                        'amount': amount_per_worker
+                    }
+
+            elif method == "percentage":
+                # Distribution based on position (simplified - can be enhanced)
+                position_weights = {
+                    "Tổ trưởng": 1.5,
+                    "Phó tổ trưởng": 1.3,
+                    "Kỹ thuật viên": 1.2,
+                    "Thủ kho": 1.1,
+                    "Công nhân": 1.0
+                }
+
+                total_weight = sum(position_weights.get(worker['position'], 1.0) for worker in workers)
+
+                for worker in workers:
+                    weight = position_weights.get(worker['position'], 1.0)
+                    amount = (weight / total_weight) * total_bonus
+                    distribution[worker['id']] = {
+                        'name': worker['name'],
+                        'position': worker['position'],
+                        'amount': amount
+                    }
+
+            else:  # custom
+                # For custom, start with equal distribution (can be modified in preview dialog)
+                amount_per_worker = total_bonus / len(workers)
+                for worker in workers:
+                    distribution[worker['id']] = {
+                        'name': worker['name'],
+                        'position': worker['position'],
+                        'amount': amount_per_worker
+                    }
+
+            return distribution
+
+        except Exception as e:
+            print(f"Error calculating bonus distribution: {e}")
+            return {}
+
+    def show_bonus_preview(self):
+        """Show bonus distribution preview dialog"""
+        try:
+            if not self.worker_bonus_distribution:
+                QMessageBox.information(self, "Thông báo", "Vui lòng chọn nhân viên!")
+                return
+
+            # Create simple preview message
+            preview_text = "Phân chia tiền thưởng (chia đều):\n\n"
+            for data in self.worker_bonus_distribution.values():
+                preview_text += f"• {data['name']} ({data['position']}): {data['amount']:,.0f} VNĐ\n"
+
+            QMessageBox.information(self, "Xem trước phân chia thưởng", preview_text)
+
+        except Exception as e:
+            print(f"Error showing bonus preview: {e}")
+            QMessageBox.warning(self, "Lỗi", f"Không thể hiển thị xem trước: {str(e)}")
+
+    def process_import_bonus(self, import_data):
+        """Process bonus calculation and save to team management system"""
+        try:
+            if not self.worker_bonus_distribution:
+                return True  # No bonus to process
+
+            # Get bonus method and rate
+            method = self.bonus_method_combo.currentData()
+            if method == "manual":
+                total_bonus = self.manual_bonus_input.value()
+                bonus_source = "Manual Input"
+            else:
+                total_bonus = self.bonus_rate_combo.currentData()
+                bonus_source = f"Auto Rate: {self.bonus_rate_combo.currentText()}"
+
+            # Create bonus record for import
+            bonus_record = {
+                'import_date': import_data['date'].toString('yyyy-MM-dd'),
+                'import_id': f"{import_data['ingredient']}_{import_data['date'].toString('yyyyMMdd')}_{int(import_data['quantity'])}",
+                'ingredient': import_data['ingredient'],
+                'quantity': import_data['quantity'],
+                'total_bonus': total_bonus,
+                'bonus_method': method,
+                'bonus_source': bonus_source,
+                'distribution_method': 'equal',  # Always equal distribution
+                'worker_bonuses': self.worker_bonus_distribution,
+                'created_by': 'Import System',
+                'created_date': QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss')
+            }
+
+            # Save to import bonus tracking file
+            success = self.save_import_bonus_record(bonus_record)
+
+            if success:
+                # Also update individual worker bonus records
+                self.update_worker_bonus_records(bonus_record)
+
+            return success
+
+        except Exception as e:
+            print(f"Error processing import bonus: {e}")
+            return False
+
+    def save_import_bonus_record(self, bonus_record):
+        """Save import bonus record to tracking file"""
+        try:
+            bonus_file = str(get_data_file_path("business/import_bonus_tracking.json"))
+
+            # Load existing records
+            if os.path.exists(bonus_file):
+                with open(bonus_file, 'r', encoding='utf-8') as f:
+                    bonus_data = json.load(f)
+            else:
+                bonus_data = {'records': []}
+
+            # Add new record
+            bonus_data['records'].append(bonus_record)
+
+            # Save updated data
+            with open(bonus_file, 'w', encoding='utf-8') as f:
+                json.dump(bonus_data, f, ensure_ascii=False, indent=2)
+
+            return True
+
+        except Exception as e:
+            print(f"Error saving import bonus record: {e}")
+            return False
+
+    def update_worker_bonus_records(self, bonus_record):
+        """Update individual worker bonus records"""
+        try:
+            # This integrates with the existing bonus calculation system
+            current_date = QDate.currentDate()
+            month_key = f"{current_date.year()}-{current_date.month():02d}"
+
+            # 1. Update bonus_calculation.json
+            bonus_calc_file = str(get_data_file_path("business/bonus_calculation.json"))
+
+            if os.path.exists(bonus_calc_file):
+                with open(bonus_calc_file, 'r', encoding='utf-8') as f:
+                    bonus_calc_data = json.load(f)
+            else:
+                bonus_calc_data = {}
+
+            # Initialize month data if not exists
+            if month_key not in bonus_calc_data:
+                bonus_calc_data[month_key] = {
+                    'year': current_date.year(),
+                    'month': current_date.month(),
+                    'employee_bonuses': {},
+                    'import_bonuses': {},  # New section for import bonuses
+                    'calculated_date': QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss')
+                }
+
+            # Add import bonus data
+            if 'import_bonuses' not in bonus_calc_data[month_key]:
+                bonus_calc_data[month_key]['import_bonuses'] = {}
+
+            # Store import bonus by import ID
+            bonus_calc_data[month_key]['import_bonuses'][bonus_record['import_id']] = {
+                'ingredient': bonus_record['ingredient'],
+                'quantity': bonus_record['quantity'],
+                'total_bonus': bonus_record['total_bonus'],
+                'worker_bonuses': bonus_record['worker_bonuses'],
+                'date': bonus_record['import_date']
+            }
+
+            # Update individual worker totals
+            if 'employee_bonuses' not in bonus_calc_data[month_key]:
+                bonus_calc_data[month_key]['employee_bonuses'] = {}
+
+            for worker_id, bonus_data in bonus_record['worker_bonuses'].items():
+                if str(worker_id) not in bonus_calc_data[month_key]['employee_bonuses']:
+                    bonus_calc_data[month_key]['employee_bonuses'][str(worker_id)] = {}
+
+                # Add import bonus to worker's record
+                import_bonus_key = f"Import_{bonus_record['ingredient']}"
+                if import_bonus_key not in bonus_calc_data[month_key]['employee_bonuses'][str(worker_id)]:
+                    bonus_calc_data[month_key]['employee_bonuses'][str(worker_id)][import_bonus_key] = 0
+
+                bonus_calc_data[month_key]['employee_bonuses'][str(worker_id)][import_bonus_key] += bonus_data['amount']
+
+            # 2. Update import_participation.json (for team management tab compatibility)
+            participation_file = str(get_data_file_path("business/import_participation.json"))
+
+            if os.path.exists(participation_file):
+                with open(participation_file, 'r', encoding='utf-8') as f:
+                    participation_data = json.load(f)
+            else:
+                participation_data = {}
+
+            # Create participation record with consistent structure
+            participation_key = bonus_record['import_id']
+
+            # Map ingredient to material_type for consistency
+            ingredient_to_material_map = {
+                'Bắp': 'Bắp',
+                'Nành': 'Nành',
+                'Cám gạo': 'Cám gạo',
+                'Dầu': 'Dầu',
+                'DCP': 'DCP',
+                'Đá hạt': 'Đá hạt',
+                'Đá bột mịn': 'Đá bột mịn',
+                'Amox': 'Khác',  # Map Amox to 'Khác'
+                'Vitamino': 'Khác',  # Map Vitamino to 'Khác'
+                'L-Lysine': 'Khác',
+                'DL-Methionine': 'Khác',
+                'Bio-Choline': 'Khác'
+            }
+
+            material_type = ingredient_to_material_map.get(bonus_record['ingredient'], 'Khác')
+            print(f"🏷️  Mapping ingredient '{bonus_record['ingredient']}' to material_type '{material_type}'")
+
+            participation_data[participation_key] = {
+                'date': bonus_record['import_date'],
+                'material_type': material_type,  # This is crucial for tab compatibility
+                'ingredient': bonus_record['ingredient'],  # Keep original ingredient name
+                'amount': bonus_record['quantity'],  # Use 'amount' for consistency with existing data
+                'quantity': bonus_record['quantity'],  # Also keep 'quantity' for new structure
+                'participants': [
+                    {
+                        'id': int(worker_id),
+                        'name': bonus_data['name'],
+                        'position': bonus_data['position']
+                    }
+                    for worker_id, bonus_data in bonus_record['worker_bonuses'].items()
+                ],
+                'bonus_amount': bonus_record['total_bonus'],
+                'created_by': 'Import System',
+                'created_date': bonus_record['created_date'],
+                'updated_date': bonus_record['created_date']  # For consistency with manual imports
+            }
+
+            # Save participation data
+            with open(participation_file, 'w', encoding='utf-8') as f:
+                json.dump(participation_data, f, ensure_ascii=False, indent=2)
+
+            print(f"✅ Updated import participation: {participation_key}")
+            print(f"   📅 Date: {bonus_record['import_date']}")
+            print(f"   🏷️  Material type: {material_type}")
+            print(f"   👥 Participants: {len(bonus_record['worker_bonuses'])} workers")
+            print(f"   💰 Bonus amount: {bonus_record['total_bonus']:,} VNĐ")
+
+            # Save updated data
+            with open(bonus_calc_file, 'w', encoding='utf-8') as f:
+                json.dump(bonus_calc_data, f, ensure_ascii=False, indent=2)
+
+            # 3. Notify parent app to refresh team management tab if available
+            try:
+                if hasattr(self.parent_app, 'refresh_team_management_tab'):
+                    self.parent_app.refresh_team_management_tab()
+                    print("Refreshed team management tab")
+            except Exception as e:
+                print(f"Could not refresh team management tab: {e}")
+
+            return True
+
+        except Exception as e:
+            print(f"Error updating worker bonus records: {e}")
+            return False
 
     def update_ingredient_status(self):
         """Update ingredient status label based on current selection"""
@@ -14822,7 +16103,7 @@ class EnhancedWarehouseImportDialog(QDialog):
                 'unit_price': self.unit_price_input.value(),
                 'bag_weight': self.bag_weight_input.value() if self.bag_weight_input.value() > 0 else None,
                 'supplier': self.supplier_input.text().strip(),
-                'notes': self.notes_input.toPlainText().strip(),
+                'notes': self.notes_input.text().strip(),
                 'type': self.item_type
             }
 
@@ -14830,10 +16111,21 @@ class EnhancedWarehouseImportDialog(QDialog):
             success = self.import_inventory_item(import_data)
 
             if success:
+                # Process bonus if enabled
+                bonus_success = True
+                if self.enable_bonus_checkbox.isChecked() and self.selected_workers and self.worker_bonus_distribution:
+                    bonus_success = self.process_import_bonus(import_data)
+
                 # Check if ingredient will be auto-added to formula for success message
                 will_auto_add = (self.auto_add_formula_checkbox.isChecked() and
                                self.will_ingredient_be_added_to_formula(import_data['ingredient']))
-                self.show_success_message(import_data, will_auto_add)
+
+                if bonus_success:
+                    self.show_success_message(import_data, will_auto_add, self.worker_bonus_distribution if self.enable_bonus_checkbox.isChecked() else None)
+                else:
+                    # Show warning that import succeeded but bonus failed
+                    self.show_partial_success_message(import_data, will_auto_add)
+
                 self.accept()
             else:
                 self.show_error_with_retry("Không thể nhập kho. Vui lòng kiểm tra lại thông tin.")
@@ -14901,8 +16193,8 @@ class EnhancedWarehouseImportDialog(QDialog):
             print(f"Error checking formula status: {e}")
             return False
 
-    def show_success_message(self, import_data, will_auto_add=False):
-        """Show success message with details - enhanced with formula addition info"""
+    def show_success_message(self, import_data, will_auto_add=False, bonus_distribution=None):
+        """Show success message with details - enhanced with formula addition and bonus info"""
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Information)
         msg.setWindowTitle("Thành công")
@@ -14938,6 +16230,19 @@ class EnhancedWarehouseImportDialog(QDialog):
             percentage = self.default_percentage_input.value()
             details += f"\n\n🔄 Sẽ tự động thêm vào công thức {formula_type} với tỷ lệ {percentage}%"
 
+        # Add bonus information if applicable
+        if bonus_distribution:
+            worker_count = len(bonus_distribution)
+            details += f"\n\n💰 Tiền thưởng đã được phân chia:"
+            details += f"\nSố nhân viên: {worker_count} người"
+
+            # Show individual amounts if not too many workers
+            if worker_count <= 3:
+                for data in bonus_distribution.values():
+                    details += f"\n  • {data['name']}: {data['amount']:,.0f} VNĐ"
+            else:
+                details += f"\n  • Xem chi tiết trong tab 'Quản lý tổ cám'"
+
         msg.setInformativeText(details)
         msg.setStandardButtons(QMessageBox.Ok)
 
@@ -14948,6 +16253,65 @@ class EnhancedWarehouseImportDialog(QDialog):
             }
             QMessageBox QLabel {
                 color: #333333;
+            }
+        """)
+
+        msg.exec_()
+
+    def show_partial_success_message(self, import_data, will_auto_add=False):
+        """Show partial success message when import succeeded but bonus failed"""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Nhập kho thành công - Lỗi tiền thưởng")
+
+        # Main message
+        msg.setText(f"✅ Đã nhập thành công {import_data['quantity']} {import_data['unit']} {import_data['ingredient']}")
+
+        # Detailed information
+        details = f"📦 Thành phần: {import_data['ingredient']}\n"
+        details += f"📊 Số lượng: {import_data['quantity']} {import_data['unit']}\n"
+        details += f"💰 Đơn giá: {import_data['unit_price']:,} VNĐ\n"
+        details += f"📅 Ngày nhập: {import_data['date'].toString('dd/MM/yyyy')}\n"
+        details += f"🏪 Kho: {'Cám' if self.item_type == 'feed' else 'Mix'}"
+
+        if import_data.get('supplier'):
+            details += f"\n🏭 Nhà cung cấp: {import_data['supplier']}"
+
+        # Add formula addition info if applicable
+        if will_auto_add:
+            formula_type = 'cám' if self.item_type == 'feed' else 'mix'
+            percentage = self.default_percentage_input.value()
+            details += f"\n\n🔄 Sẽ tự động thêm vào công thức {formula_type} với tỷ lệ {percentage}%"
+
+        # Add bonus error info
+        details += f"\n\n⚠️ Lưu ý: Không thể xử lý tiền thưởng"
+        details += f"\nVui lòng kiểm tra và thêm thủ công trong tab 'Quản lý tổ cám'"
+
+        msg.setDetailedText(details)
+
+        # Style the message box
+        msg.setStyleSheet("""
+            QMessageBox {
+                background-color: #FFF8E1;
+                border: 2px solid #FF9800;
+                border-radius: 8px;
+            }
+            QMessageBox QLabel {
+                color: #E65100;
+                font-size: 12px;
+                padding: 10px;
+            }
+            QMessageBox QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QMessageBox QPushButton:hover {
+                background-color: #F57C00;
             }
         """)
 

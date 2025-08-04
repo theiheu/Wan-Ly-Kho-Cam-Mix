@@ -1,0 +1,316 @@
+{
+  "records": [
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Bắp_20250804_10",
+      "ingredient": "Bắp",
+      "quantity": 10.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:21:57"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Amox_20250804_16",
+      "ingredient": "Amox",
+      "quantity": 16.0,
+      "total_bonus": 350000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Khác: 350,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 70000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 70000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 70000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 70000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 70000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:24:09"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Amox_20250804_13",
+      "ingredient": "Amox",
+      "quantity": 13.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:30:20"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Bắp_20250804_4",
+      "ingredient": "Bắp",
+      "quantity": 4.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:36:22"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Bắp_20250804_6",
+      "ingredient": "Bắp",
+      "quantity": 6.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:37:56"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Amox_20250804_1900",
+      "ingredient": "Amox",
+      "quantity": 1900.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:40:07"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Amox_20250804_1",
+      "ingredient": "Amox",
+      "quantity": 1.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:48:45"
+    },
+    {
+      "import_date": "2025-08-04",
+      "import_id": "Bắp_20250804_33000",
+      "ingredient": "Bắp",
+      "quantity": 33000.0,
+      "total_bonus": 400000,
+      "bonus_method": "auto",
+      "bonus_source": "Auto Rate: Bắp: 400,000 VNĐ/lần",
+      "distribution_method": "equal",
+      "worker_bonuses": {
+        "1": {
+          "name": "Chú Phi",
+          "position": "Tổ trưởng",
+          "amount": 80000.0
+        },
+        "2": {
+          "name": "Anh Hưng",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "3": {
+          "name": "Anh Liêm",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "4": {
+          "name": "Anh Chươl",
+          "position": "Công nhân",
+          "amount": 80000.0
+        },
+        "5": {
+          "name": "Luân",
+          "position": "Công nhân",
+          "amount": 80000.0
+        }
+      },
+      "created_by": "Import System",
+      "created_date": "2025-08-04 13:52:03"
+    }
+  ]
+}

@@ -1,0 +1,448 @@
+{
+  "2025-07-25_2025-07-24 22:18:22_Bắp_34400.0": {
+    "date": "2025-07-25",
+    "material_type": "Bắp",
+    "ingredient": "Bắp",
+    "amount": 34400.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-07-28 11:18:02"
+  },
+  "2025-07-24_2025-07-24 22:28:39_Nành_50.0": {
+    "date": "2025-07-24",
+    "material_type": "Nành",
+    "ingredient": "Nành",
+    "amount": 50.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      }
+    ],
+    "updated_date": "2025-07-28 10:00:00"
+  },
+  "2026-07-23_2025-07-24 22:16:12_Nành_4444.0": {
+    "date": "2026-07-23",
+    "material_type": "Nành",
+    "ingredient": "Nành",
+    "amount": 4444.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-07-28 11:17:28"
+  },
+  "2025-07-28_2025-07-28 11:12:42_Nành_31420.0": {
+    "date": "2025-07-28",
+    "material_type": "Nành",
+    "ingredient": "Nành",
+    "amount": 31420.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-07-28 11:17:37"
+  },
+  "2025-08-04_2025-08-04 10:39:20_Bắpr_3.0": {
+    "date": "2025-08-04",
+    "material_type": "Bắp",
+    "ingredient": "Bắpr",
+    "amount": 3.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-08-04 12:43:37"
+  },
+  "2025-08-04_2025-08-04 12:16:16_Vitamino_6.0": {
+    "date": "2025-08-04",
+    "material_type": "Khác",
+    "ingredient": "Vitamino",
+    "amount": 6.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-08-04 12:45:50"
+  },
+  "2025-08-04_2025-08-04 13:21:57_Bắp_10.0": {
+    "date": "2025-08-04",
+    "material_type": "Bắp",
+    "ingredient": "Bắp",
+    "amount": 10.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "updated_date": "2025-08-04 13:23:05"
+  },
+  "Amox_20250804_13": {
+    "date": "2025-08-04",
+    "material_type": "Khác",
+    "ingredient": "Amox",
+    "amount": 13.0,
+    "quantity": 13.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:30:20",
+    "updated_date": "2025-08-04 13:30:20"
+  },
+  "Bắp_20250804_4": {
+    "date": "2025-08-04",
+    "material_type": "Bắp",
+    "ingredient": "Bắp",
+    "amount": 4.0,
+    "quantity": 4.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:36:22",
+    "updated_date": "2025-08-04 13:36:22"
+  },
+  "Bắp_20250804_6": {
+    "date": "2025-08-04",
+    "material_type": "Bắp",
+    "ingredient": "Bắp",
+    "amount": 6.0,
+    "quantity": 6.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:37:56",
+    "updated_date": "2025-08-04 13:37:56"
+  },
+  "Amox_20250804_1900": {
+    "date": "2025-08-04",
+    "material_type": "Khác",
+    "ingredient": "Amox",
+    "amount": 1900.0,
+    "quantity": 1900.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:40:07",
+    "updated_date": "2025-08-04 13:40:07"
+  },
+  "Amox_20250804_1": {
+    "date": "2025-08-04",
+    "material_type": "Khác",
+    "ingredient": "Amox",
+    "amount": 1.0,
+    "quantity": 1.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:48:45",
+    "updated_date": "2025-08-04 13:48:45"
+  },
+  "Bắp_20250804_33000": {
+    "date": "2025-08-04",
+    "material_type": "Bắp",
+    "ingredient": "Bắp",
+    "amount": 33000.0,
+    "quantity": 33000.0,
+    "participants": [
+      {
+        "id": 1,
+        "name": "Chú Phi",
+        "position": "Tổ trưởng"
+      },
+      {
+        "id": 2,
+        "name": "Anh Hưng",
+        "position": "Công nhân"
+      },
+      {
+        "id": 3,
+        "name": "Anh Liêm",
+        "position": "Công nhân"
+      },
+      {
+        "id": 4,
+        "name": "Anh Chươl",
+        "position": "Công nhân"
+      },
+      {
+        "id": 5,
+        "name": "Luân",
+        "position": "Công nhân"
+      }
+    ],
+    "bonus_amount": 400000,
+    "created_by": "Import System",
+    "created_date": "2025-08-04 13:52:03",
+    "updated_date": "2025-08-04 13:52:03"
+  }
+}
