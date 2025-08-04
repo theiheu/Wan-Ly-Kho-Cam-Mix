@@ -6,9 +6,11 @@ Tích hợp với hệ thống cache để tối ưu hiệu suất
 
 import os
 import json
+import time
+import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, List, Optional, Any
 from collections import defaultdict
 
 # Import cache manager
@@ -37,6 +39,89 @@ class DailyReportCalculator:
         # Đảm bảo thư mục tồn tại
         for directory in [self.reports_dir, self.config_dir]:
             directory.mkdir(parents=True, exist_ok=True)
+
+    def _validate_report_file_path(self, report_date: str) -> Path:
+        """Validate and return the correct report file path"""
+        try:
+            # Primary path (should be used for both read and write)
+            primary_path = self.reports_dir / f"report_{report_date}.json"
+
+            # Check for legacy paths that might contain data
+            legacy_paths = [
+                Path("src/data/reports") / f"report_{report_date}.json",
+                Path("installer/output/reports") / f"report_{report_date}.json",
+                Path(__file__).parent.parent / "data" / "reports" / f"report_{report_date}.json"
+            ]
+
+            print(f"🔍 Validating report file path for {report_date}")
+            print(f"   Primary path: {primary_path}")
+
+            # If primary path exists, use it
+            if primary_path.exists():
+                print(f"✅ Using primary path: {primary_path}")
+                return primary_path
+
+            # Check legacy paths for existing data
+            for legacy_path in legacy_paths:
+                if legacy_path.exists():
+                    print(f"📁 Found legacy report at: {legacy_path}")
+
+                    # Migrate the file to primary location
+                    try:
+                        primary_path.parent.mkdir(parents=True, exist_ok=True)
+                        import shutil
+                        shutil.copy2(legacy_path, primary_path)
+                        print(f"🔄 Migrated report from {legacy_path} to {primary_path}")
+                        return primary_path
+                    except Exception as e:
+                        print(f"⚠️ Failed to migrate {legacy_path}: {e}")
+                        # Return legacy path if migration fails
+                        return legacy_path
+
+            # No existing file found, return primary path for new file
+            print(f"📝 No existing report found, will create at: {primary_path}")
+            return primary_path
+
+        except Exception as e:
+            print(f"❌ Error validating report file path: {e}")
+            return self.reports_dir / f"report_{report_date}.json"
+
+    def _load_existing_report(self, report_date: str) -> Optional[Dict]:
+        """Load existing report with path validation and metadata normalization"""
+        try:
+            report_file = self._validate_report_file_path(report_date)
+
+            if report_file.exists() and report_file.stat().st_size > 0:
+                print(f"📖 Loading existing report from: {report_file}")
+
+                with open(report_file, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+
+                # Validate data integrity
+                if existing_data.get('date') == report_date:
+                    # Ensure metadata exists
+                    if 'metadata' not in existing_data:
+                        existing_data['metadata'] = {}
+
+                    # Add missing metadata fields
+                    if 'last_accessed' not in existing_data['metadata']:
+                        existing_data['metadata']['last_accessed'] = datetime.now().isoformat()
+
+                    if 'preserved_user_data' not in existing_data['metadata']:
+                        existing_data['metadata']['preserved_user_data'] = True
+
+                    print(f"✅ Loaded valid existing report for {report_date}")
+                    print(f"   Total feed: {existing_data.get('total_feed', 'N/A')}")
+                    print(f"   Generated at: {existing_data.get('generated_at', 'N/A')}")
+                    return existing_data
+                else:
+                    print(f"⚠️ Report date mismatch in file: expected {report_date}, got {existing_data.get('date')}")
+
+            return None
+
+        except Exception as e:
+            print(f"❌ Error loading existing report {report_date}: {e}")
+            return None
 
     def _load_json_file(self, file_path: Path) -> Dict:
         """Tải file JSON với xử lý lỗi"""
@@ -219,72 +304,185 @@ class DailyReportCalculator:
         return metrics
 
     def calculate_daily_report(self, report_date: str, force_recalculate: bool = False) -> Optional[Dict[str, Any]]:
-        """Tính toán báo cáo tiêu thụ hàng ngày"""
+        """Tính toán báo cáo tiêu thụ hàng ngày với bảo toàn dữ liệu người dùng"""
         try:
             print(f"📊 Calculating daily report for {report_date}")
 
-            # Kiểm tra cache trước
+            # Load existing report first to preserve user modifications
+            existing_report = self._load_existing_report(report_date)
+
+            # Check cache if not forcing recalculation
             if not force_recalculate:
                 cached_report = report_cache_manager.get_cached_report(report_date, "daily_consumption")
                 if cached_report:
                     print(f"📋 Using cached report for {report_date}")
+
+                    # If we have existing file data that's newer, prefer it
+                    if existing_report:
+                        existing_time = existing_report.get('generated_at', 0)
+                        cached_time = cached_report.get('generated_at', 0)
+
+                        # Convert to comparable format if needed
+                        if isinstance(existing_time, str):
+                            try:
+                                existing_time = datetime.fromisoformat(existing_time).timestamp()
+                            except:
+                                existing_time = 0
+
+                        if isinstance(cached_time, str):
+                            try:
+                                cached_time = datetime.fromisoformat(cached_time).timestamp()
+                            except:
+                                cached_time = 0
+
+                        if existing_time > cached_time:
+                            print(f"🔄 Existing file is newer than cache, using file data")
+                            return existing_report
+
                     return cached_report
 
             start_time = time.time()
 
-            # Load dữ liệu cần thiết
+            # Load configuration files
             print("📖 Loading configuration files...")
             feed_formula = self._load_json_file(self.config_dir / "feed_formula.json")
             mix_formula = self._load_json_file(self.config_dir / "mix_formula.json")
             inventory = self._load_json_file(self.config_dir / "inventory.json")
 
-            if not feed_formula or not mix_formula:
-                print("❌ Missing formula data")
-                return None
+            if not feed_formula and not mix_formula:
+                print("❌ Missing both feed and mix formula data")
+                return existing_report  # Return existing data if available
 
-            # Tính toán báo cáo
-            calculated_report = {
-                'date': report_date,
-                'display_date': self._format_display_date(report_date),
-                'generated_at': datetime.now().isoformat(),
-                'metadata': {
-                    'calculation_time': 0,
-                    'cached': False,
-                    'data_sources': {
-                        'feed_formula': bool(feed_formula),
-                        'mix_formula': bool(mix_formula),
-                        'inventory': bool(inventory)
+            # Start with existing report structure if available and not forcing recalculation
+            if existing_report and not force_recalculate:
+                calculated_report = existing_report.copy()
+                print(f"🔄 Preserving existing report data (total_feed: {calculated_report.get('total_feed', 'N/A')})")
+
+                # Ensure metadata exists
+                if 'metadata' not in calculated_report:
+                    calculated_report['metadata'] = {}
+
+                # Update metadata only
+                calculated_report['metadata']['last_accessed'] = datetime.now().isoformat()
+                calculated_report['metadata']['preserved_user_data'] = True
+
+            else:
+                # Create new report structure
+                calculated_report = {
+                    'date': report_date,
+                    'display_date': self._format_display_date(report_date),
+                    'generated_at': datetime.now().isoformat(),
+                    'metadata': {
+                        'calculation_time': 0,
+                        'cached': False,
+                        'preserved_user_data': False,
+                        'data_sources': {
+                            'feed_formula': bool(feed_formula),
+                            'mix_formula': bool(mix_formula),
+                            'inventory': bool(inventory)
+                        }
                     }
                 }
-            }
 
-            # Thực hiện tính toán chi tiết (giữ nguyên logic cũ)
-            # ... existing calculation logic ...
+                # Calculate feed consumption if formula available
+                if feed_formula:
+                    feed_data = self._calculate_feed_consumption(feed_formula, inventory)
+                    calculated_report.update(feed_data)
+
+                # Calculate mix consumption if formula available
+                if mix_formula:
+                    mix_data = self._calculate_mix_consumption(mix_formula, inventory)
+                    calculated_report.update(mix_data)
+
+                # Calculate efficiency metrics
+                efficiency_metrics = self._calculate_efficiency_metrics(calculated_report)
+                calculated_report['efficiency_metrics'] = efficiency_metrics
+
+                # Create summary
+                calculated_report['summary'] = self._create_report_summary(calculated_report)
 
             calculation_time = time.time() - start_time
             calculated_report['metadata']['calculation_time'] = round(calculation_time, 2)
 
-            # Lưu báo cáo vào file
-            save_success = self._save_report_to_file(report_date, calculated_report)
+            # Always save to the validated path
+            report_file = self._validate_report_file_path(report_date)
+            save_success = self._save_report_to_validated_path(report_date, calculated_report, report_file)
+
             if save_success:
                 calculated_report['metadata']['saved_to_file'] = True
+                calculated_report['metadata']['file_path'] = str(report_file)
             else:
                 calculated_report['metadata']['saved_to_file'] = False
                 print("⚠️ Report calculation completed but file save failed")
 
-            # Lưu vào cache
+            # Update cache
             cache_success = report_cache_manager.cache_report(report_date, calculated_report, "daily_consumption")
             if cache_success:
                 calculated_report['metadata']['cached'] = True
 
-            print(f"✅ Daily report calculated in {calculation_time:.2f}s for {report_date}")
+            print(f"✅ Daily report processed in {calculation_time:.2f}s for {report_date}")
             return calculated_report
 
         except Exception as e:
             print(f"❌ Error calculating daily report {report_date}: {e}")
             import traceback
             traceback.print_exc()
+
+            # Return existing report if calculation fails
+            existing_report = self._load_existing_report(report_date)
+            if existing_report:
+                print(f"🔄 Returning existing report due to calculation error")
+                return existing_report
+
             return None
+
+    def _save_report_to_validated_path(self, report_date: str, report_data: Dict, report_file: Path) -> bool:
+        """Save report to validated path with backup"""
+        try:
+            # Ensure directory exists
+            report_file.parent.mkdir(parents=True, exist_ok=True)
+
+            print(f"💾 Saving report to validated path: {report_file}")
+
+            # Create backup if file exists
+            if report_file.exists():
+                backup_file = report_file.parent / f"report_{report_date}_backup_{int(time.time())}.json"
+                import shutil
+                shutil.copy2(report_file, backup_file)
+                print(f"🔄 Created backup: {backup_file}")
+
+            # Save report with atomic write
+            temp_file = report_file.parent / f"report_{report_date}_temp.json"
+
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(report_data, f, ensure_ascii=False, indent=2)
+
+            # Atomic move
+            temp_file.replace(report_file)
+
+            # Verify save
+            if report_file.exists() and report_file.stat().st_size > 0:
+                print(f"✅ Report saved successfully: {report_file} ({report_file.stat().st_size} bytes)")
+
+                # Verify data integrity
+                with open(report_file, 'r', encoding='utf-8') as f:
+                    saved_data = json.load(f)
+
+                if saved_data.get('date') == report_date:
+                    print(f"✅ Data integrity verified for {report_date}")
+                    return True
+                else:
+                    print(f"❌ Data integrity check failed for {report_date}")
+                    return False
+            else:
+                print(f"❌ Report file not created or empty: {report_file}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error saving report to validated path {report_date}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     def get_report_summary(self, report_date: str) -> Optional[Dict[str, Any]]:
         """Lấy tóm tắt báo cáo (chỉ metadata và summary)"""
@@ -342,6 +540,31 @@ class DailyReportCalculator:
             print(f"Lỗi lấy danh sách báo cáo: {e}")
             return []
 
+    def _format_display_date(self, report_date: str) -> str:
+        """Format date for display (YYYYMMDD -> DD/MM/YYYY)"""
+        try:
+            if len(report_date) == 8:
+                year = report_date[:4]
+                month = report_date[4:6]
+                day = report_date[6:8]
+                return f"{day}/{month}/{year}"
+            return report_date
+        except:
+            return report_date
+
+    def _create_report_summary(self, report_data: Dict) -> Dict:
+        """Create summary section for report"""
+        try:
+            return {
+                'total_feed': report_data.get('total_feed', 0),
+                'total_mix': report_data.get('total_mix', 0),
+                'total_consumption': report_data.get('total_feed', 0) + report_data.get('total_mix', 0),
+                'feed_ingredients_count': len(report_data.get('feed_ingredients', {})),
+                'mix_ingredients_count': len(report_data.get('mix_ingredients', {}))
+            }
+        except:
+            return {}
+
 # Global instance
 daily_report_calculator = DailyReportCalculator()
 
@@ -361,5 +584,11 @@ def invalidate_daily_report(report_date: str) -> bool:
 def get_available_daily_reports() -> List[str]:
     """Lấy danh sách báo cáo có sẵn"""
     return daily_report_calculator.get_available_reports()
+
+
+
+
+
+
 
 

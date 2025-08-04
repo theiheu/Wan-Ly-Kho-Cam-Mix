@@ -77,11 +77,12 @@ class ReportCacheManager:
         return hashlib.md5(key_string.encode('utf-8')).hexdigest()
 
     def _get_source_file_hash(self, report_date: str) -> Optional[str]:
-        """Lấy hash của file báo cáo gốc"""
+        """Lấy hash của file báo cáo gốc với path validation"""
         try:
-            # Sử dụng persistent path thay vì relative path
-            from src.utils.persistent_paths import persistent_path_manager
-            report_file = persistent_path_manager.reports_path / f"report_{report_date}.json"
+            # Use the same path validation as calculator
+            from src.services.daily_report_calculator import DailyReportCalculator
+            temp_calculator = DailyReportCalculator()
+            report_file = temp_calculator._validate_report_file_path(report_date)
 
             print(f"🔍 Checking report file: {report_file}")
 
@@ -89,21 +90,21 @@ class ReportCacheManager:
                 print(f"⚠️ Report file not found: {report_file}")
                 return None
 
-            # Tạo hash từ nội dung file và thời gian sửa đổi
+            # Create hash from file content and modification time
             with open(report_file, 'r', encoding='utf-8') as f:
                 content = f.read()
 
+            # Include file modification time in hash for change detection
             mtime = report_file.stat().st_mtime
-            hash_data = f"{content}_{mtime}"
+            hash_content = f"{content}_{mtime}"
 
-            hash_value = hashlib.md5(hash_data.encode('utf-8')).hexdigest()
-            print(f"✅ Generated hash for {report_date}: {hash_value[:8]}...")
-            return hash_value
+            file_hash = hashlib.md5(hash_content.encode('utf-8')).hexdigest()
+            print(f"✅ Generated hash for {report_date}: {file_hash[:8]}...")
+
+            return file_hash
 
         except Exception as e:
-            print(f"❌ Error generating hash for {report_date}: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"❌ Error getting source file hash for {report_date}: {e}")
             return None
 
     def _is_cache_valid(self, cache_key: str, source_hash: str) -> bool:
@@ -455,6 +456,7 @@ cache_invalidation_service = CacheInvalidationService()
 def monitor_and_invalidate_cache() -> Dict[str, Any]:
     """Giám sát và vô hiệu hóa cache tự động"""
     return cache_invalidation_service.monitor_file_changes()
+
 
 
 

@@ -17,7 +17,7 @@ class PersistentPathManager:
         self.app_name = "Quan_Ly_Kho_Cam_&_Mix"
 
         # Check if running in professional installation mode
-        self.is_professional_install = self._check_professional_install()
+        self.is_professional_install = self._detect_installation_mode()
 
         if self.is_professional_install:
             # Use environment variables set by installation manager
@@ -39,42 +39,52 @@ class PersistentPathManager:
         # Ensure all directories exist
         self._ensure_directories()
 
-    def _check_professional_install(self):
-        """Check if running in professional installation mode"""
+    def _detect_installation_mode(self) -> bool:
+        """Detect if running in professional installation mode"""
+        try:
+            # Check for installation marker file
+            marker_file = Path(__file__).parent.parent.parent / "installer" / "output" / ".installation_marker"
+            if marker_file.exists():
+                self._safe_print("Professional installation detected via marker file")
+                return True
 
-        # Check environment variable first
-        if os.environ.get('CFM_PROFESSIONAL_INSTALL') == '1':
-            return True
+            # Check if running from installer/output directory
+            current_path = Path(__file__).resolve()
+            if "installer" in str(current_path) and "output" in str(current_path):
+                self._safe_print("Professional installation detected via path analysis")
+                return True
 
-        # For standalone executable, check multiple indicators
-        if getattr(sys, 'frozen', False):
-            # Get actual executable path, not temp path
-            exe_path = Path(sys.executable)
-            exe_dir = exe_path.parent
+            # Check for environment variable
+            if os.environ.get('CFM_INSTALLATION_MODE') == 'professional':
+                self._safe_print("Professional installation detected via environment variable")
+                return True
 
-            print(f"🔍 Checking install mode - Executable: {exe_path}")
-            print(f"🔍 Executable directory: {exe_dir}")
+            # Check if data directories exist in expected professional locations
+            potential_data_path = Path.home() / "AppData" / "Local" / "ChickenFeedManager" / "data"
+            if potential_data_path.exists():
+                self._safe_print("Professional installation detected via data directory")
+                return True
 
-            # Check if running from Program Files (professional install)
-            program_files_indicators = [
-                'Program Files' in str(exe_dir),
-                'Program Files (x86)' in str(exe_dir),
-                exe_dir.name.lower() in ['program files', 'program files (x86)']
-            ]
+            self._safe_print("Development mode detected")
+            return False
 
-            # Check environment variables
-            env_indicators = [
-                'CFM_DATA_PATH' in os.environ,
-                'CFM_CONFIG_PATH' in os.environ
-            ]
+        except Exception as e:
+            self._safe_print(f"Error detecting installation mode: {e}")
+            return False
 
-            is_professional = any(program_files_indicators + env_indicators)
-            print(f"🔍 Professional install detected: {is_professional}")
-
-            return is_professional
-
-        # For development mode
-        return 'CFM_DATA_PATH' in os.environ
+    def _safe_print(self, message: str):
+        """Safe print function that handles unicode encoding issues"""
+        try:
+            # Remove emoji characters for executable compatibility
+            safe_message = message.replace("🏢", "[PROF]").replace("🔧", "[DEV]").replace("⚠️", "[WARN]").replace("🔍", "[INFO]")
+            print(safe_message)
+        except UnicodeEncodeError:
+            # Fallback to ASCII-only message
+            ascii_message = message.encode('ascii', 'ignore').decode('ascii')
+            print(ascii_message)
+        except Exception:
+            # Ultimate fallback
+            print("Installation mode detection message")
 
     def _get_fallback_data_path(self):
         """Get fallback data path"""
@@ -482,6 +492,8 @@ except Exception as e:
             init_data()
         except ImportError:
             print("⚠️ Could not initialize fallback data")
+
+
 
 
 

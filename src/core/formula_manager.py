@@ -1,10 +1,37 @@
 import json
 import os
 from typing import Dict, Any, List, Tuple, Optional
+
+# Handle imports for both development and executable environments
 try:
     from src.utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
 except ImportError:
-    from utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
+    try:
+        from utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
+    except ImportError:
+        # Fallback for executable environment
+        import sys
+        from pathlib import Path
+
+        # Add current directory to path
+        current_dir = Path(__file__).parent
+        sys.path.insert(0, str(current_dir.parent))
+
+        try:
+            from utils.persistent_paths import get_data_file_path, get_config_file_path, persistent_path_manager
+        except ImportError:
+            # Ultimate fallback - create minimal path functions
+            def get_data_file_path(filename):
+                return Path("data") / filename
+            def get_config_file_path(filename):
+                return Path("data") / "config" / filename
+
+            class MockPathManager:
+                def __init__(self):
+                    self.data_path = Path("data")
+                    self.config_path = Path("data") / "config"
+
+            persistent_path_manager = MockPathManager()
 
 class FormulaManager:
     """Class to manage feed and mix formulas"""
