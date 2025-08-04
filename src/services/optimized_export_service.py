@@ -74,10 +74,20 @@ class OptimizedExportService:
 
     def __init__(self, inventory_manager=None, formula_manager=None, threshold_manager=None, remaining_usage_calculator=None):
         """Khởi tạo dịch vụ với data managers từ ứng dụng chính"""
-        self.data_dir = Path("src/data")
-        self.config_dir = self.data_dir / "config"
-        self.exports_dir = self.data_dir / "exports"
+        # Use persistent path manager for consistent paths
+        from src.utils.persistent_paths import persistent_path_manager
+
+        self.data_dir = persistent_path_manager.data_path
+        self.config_dir = persistent_path_manager.config_path
+        self.exports_dir = persistent_path_manager.exports_path
+        self.reports_dir = persistent_path_manager.reports_path
         self.daily_consumption_dir = self.data_dir / "daily_consumption"
+
+        print(f"🔧 OptimizedExportService initialized:")
+        print(f"   📁 Data dir: {self.data_dir}")
+        print(f"   📁 Config dir: {self.config_dir}")
+        print(f"   📁 Exports dir: {self.exports_dir}")
+        print(f"   📁 Reports dir: {self.reports_dir}")
 
         # Performance optimizations
         self._data_cache = {}
@@ -88,8 +98,8 @@ class OptimizedExportService:
         self.style_manager = ExcelStyleManager()
 
         # Ensure directories exist
-        self.exports_dir.mkdir(parents=True, exist_ok=True)
-        self.daily_consumption_dir.mkdir(parents=True, exist_ok=True)
+        for directory in [self.exports_dir, self.daily_consumption_dir, self.reports_dir]:
+            directory.mkdir(parents=True, exist_ok=True)
 
         # Data managers from main application
         self.inventory_manager = inventory_manager
@@ -2099,3 +2109,4 @@ class OptimizedExportService:
 
         # Apply formatting
         self._apply_advanced_formatting(efficiency_sheet, f"A1:E{efficiency_sheet.max_row}", "mix_efficiency")
+

@@ -31,10 +31,16 @@ def save_data(filename, data):
 
 def init_data():
     """Initialize all data files"""
+    print("🔧 Initializing data files...")
+
     # Create directories if they don't exist using persistent paths
     config_dir = str(persistent_path_manager.config_path)
     presets_dir = str(persistent_path_manager.data_path / "presets")
     reports_dir = str(persistent_path_manager.reports_path)
+
+    print(f"🔧 Config directory: {config_dir}")
+    print(f"🔧 Presets directory: {presets_dir}")
+    print(f"🔧 Reports directory: {reports_dir}")
 
     os.makedirs(config_dir, exist_ok=True)
     os.makedirs(os.path.join(presets_dir, "feed"), exist_ok=True)
@@ -42,25 +48,39 @@ def init_data():
     os.makedirs(reports_dir, exist_ok=True)
 
     # Save feed formula
-    save_data(str(get_config_file_path("feed_formula.json")), LAYER_FEED_FORMULA)
+    feed_formula_path = str(get_config_file_path("feed_formula.json"))
+    print(f"🔧 Saving feed formula to: {feed_formula_path}")
+    save_data(feed_formula_path, LAYER_FEED_FORMULA)
 
     # Save mix formula
-    save_data(str(get_config_file_path("mix_formula.json")), LAYER_MIX_FORMULA)
+    mix_formula_path = str(get_config_file_path("mix_formula.json"))
+    print(f"🔧 Saving mix formula to: {mix_formula_path}")
+    save_data(mix_formula_path, LAYER_MIX_FORMULA)
 
     # Save inventory
-    save_data(str(get_config_file_path("inventory.json")), INITIAL_INVENTORY)
+    inventory_path = str(get_config_file_path("inventory.json"))
+    print(f"🔧 Saving inventory to: {inventory_path}")
+    save_data(inventory_path, INITIAL_INVENTORY)
 
     # Save formula links
-    save_data(str(get_config_file_path("formula_links.json")), {
+    formula_links_path = str(get_config_file_path("formula_links.json"))
+    print(f"🔧 Saving formula links to: {formula_links_path}")
+    save_data(formula_links_path, {
         "current_formula": "",
         "preset_links": {}
     })
 
     # Save default formulas as presets
-    save_data(os.path.join(presets_dir, "feed", "gà_đẻ.json"), LAYER_FEED_FORMULA)
-    save_data(os.path.join(presets_dir, "mix", "gà_đẻ.json"), LAYER_MIX_FORMULA)
+    feed_preset_path = os.path.join(presets_dir, "feed", "gà_đẻ.json")
+    mix_preset_path = os.path.join(presets_dir, "mix", "gà_đẻ.json")
 
-    print("Đã khởi tạo dữ liệu thành công!")
+    print(f"🔧 Saving feed preset to: {feed_preset_path}")
+    save_data(feed_preset_path, LAYER_FEED_FORMULA)
+
+    print(f"🔧 Saving mix preset to: {mix_preset_path}")
+    save_data(mix_preset_path, LAYER_MIX_FORMULA)
+
+    print("✅ Đã khởi tạo dữ liệu thành công!")
 
 if __name__ == "__main__":
     init_data()

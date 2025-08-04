@@ -586,9 +586,24 @@ class ChickenFarmApp(QMainWindow):
         # File menu
         file_menu = menu_bar.addMenu("Tệp")
 
-        # Export action
-        export_action = file_menu.addAction("Xuất Excel")
-        export_action.triggered.connect(self.export_to_excel)
+        # Export submenu - Streamlined to use comprehensive reporting
+        export_menu = file_menu.addMenu("📤 Xuất Excel")
+
+        # Primary comprehensive report export
+        comprehensive_report_action = export_menu.addAction("📋 Báo Cáo Toàn Diện")
+        comprehensive_report_action.triggered.connect(self.open_comprehensive_report_dialog)
+
+        export_menu.addSeparator()
+
+        # Simplified export options - all use comprehensive reporting
+        export_inventory_action = export_menu.addAction("📦 Xuất Tồn Kho")
+        export_inventory_action.triggered.connect(self.open_comprehensive_report_dialog)
+
+        export_formula_action = export_menu.addAction("🧪 Xuất Công Thức")
+        export_formula_action.triggered.connect(self.open_comprehensive_report_dialog)
+
+        export_production_action = export_menu.addAction("🏭 Xuất Báo Cáo Sản Xuất")
+        export_production_action.triggered.connect(self.open_comprehensive_report_dialog)
 
         file_menu.addSeparator()
 
@@ -1361,6 +1376,9 @@ class ChickenFarmApp(QMainWindow):
 
         feed_layout.addWidget(self.feed_inventory_table)
 
+        # Add button layout for feed inventory
+        feed_button_layout = QHBoxLayout()
+
         # Add update button for feed inventory
         update_feed_button = QPushButton("Cập Nhật Kho Cám")
         update_feed_button.setFont(BUTTON_FONT)
@@ -1377,7 +1395,27 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
         update_feed_button.clicked.connect(lambda: self.update_inventory("feed"))
-        feed_layout.addWidget(update_feed_button)
+        feed_button_layout.addWidget(update_feed_button)
+
+        # Add export button for feed inventory
+        export_feed_button = QPushButton("📤 Xuất Excel")
+        export_feed_button.setFont(BUTTON_FONT)
+        export_feed_button.setMinimumHeight(40)
+        export_feed_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        export_feed_button.clicked.connect(lambda: self.open_export_dialog("inventory"))
+        feed_button_layout.addWidget(export_feed_button)
+
+        feed_layout.addLayout(feed_button_layout)
 
         feed_inventory_tab.setLayout(feed_layout)
 
@@ -1471,6 +1509,9 @@ class ChickenFarmApp(QMainWindow):
 
         mix_layout.addWidget(self.mix_inventory_table)
 
+        # Add button layout for mix inventory
+        mix_button_layout = QHBoxLayout()
+
         # Add update button for mix inventory
         update_mix_button = QPushButton("Cập Nhật Kho Mix")
         update_mix_button.setFont(BUTTON_FONT)
@@ -1487,7 +1528,27 @@ class ChickenFarmApp(QMainWindow):
             }
         """)
         update_mix_button.clicked.connect(lambda: self.update_inventory("mix"))
-        mix_layout.addWidget(update_mix_button)
+        mix_button_layout.addWidget(update_mix_button)
+
+        # Add export button for mix inventory
+        export_mix_button = QPushButton("📤 Xuất Excel")
+        export_mix_button.setFont(BUTTON_FONT)
+        export_mix_button.setMinimumHeight(40)
+        export_mix_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        export_mix_button.clicked.connect(lambda: self.open_export_dialog("inventory"))
+        mix_button_layout.addWidget(export_mix_button)
+
+        mix_layout.addLayout(mix_button_layout)
 
         mix_inventory_tab.setLayout(mix_layout)
 
@@ -1495,6 +1556,186 @@ class ChickenFarmApp(QMainWindow):
         layout.addWidget(inventory_tabs)
 
         self.inventory_tab.setLayout(layout)
+
+    def open_export_dialog(self, export_type="inventory"):
+        """Mở dialog xuất báo cáo - Chuyển hướng đến comprehensive report dialog"""
+        # All export types now use the comprehensive report dialog
+        print(f"Opening comprehensive report dialog for export type: {export_type}")
+        self.open_comprehensive_report_dialog()
+
+        # Fallback to original enhanced dialog
+        try:
+            from src.ui.dialogs.enhanced_export_dialog import EnhancedExportDialog
+            dialog = EnhancedExportDialog(self, export_type)
+            dialog.exec_()
+        except ImportError:
+            try:
+                from ui.dialogs.enhanced_export_dialog import EnhancedExportDialog
+                dialog = EnhancedExportDialog(self, export_type)
+                dialog.exec_()
+            except ImportError:
+                # Fallback to simple dialog
+                try:
+                    from src.ui.dialogs.simple_warehouse_export_dialog import SimpleWarehouseExportDialog
+                    dialog = SimpleWarehouseExportDialog(self, export_type)
+                    dialog.exec_()
+                except ImportError:
+                    try:
+                        from ui.dialogs.simple_warehouse_export_dialog import SimpleWarehouseExportDialog
+                        dialog = SimpleWarehouseExportDialog(self, export_type)
+                        dialog.exec_()
+                    except ImportError:
+                        # Final fallback to original dialog
+                        try:
+                            from src.ui.dialogs.warehouse_export_dialog import WarehouseExportDialog
+                            dialog = WarehouseExportDialog(self, export_type)
+                            dialog.exec_()
+                        except ImportError as e:
+                            self.show_export_error("import", str(e))
+        except Exception as e:
+            self.show_export_error("runtime", str(e))
+
+    # DEPRECATED: Daily reports functionality removed - now using comprehensive reporting
+    # def open_daily_reports_dialog(self, export_type="daily_regional"):
+    #     """Mở dialog báo cáo theo ngày với error handling đặc biệt - Fixed QWidget value error"""
+    #     print(f"Opening daily reports dialog: {export_type}")
+
+    #     try:
+    #         # Thử dialog siêu an toàn trước (ưu tiên cao nhất)
+    #         from src.ui.dialogs.ultra_safe_daily_reports_dialog import UltraSafeDailyReportsDialog
+    #         print("Trying ultra safe daily dialog...")
+    #         dialog = UltraSafeDailyReportsDialog(self, export_type)
+    #         if dialog.export_service is not None:
+    #             print("Ultra safe dialog created successfully")
+    #             dialog.exec_()
+    #             return
+    #         else:
+    #             print("Ultra safe dialog: Export service not available, trying simple...")
+    #     except ImportError:
+    #         try:
+    #             from ui.dialogs.ultra_safe_daily_reports_dialog import UltraSafeDailyReportsDialog
+    #             print("Trying ultra safe daily dialog (alternative import)...")
+    #             dialog = UltraSafeDailyReportsDialog(self, export_type)
+    #             if dialog.export_service is not None:
+    #                 print("Ultra safe dialog created successfully (alternative)")
+    #                 dialog.exec_()
+    #                 return
+    #             else:
+    #                 print("Ultra safe dialog: Export service not available, trying simple...")
+    #         except ImportError:
+    #             print("Ultra safe dialog not available, trying simple dialog...")
+    #     except Exception as e:
+    #         print(f"Ultra safe daily dialog error: {e}, trying simple dialog...")
+    #
+    #     # Fallback to simple dialog
+    #     try:
+    #         from src.ui.dialogs.simple_daily_reports_dialog import SimpleDailyReportsDialog
+    #         print("Trying simple daily dialog...")
+    #         dialog = SimpleDailyReportsDialog(self, export_type)
+    #         if dialog.export_service is not None:
+    #             print("Simple dialog created successfully")
+    #             dialog.exec_()
+    #             return
+    #         else:
+    #             print("Simple daily dialog: Export service not available, trying enhanced...")
+    #     except ImportError:
+    #         try:
+    #             from ui.dialogs.simple_daily_reports_dialog import SimpleDailyReportsDialog
+    #             print("Trying simple daily dialog (alternative import)...")
+    #             dialog = SimpleDailyReportsDialog(self, export_type)
+    #             if dialog.export_service is not None:
+    #                 print("Simple dialog created successfully (alternative)")
+    #                 dialog.exec_()
+    #                 return
+    #             else:
+    #                 print("Simple daily dialog: Export service not available, trying enhanced...")
+    #         except ImportError:
+    #             print("Simple daily dialog not available, trying enhanced dialog...")
+    #     except Exception as e:
+    #         print(f"Simple daily dialog error: {e}, trying enhanced dialog...")
+    #
+    #     # Fallback to enhanced dialog with daily reports
+    #     try:
+    #         from src.ui.dialogs.enhanced_export_dialog_fixed import EnhancedExportDialog
+    #         print("Trying enhanced dialog with daily reports...")
+    #         dialog = EnhancedExportDialog(self, export_type)
+    #         if dialog.export_service is not None:
+    #             print("Enhanced dialog created successfully")
+    #             dialog.exec_()
+    #             return
+    #     except Exception as e:
+    #         print(f"Enhanced dialog with daily reports error: {e}")
+    #
+    #     # Show specific error for daily reports with detailed guidance
+    #     QMessageBox.critical(
+    #         self,
+    #         "Lỗi Báo Cáo Theo Ngày",
+    #         "Không thể mở dialog báo cáo theo ngày.\n\n"
+    #         "❌ Lỗi có thể gặp:\n"
+    #         "• 'QWidget' object has no attribute 'value'\n"
+    #         "• Thiếu dữ liệu tiêu thụ hàng ngày\n"
+    #         "• Lỗi QWidget với date picker hoặc region list\n"
+    #         "• Thiếu thư viện: pip install PyQt5 pandas openpyxl\n\n"
+    #         "💡 Giải pháp:\n"
+    #         "• Khởi động lại ứng dụng\n"
+    #         "• Thử sử dụng báo cáo truyền thống trước\n"
+    #         "• Kiểm tra console để xem lỗi chi tiết\n"
+    #         "• Cài đặt: pip install PyQt5 pandas openpyxl"
+    #     )
+        pass  # Method deprecated - now using comprehensive reporting
+
+    def open_comprehensive_report_dialog(self):
+        """Mở dialog báo cáo toàn diện"""
+        try:
+            from src.ui.dialogs.comprehensive_report_dialog import ComprehensiveReportDialog
+            dialog = ComprehensiveReportDialog(self)
+            dialog.exec_()
+        except ImportError:
+            try:
+                from ui.dialogs.comprehensive_report_dialog import ComprehensiveReportDialog
+                dialog = ComprehensiveReportDialog(self)
+                dialog.exec_()
+            except ImportError as e:
+                QMessageBox.critical(
+                    self,
+                    "Lỗi",
+                    f"Không thể tải dialog báo cáo toàn diện:\n{str(e)}\n\n"
+                    "Vui lòng kiểm tra:\n"
+                    "• File comprehensive_report_dialog.py có tồn tại\n"
+                    "• Các thư viện cần thiết đã được cài đặt\n"
+                    "• Đường dẫn import chính xác"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Lỗi",
+                f"Lỗi khi mở dialog báo cáo toàn diện:\n{str(e)}"
+            )
+
+    def show_export_error(self, error_type, error_message):
+        """Hiển thị lỗi xuất báo cáo với thông tin chi tiết"""
+        if error_type == "import":
+            error_msg = f"Không thể tải dialog xuất báo cáo:\n{error_message}\n\n"
+            error_msg += "💡 Gợi ý khắc phục:\n"
+            error_msg += "• Cài đặt thư viện: pip install pandas openpyxl PyQt5\n"
+            error_msg += "• Khởi động lại ứng dụng\n"
+            error_msg += "• Kiểm tra cấu trúc thư mục src/ui/dialogs/\n"
+            error_msg += "• Liên hệ hỗ trợ kỹ thuật"
+        else:
+            error_msg = f"Lỗi khi mở dialog xuất báo cáo:\n{error_message}\n\n"
+
+            if "pandas" in error_message.lower():
+                error_msg += "💡 Thiếu thư viện pandas. Chạy: pip install pandas"
+            elif "openpyxl" in error_message.lower():
+                error_msg += "💡 Thiếu thư viện openpyxl. Chạy: pip install openpyxl"
+            elif "pyqt" in error_message.lower():
+                error_msg += "💡 Thiếu thư viện PyQt5. Chạy: pip install PyQt5"
+            elif "qwidget" in error_message.lower():
+                error_msg += "💡 Lỗi QWidget. Thử khởi động lại ứng dụng"
+            else:
+                error_msg += "💡 Vui lòng thử khởi động lại ứng dụng"
+
+        QMessageBox.critical(self, "Lỗi Xuất Báo Cáo", error_msg)
 
     def setup_import_tab(self):
         """Setup the enhanced import goods tab with unified interface"""
@@ -7292,7 +7533,7 @@ class ChickenFarmApp(QMainWindow):
                 background-color: #e68a00;
             }
         """)
-        export_button.clicked.connect(self.export_to_excel)
+        export_button.clicked.connect(self.open_comprehensive_report_dialog)
 
         close_button = QPushButton("Đóng")
         close_button.setFont(BUTTON_FONT)

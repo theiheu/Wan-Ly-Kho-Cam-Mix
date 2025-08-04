@@ -6,7 +6,7 @@ CHÀO MỪNG BẠN ĐẾN VỚI PHẦN MỀM QUẢN LÝ CÁM CHUYÊN NGHIỆP!
 
 TỔNG QUAN
 =========
-Phần mềm Quản lý Cám - Trại Gà là giải pháp quản lý toàn diện cho các trại chăn nuôi gà, 
+Phần mềm Quản lý Cám - Trại Gà là giải pháp quản lý toàn diện cho các trại chăn nuôi gà,
 giúp theo dõi lượng cám tiêu thụ hàng ngày, quản lý tồn kho và tạo báo cáo chi tiết.
 
 TÍNH NĂNG CHÍNH

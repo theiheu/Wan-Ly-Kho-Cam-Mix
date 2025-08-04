@@ -11,13 +11,13 @@ from pathlib import Path
 
 class PersistentPathManager:
     """Manages persistent data paths for the application"""
-    
+
     def __init__(self):
         self.app_name = "ChickenFarmManager"
-        
+
         # Check if running in professional installation mode
         self.is_professional_install = self._check_professional_install()
-        
+
         if self.is_professional_install:
             # Use environment variables set by installation manager
             self.data_path = Path(os.environ.get('CFM_DATA_PATH', self._get_fallback_data_path()))
@@ -34,7 +34,7 @@ class PersistentPathManager:
             self.reports_path = self._get_fallback_reports_path()
             self.exports_path = self._get_fallback_exports_path()
             self.backups_path = self._get_fallback_backups_path()
-        
+
         # Ensure all directories exist
         self._ensure_directories()
 
@@ -95,7 +95,7 @@ class PersistentPathManager:
             self.exports_path,
             self.backups_path
         ]
-        
+
         for directory in directories:
             try:
                 directory.mkdir(parents=True, exist_ok=True)
@@ -130,15 +130,15 @@ class PersistentPathManager:
         """Migrate data from old relative paths to new persistent paths"""
         if not self.is_professional_install:
             return  # No migration needed for development mode
-        
+
         # Old relative data directory
         old_data_dir = Path(__file__).parent.parent.parent / "src" / "data"
-        
+
         if not old_data_dir.exists():
             return
-        
+
         print("🔄 Migrating data to persistent storage...")
-        
+
         try:
             # Migrate data files
             for file_path in old_data_dir.glob("*.json"):
@@ -147,7 +147,7 @@ class PersistentPathManager:
                     import shutil
                     shutil.copy2(file_path, dest_path)
                     print(f"✅ Migrated: {file_path.name}")
-            
+
             # Migrate subdirectories
             for subdir in ["config", "logs", "reports", "exports", "backups"]:
                 old_subdir = old_data_dir / subdir
@@ -162,7 +162,7 @@ class PersistentPathManager:
                                 import shutil
                                 shutil.copy2(file_path, dest_path)
                                 print(f"✅ Migrated: {subdir}/{relative_path}")
-        
+
         except Exception as e:
             print(f"⚠️ Data migration warning: {e}")
 

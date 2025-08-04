@@ -1,13 +1,13 @@
 {
-    "certificate_path": "path/to/your/certificate.p12",
-    "certificate_password": "your_certificate_password",
-    "timestamp_url": "http://timestamp.digicert.com",
-    "description": "Phần mềm Quản lý Cám - Trại Gà",
-    "url": "https://github.com/Minh-Tan_Phat",
-    "instructions": [
-        "1. Replace certificate_path with your actual certificate file path",
-        "2. Replace certificate_password with your certificate password",
-        "3. Optionally change timestamp_url to your preferred timestamp server",
-        "4. Remove this instructions section when configured"
-    ]
+  "certificate_path": "path/to/your/certificate.p12",
+  "certificate_password": "your_certificate_password",
+  "timestamp_url": "http://timestamp.digicert.com",
+  "description": "Phần mềm Quản lý Cám - Trại Gà",
+  "url": "https://github.com/Minh-Tan_Phat",
+  "instructions": [
+    "1. Replace certificate_path with your actual certificate file path",
+    "2. Replace certificate_password with your certificate password",
+    "3. Optionally change timestamp_url to your preferred timestamp server",
+    "4. Remove this instructions section when configured"
+  ]
 }

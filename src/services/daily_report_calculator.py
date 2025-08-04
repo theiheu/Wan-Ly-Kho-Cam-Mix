@@ -175,7 +175,7 @@ class DailyReportCalculator:
                 if cached_report:
                     return cached_report
 
-            print(f"📊 [Calculator] Calculating daily report for {report_date}...")
+            print(f"� [Calculator] Calculating daily report for {report_date}...")
 
             # Tải dữ liệu báo cáo gốc
             report_file = self.reports_dir / f"report_{report_date}.json"

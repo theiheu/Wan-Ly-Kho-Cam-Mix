@@ -41,7 +41,7 @@
         "Khu 3": {
             "1D": {
                 "Sáng": 0.2,
-                "Chiều": 0.7
+                "Chiều": 1.2
             },
             "2D": {
                 "Sáng": 0.0,
@@ -96,12 +96,12 @@
                 "Chiều": "GD"
             },
             "T4": {
-                "Sáng": "CT3",
+                "Sáng": "GD",
                 "Chiều": "GD"
             },
             "T6": {
                 "Sáng": "CT2",
-                "Chiều": "CT3"
+                "Chiều": "GD"
             }
         },
         "Khu 2": {
@@ -132,12 +132,12 @@
                 "Chiều": "CT2"
             },
             "4D": {
-                "Sáng": "CT3",
+                "Sáng": "GD",
                 "Chiều": "CT2"
             },
             "2N": {
                 "Sáng": "GD",
-                "Chiều": "CT3"
+                "Chiều": "CG1"
             }
         },
         "Khu 4": {
@@ -147,7 +147,7 @@
             },
             "T4": {
                 "Sáng": "CT2",
-                "Chiều": "CT3"
+                "Chiều": "GD"
             },
             "T6": {
                 "Sáng": "CT2",
@@ -170,52 +170,52 @@
         }
     },
     "feed_ingredients": {
-        "Bắp": 17427.2,
-        "Nành": 7464.7,
-        "Dầu": 127.1,
-        "Nguyên liệu tổ hợp": 467.5,
-        "DCP": 457.6,
-        "Đá hạt": 574.4,
-        "Đá bột mịn": 821.4,
-        "Cám gạo": 3788.5
+        "Nành": 18648.000000000004,
+        "Dầu": 190.40000000000003,
+        "Nguyên liệu tổ hợp": 1159.12,
+        "DCP": 730.8000000000001,
+        "Đá hạt": 3080.0000000000005,
+        "Đá bột mịn": 1260.0000000000002,
+        "Cám gạo": 4928.000000000001,
+        "Bắp": 42761.600000000006
     },
     "mix_ingredients": {
-        "L-Lysine": 26.8,
-        "DL-Methionine": 52.4,
-        "Bio-Choline": 7.7,
-        "Phytast": 6.0,
+        "L-Lysine": 55.76,
+        "DL-Methionine": 101.76,
+        "Bio-Choline": 14.56,
+        "Phytast": 14.92,
         "Performix 0.25% layer": 0.0,
-        "Miamix": 7.7,
-        "Premix 0.25% layer": 110.4,
-        "Compound Enzyme FE808E": 5.8,
-        "Carophy Red (Màu đỏ)": 10.6,
-        "P-Zym": 6.4,
-        "Oxytetracylin": 0.8,
-        "Tiamulin": 1.0,
+        "Miamix": 44.4,
+        "Premix 0.25% layer": 174.0,
+        "Compound Enzyme FE808E": 11.54,
+        "Carophy Red (Màu đỏ)": 18.119999999999997,
+        "P-Zym": 7.779999999999999,
+        "Oxytetracylin": 2.72,
+        "Tiamulin": 2.72,
         "Amox": 0.0,
-        "Immunewall": 3.6,
-        "Lysoforte Dry": 9.2,
-        "Nutriprotect": 2.3,
-        "Defitox L1": 27.9,
-        "Men Ecobiol": 11.1,
-        "Lactic LD (axit hữu cơ)": 0.0,
-        "Sodium bicarbonate": 37.8,
-        "Bột đá mịn": 89.3,
-        "Muối": 132.3,
-        "DCP": 16.5
+        "Immunewall": 9.0,
+        "Lysoforte Dry": 15.100000000000001,
+        "Nutriprotect": 11.84,
+        "Defitox L1": 46.4,
+        "Men Ecobiol": 21.839999999999996,
+        "Lactic LD (axit hữu cơ)": 72.8,
+        "Sodium bicarbonate": 72.8,
+        "Bột đá mịn": 135.89999999999998,
+        "Muối": 263.16,
+        "DCP": 61.99999999999999
     },
-    "total_batches": 17.700000000000003,
+    "total_batches": 36.4,
     "total_batches_by_area": {
-        "Khu 1": 6.300000000000001,
-        "Khu 2": 3.5,
-        "Khu 3": 2.9,
-        "Khu 4": 4.5,
-        "Khu 5": 0.5
+        "Khu 1": 12.600000000000001,
+        "Khu 2": 7.0,
+        "Khu 3": 6.800000000000001,
+        "Khu 4": 9.0,
+        "Khu 5": 1.0
     },
     "default_formula": "GD",
-    "total_feed": 31128.4,
-    "total_mix": 565.6,
-    "batch_count": 17.700000000000003,
+    "total_feed": 72757.92000000001,
+    "total_mix": 1159.12,
+    "batch_count": 36.4,
     "column_mix_formulas": {
         "0": "Khu 2(4,5)",
         "1": "Khu 2(4,5)",
