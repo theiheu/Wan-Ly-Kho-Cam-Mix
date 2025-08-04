@@ -2592,7 +2592,33 @@ class ChickenFarmApp(QMainWindow):
         print(f"✅ [Mix History] Updated mix import history table with {len(mix_imports)} records")
 
     def setup_formula_tab(self):
-        """Setup the formula management tab"""
+        """Setup the enhanced formula management tab"""
+        try:
+            # Import the enhanced formula tab
+            from src.ui.tabs.formula_tab_enhanced import EnhancedFormulaTab
+
+            # Create the enhanced formula tab
+            enhanced_tab = EnhancedFormulaTab(parent=self)
+
+            # Set up the layout for the formula tab
+            layout = QVBoxLayout()
+            layout.addWidget(enhanced_tab)
+            self.formula_tab.setLayout(layout)
+
+            # Store reference for later use
+            self.enhanced_formula_tab = enhanced_tab
+
+            print("✅ Enhanced formula tab loaded successfully")
+
+        except ImportError as e:
+            print(f"⚠️ Could not import enhanced formula tab, falling back to original: {e}")
+            self.setup_original_formula_tab()
+        except Exception as e:
+            print(f"⚠️ Error setting up enhanced formula tab, falling back to original: {e}")
+            self.setup_original_formula_tab()
+
+    def setup_original_formula_tab(self):
+        """Setup the original formula management tab as fallback"""
         layout = QVBoxLayout()
 
         # Create tabs for Feed and Mix formulas
@@ -2637,7 +2663,336 @@ class ChickenFarmApp(QMainWindow):
         feed_header = QLabel("Quản Lý Công Thức Cám")
         feed_header.setFont(HEADER_FONT)
         feed_header.setAlignment(Qt.AlignCenter)
-        feed_header.setStyleSheet("QLabel { padding: 10px; background-color: #e3f2fd; border-radius: 5px; }")
+        feed_header.setStyleSheet("QLabel { padding: 2px; background-color: #e3f2fd; border-radius: 5px; }")
+        feed_layout.addWidget(feed_header)
+
+        # Feed formula table
+        self.feed_formula_table = QTableWidget()
+        self.feed_formula_table.setFont(TABLE_CELL_FONT)
+        self.feed_formula_table.setColumnCount(3)
+        self.feed_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "Lượng (kg)"])
+        self.feed_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.feed_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.feed_formula_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #2196F3;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+            QDoubleSpinBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 2px;
+                background-color: white;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 20px;
+            }
+        """)
+        self.feed_formula_table.setAlternatingRowColors(True)
+
+        # Populate feed formula table
+        self.update_feed_formula_table()
+
+        feed_layout.addWidget(self.feed_formula_table)
+
+        # Feed formula presets section
+        preset_section = QGroupBox("Công Thức Có Sẵn")
+        preset_section.setFont(DEFAULT_FONT)
+        preset_section.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #bbbbbb;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                background-color: white;
+            }
+        """)
+
+        preset_layout = QVBoxLayout()
+
+        # Feed formula presets
+        preset_combo_layout = QHBoxLayout()
+
+        preset_label = QLabel("Chọn công thức:")
+        preset_label.setFont(DEFAULT_FONT)
+        preset_combo_layout.addWidget(preset_label)
+
+        # Sử dụng feed_preset_combo đã được khởi tạo trước đó
+        self.feed_preset_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.feed_preset_combo.setMinimumHeight(35)
+        self.update_feed_preset_combo()
+        self.feed_preset_combo.currentIndexChanged.connect(self.auto_load_feed_preset)
+        preset_combo_layout.addWidget(self.feed_preset_combo)
+        preset_combo_layout.addStretch()
+
+        preset_layout.addLayout(preset_combo_layout)
+
+        # Bỏ phần liên kết công thức Mix vì không còn sử dụng
+        preset_section.setLayout(preset_layout)
+        feed_layout.addWidget(preset_section)
+
+        # Buttons for feed formula
+        button_layout = QHBoxLayout()
+
+        save_button = QPushButton("Lưu Công Thức")
+        save_button.setFont(BUTTON_FONT)
+        save_button.setMinimumHeight(40)
+        save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #0b7dda;
+            }
+        """)
+        save_button.clicked.connect(self.save_feed_formula)
+
+        save_as_button = QPushButton("Lưu Công Thức Mới")
+        save_as_button.setFont(BUTTON_FONT)
+        save_as_button.setMinimumHeight(40)
+        save_as_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        save_as_button.clicked.connect(self.save_as_feed_preset)
+
+        delete_button = QPushButton("Xóa Công Thức")
+        delete_button.setFont(BUTTON_FONT)
+        delete_button.setMinimumHeight(40)
+        delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
+        delete_button.clicked.connect(self.delete_feed_preset)
+
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(save_as_button)
+        button_layout.addWidget(delete_button)
+
+        feed_layout.addLayout(button_layout)
+        feed_formula_tab.setLayout(feed_layout)
+
+        # Setup Mix Formula tab
+        mix_layout = QVBoxLayout()
+
+        # Thêm tiêu đề
+        mix_header = QLabel("Quản Lý Công Thức Mix")
+        mix_header.setFont(HEADER_FONT)
+        mix_header.setAlignment(Qt.AlignCenter)
+        mix_header.setStyleSheet("QLabel { padding: 10px; background-color: #fff8e1; border-radius: 5px; }")
+        mix_layout.addWidget(mix_header)
+
+        # Mix formula table
+        self.mix_formula_table = QTableWidget()
+        self.mix_formula_table.setFont(TABLE_CELL_FONT)
+        self.mix_formula_table.setColumnCount(4)  # Thêm một cột mới
+        self.mix_formula_table.setHorizontalHeaderLabels(["Thành phần", "Tỷ lệ (%)", "1 mẻ (kg)", "10 mẻ (kg)"])
+        self.mix_formula_table.horizontalHeader().setFont(TABLE_HEADER_FONT)
+        self.mix_formula_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.mix_formula_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #aaa;
+                selection-background-color: #e0e0ff;
+                alternate-background-color: #f5f5f5;
+            }
+            QHeaderView::section {
+                background-color: #FF9800;
+                color: white;
+                padding: 6px;
+                border: 1px solid #ddd;
+            }
+            QTableWidget::item {
+                padding: 4px;
+            }
+            QDoubleSpinBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 2px;
+                background-color: white;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 20px;
+            }
+        """)
+        self.mix_formula_table.setAlternatingRowColors(True)
+
+        # Populate mix formula table
+        self.update_mix_formula_table()
+
+        mix_layout.addWidget(self.mix_formula_table)
+
+        # Mix formula presets section
+        mix_preset_section = QGroupBox("Công Thức Có Sẵn")
+        mix_preset_section.setFont(DEFAULT_FONT)
+        mix_preset_section.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid #bbbbbb;
+                border-radius: 6px;
+                margin-top: 12px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px;
+                background-color: white;
+            }
+        """)
+
+        mix_preset_layout = QVBoxLayout()
+
+        # Mix formula presets
+        mix_preset_combo_layout = QHBoxLayout()
+
+        mix_preset_label = QLabel("Chọn công thức:")
+        mix_preset_label.setFont(DEFAULT_FONT)
+        mix_preset_combo_layout.addWidget(mix_preset_label)
+
+        # Sử dụng mix_preset_combo đã được khởi tạo trước đó
+        self.mix_preset_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #bbb;
+                border-radius: 4px;
+                padding: 5px;
+                background-color: white;
+                min-width: 200px;
+            }
+            QComboBox::drop-down {
+                width: 20px;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #bbb;
+                selection-background-color: #e0e0ff;
+            }
+        """)
+        self.mix_preset_combo.setMinimumHeight(35)
+        self.update_mix_preset_combo()
+        self.mix_preset_combo.currentIndexChanged.connect(self.auto_load_mix_preset)
+        mix_preset_combo_layout.addWidget(self.mix_preset_combo)
+
+        mix_preset_combo_layout.addStretch()
+        mix_preset_layout.addLayout(mix_preset_combo_layout)
+        mix_preset_section.setLayout(mix_preset_layout)
+        mix_layout.addWidget(mix_preset_section)
+
+        # Buttons for mix formula
+        mix_button_layout = QHBoxLayout()
+
+        mix_save_button = QPushButton("Lưu Công Thức")
+        mix_save_button.setFont(BUTTON_FONT)
+        mix_save_button.setMinimumHeight(40)
+        mix_save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #F57C00;
+            }
+        """)
+        mix_save_button.clicked.connect(self.save_mix_formula)
+
+        mix_save_as_button = QPushButton("Lưu Công Thức Mới")
+        mix_save_as_button.setFont(BUTTON_FONT)
+        mix_save_as_button.setMinimumHeight(40)
+        mix_save_as_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
+        mix_save_as_button.clicked.connect(self.save_as_mix_preset)
+
+        mix_delete_button = QPushButton("Xóa Công Thức")
+        mix_delete_button.setFont(BUTTON_FONT)
+        mix_delete_button.setMinimumHeight(40)
+        mix_delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                border-radius: 5px;
+                padding: 8px 15px;
+            }
+            QPushButton:hover {
+                background-color: #d32f2f;
+            }
+        """)
+        mix_delete_button.clicked.connect(self.delete_mix_preset)
+
+        mix_button_layout.addWidget(mix_save_button)
+        mix_button_layout.addWidget(mix_save_as_button)
+        mix_button_layout.addWidget(mix_delete_button)
+
+        mix_layout.addLayout(mix_button_layout)
+        mix_formula_tab.setLayout(mix_layout)
+
+        # Add tabs to layout
+        layout.addWidget(formula_tabs)
+
+        self.formula_tab.setLayout(layout)
+
+        # Setup Feed Formula tab
+        feed_layout = QVBoxLayout()
+
+        # Thêm tiêu đề
+        feed_header = QLabel("Quản Lý Công Thức Cám")
+        feed_header.setFont(HEADER_FONT)
+        feed_header.setAlignment(Qt.AlignCenter)
+        feed_header.setStyleSheet("QLabel { padding: 2px; background-color: #e3f2fd; border-radius: 5px; }")
         feed_layout.addWidget(feed_header)
 
         # Feed formula table

@@ -115,5 +115,18 @@
     "num_bags": null,
     "note": "",
     "warehouse_type": "feed"
+  },
+  {
+    "timestamp": "2025-08-04 12:16:16",
+    "type": "mix",
+    "ingredient": "Vitamino",
+    "amount": 6.0,
+    "unit_price": 0,
+    "total_cost": 0,
+    "supplier": "",
+    "bag_weight": null,
+    "num_bags": null,
+    "note": "",
+    "warehouse_type": "mix"
   }
 ]
