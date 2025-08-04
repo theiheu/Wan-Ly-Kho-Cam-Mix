@@ -17,14 +17,24 @@ class ComprehensiveReportService:
 
     def __init__(self):
         """Khởi tạo dịch vụ báo cáo"""
-        self.data_dir = Path("src/data")
-        self.config_dir = self.data_dir / "config"
+        # Use persistent path manager for consistent paths
+        from src.utils.persistent_paths import persistent_path_manager
+
+        self.data_dir = persistent_path_manager.data_path
+        self.config_dir = persistent_path_manager.config_path
+        self.reports_dir = persistent_path_manager.reports_path
+        self.exports_dir = persistent_path_manager.exports_path
         self.business_dir = self.data_dir / "business"
-        self.reports_dir = self.data_dir / "reports"
         self.imports_dir = self.data_dir / "imports"
 
+        print(f"🔧 ComprehensiveReportService initialized:")
+        print(f"   📁 Data dir: {self.data_dir}")
+        print(f"   📁 Config dir: {self.config_dir}")
+        print(f"   📁 Reports dir: {self.reports_dir}")
+        print(f"   📁 Exports dir: {self.exports_dir}")
+
         # Đảm bảo thư mục tồn tại
-        for directory in [self.config_dir, self.business_dir, self.reports_dir, self.imports_dir]:
+        for directory in [self.config_dir, self.business_dir, self.reports_dir, self.imports_dir, self.exports_dir]:
             directory.mkdir(parents=True, exist_ok=True)
 
     def _load_json_file(self, file_path: Path) -> Dict:
@@ -399,3 +409,4 @@ class ComprehensiveReportService:
             error_msg = f"Lỗi xuất báo cáo tiêu thụ cám hàng ngày: {str(e)}"
             print(f"❌ [Comprehensive Report] {error_msg}")
             return False, error_msg
+

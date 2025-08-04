@@ -42,10 +42,18 @@ class PersistentPathManager:
     def _check_professional_install(self):
         """Check if running in professional installation mode"""
 
+        # Check environment variable first
+        if os.environ.get('CFM_PROFESSIONAL_INSTALL') == '1':
+            return True
+
         # For standalone executable, check multiple indicators
         if getattr(sys, 'frozen', False):
+            # Get actual executable path, not temp path
             exe_path = Path(sys.executable)
             exe_dir = exe_path.parent
+
+            print(f"🔍 Checking install mode - Executable: {exe_path}")
+            print(f"🔍 Executable directory: {exe_dir}")
 
             # Check if running from Program Files (professional install)
             program_files_indicators = [
@@ -60,7 +68,10 @@ class PersistentPathManager:
                 'CFM_CONFIG_PATH' in os.environ
             ]
 
-            return any(program_files_indicators + env_indicators)
+            is_professional = any(program_files_indicators + env_indicators)
+            print(f"🔍 Professional install detected: {is_professional}")
+
+            return is_professional
 
         # For development mode
         return 'CFM_DATA_PATH' in os.environ
@@ -69,18 +80,27 @@ class PersistentPathManager:
         """Get fallback data path"""
 
         if getattr(sys, 'frozen', False):
+            # Get actual executable directory, NOT temp directory
             exe_dir = Path(sys.executable).parent
+
+            print(f"🔍 Frozen mode - exe_dir: {exe_dir}")
 
             if self.is_professional_install:
                 # Professional mode - use AppData
                 appdata = Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming'))
-                return appdata / self.app_name / "data"
+                data_path = appdata / self.app_name / "data"
+                print(f"🔍 Professional data path: {data_path}")
+                return data_path
             else:
                 # Portable mode - use executable directory
-                return exe_dir / "data"
+                data_path = exe_dir / "data"
+                print(f"🔍 Portable data path: {data_path}")
+                return data_path
         else:
             # Development mode
-            return Path(__file__).parent.parent.parent / "src" / "data"
+            data_path = Path(__file__).parent.parent.parent / "src" / "data"
+            print(f"🔍 Development data path: {data_path}")
+            return data_path
 
     def _get_fallback_config_path(self):
         """Get fallback config path"""
@@ -462,6 +482,7 @@ except Exception as e:
             init_data()
         except ImportError:
             print("⚠️ Could not initialize fallback data")
+
 
 
 

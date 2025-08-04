@@ -17,9 +17,17 @@ class ReportCacheManager:
 
     def __init__(self):
         """Khởi tạo manager cache báo cáo"""
-        self.data_dir = Path("src/data")
+        # Use persistent path manager for consistent paths
+        from src.utils.persistent_paths import persistent_path_manager
+
+        self.data_dir = persistent_path_manager.data_path
         self.cache_dir = self.data_dir / "cache" / "reports"
-        self.reports_dir = self.data_dir / "reports"
+        self.reports_dir = persistent_path_manager.reports_path
+
+        print(f"🔧 ReportCacheManager initialized:")
+        print(f"   📁 Data dir: {self.data_dir}")
+        print(f"   📁 Cache dir: {self.cache_dir}")
+        print(f"   📁 Reports dir: {self.reports_dir}")
 
         # Đảm bảo thư mục cache tồn tại
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -71,8 +79,14 @@ class ReportCacheManager:
     def _get_source_file_hash(self, report_date: str) -> Optional[str]:
         """Lấy hash của file báo cáo gốc"""
         try:
-            report_file = self.reports_dir / f"report_{report_date}.json"
+            # Sử dụng persistent path thay vì relative path
+            from src.utils.persistent_paths import persistent_path_manager
+            report_file = persistent_path_manager.reports_path / f"report_{report_date}.json"
+
+            print(f"🔍 Checking report file: {report_file}")
+
             if not report_file.exists():
+                print(f"⚠️ Report file not found: {report_file}")
                 return None
 
             # Tạo hash từ nội dung file và thời gian sửa đổi
@@ -82,9 +96,14 @@ class ReportCacheManager:
             mtime = report_file.stat().st_mtime
             hash_data = f"{content}_{mtime}"
 
-            return hashlib.md5(hash_data.encode('utf-8')).hexdigest()
+            hash_value = hashlib.md5(hash_data.encode('utf-8')).hexdigest()
+            print(f"✅ Generated hash for {report_date}: {hash_value[:8]}...")
+            return hash_value
+
         except Exception as e:
-            print(f"Lỗi tạo hash file nguồn {report_date}: {e}")
+            print(f"❌ Error generating hash for {report_date}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def _is_cache_valid(self, cache_key: str, source_hash: str) -> bool:
@@ -148,33 +167,45 @@ class ReportCacheManager:
                     report_type: str = "daily_consumption", additional_params: Dict = None) -> bool:
         """Lưu báo cáo vào cache"""
         try:
+            print(f"💾 Caching report for {report_date} ({report_type})")
+
             # Tạo cache key
             cache_key = self._generate_cache_key(report_date, report_type, additional_params)
+            print(f"🔑 Cache key: {cache_key}")
 
             # Lấy hash file nguồn
             source_hash = self._get_source_file_hash(report_date)
             if not source_hash:
-                print(f"Không thể tạo hash cho file nguồn {report_date}")
-                return False
+                print(f"⚠️ Cannot generate hash for source file {report_date}")
+                # Tạo hash từ dữ liệu báo cáo thay vì file nguồn
+                import json
+                data_str = json.dumps(report_data, sort_keys=True)
+                source_hash = hashlib.md5(data_str.encode('utf-8')).hexdigest()
+                print(f"🔄 Using data hash instead: {source_hash[:8]}...")
+
+            # Đảm bảo cache directory tồn tại
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            print(f"📁 Cache directory: {self.cache_dir}")
 
             # Lưu dữ liệu cache
             cache_file = self.cache_dir / f"{cache_key}.json"
+            print(f"💾 Saving cache to: {cache_file}")
+
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(report_data, f, ensure_ascii=False, indent=2)
 
-            # Cập nhật metadata
+            # Tính kích thước file
             file_size = cache_file.stat().st_size
-            now = datetime.now().isoformat()
 
+            # Cập nhật metadata
             self.cache_metadata['cache_entries'][cache_key] = {
                 'report_date': report_date,
                 'report_type': report_type,
-                'additional_params': additional_params or {},
                 'source_hash': source_hash,
-                'created_at': now,
-                'last_accessed': now,
+                'created_at': datetime.now().isoformat(),
+                'last_accessed': datetime.now().isoformat(),
                 'file_size': file_size,
-                'cache_file': f"{cache_key}.json"
+                'additional_params': additional_params or {}
             }
 
             # Cập nhật tổng kích thước cache
@@ -182,13 +213,16 @@ class ReportCacheManager:
                 entry.get('file_size', 0) for entry in self.cache_metadata['cache_entries'].values()
             )
 
+            # Lưu metadata
             self._save_cache_metadata()
 
-            print(f"💾 [Cache] Saved report cache for {report_date} ({report_type}) - {file_size:,} bytes")
+            print(f"✅ Report cached successfully: {cache_file.name} ({file_size} bytes)")
             return True
 
         except Exception as e:
-            print(f"Lỗi lưu cache báo cáo {report_date}: {e}")
+            print(f"❌ Error caching report {report_date}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def invalidate_cache(self, report_date: str = None, report_type: str = None) -> int:
@@ -344,7 +378,14 @@ class CacheInvalidationService:
     def __init__(self):
         """Khởi tạo dịch vụ"""
         self.cache_manager = report_cache_manager
-        self.reports_dir = Path("src/data/reports")
+
+        # Use persistent path manager for consistent paths
+        from src.utils.persistent_paths import persistent_path_manager
+        self.reports_dir = persistent_path_manager.reports_path
+
+        print(f"🔧 CacheInvalidationService initialized:")
+        print(f"   📁 Reports dir: {self.reports_dir}")
+
         self.file_timestamps = {}
         self._load_file_timestamps()
 
@@ -355,8 +396,9 @@ class CacheInvalidationService:
                 for report_file in self.reports_dir.glob("report_*.json"):
                     if report_file.is_file():
                         self.file_timestamps[str(report_file)] = report_file.stat().st_mtime
+                        print(f"📊 Loaded timestamp for: {report_file.name}")
         except Exception as e:
-            print(f"Lỗi tải timestamps: {e}")
+            print(f"❌ Lỗi tải timestamps: {e}")
 
     def check_and_invalidate_changed_files(self) -> List[str]:
         """Kiểm tra và vô hiệu hóa cache cho các file đã thay đổi"""
@@ -364,6 +406,7 @@ class CacheInvalidationService:
 
         try:
             if not self.reports_dir.exists():
+                print(f"⚠️ Reports directory does not exist: {self.reports_dir}")
                 return invalidated_reports
 
             for report_file in self.reports_dir.glob("report_*.json"):
@@ -391,7 +434,7 @@ class CacheInvalidationService:
                     self.file_timestamps[file_path] = current_mtime
 
         except Exception as e:
-            print(f"Lỗi kiểm tra thay đổi file: {e}")
+            print(f"❌ Lỗi kiểm tra thay đổi file: {e}")
 
         return invalidated_reports
 
@@ -412,3 +455,6 @@ cache_invalidation_service = CacheInvalidationService()
 def monitor_and_invalidate_cache() -> Dict[str, Any]:
     """Giám sát và vô hiệu hóa cache tự động"""
     return cache_invalidation_service.monitor_file_changes()
+
+
+

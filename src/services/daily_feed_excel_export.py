@@ -595,7 +595,9 @@ class DailyFeedExcelExporter:
         if export_folder and Path(export_folder).exists():
             export_dir = Path(export_folder)
         else:
-            export_dir = Path("src/data/exports")
+            # Use persistent path manager for consistent paths
+            from src.utils.persistent_paths import persistent_path_manager
+            export_dir = persistent_path_manager.exports_path
             export_dir.mkdir(parents=True, exist_ok=True)
 
         return export_dir / filename
@@ -677,3 +679,4 @@ def export_daily_feed_to_excel(report_date: str, filename: str = None,
 def get_daily_feed_export_path(report_date: str, filename: str = None) -> str:
     """Lấy đường dẫn file xuất báo cáo tiêu thụ cám"""
     return str(daily_feed_excel_exporter._get_export_file_path(report_date, filename))
+
