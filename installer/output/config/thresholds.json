@@ -1,0 +1,10 @@
+{
+    "critical_days": 3,
+    "warning_days": 7,
+    "sufficient_days": 14,
+    "critical_stock": 50,
+    "warning_stock": 100,
+    "sufficient_stock": 200,
+    "use_days_based": true,
+    "use_stock_based": true
+}

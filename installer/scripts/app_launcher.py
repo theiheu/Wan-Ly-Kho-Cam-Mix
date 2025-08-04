@@ -11,13 +11,13 @@ from pathlib import Path
 
 def setup_environment():
     """Setup environment variables"""
-    
+
     app_name = "Quan_Ly_Kho_Cam_&_Mix"
-    
+
     # Define paths
     appdata_path = Path(os.environ.get('APPDATA', '')) / app_name
     documents_path = Path(os.environ.get('USERPROFILE', '')) / 'Documents' / app_name
-    
+
     # Environment variables
     env_vars = {
         'CFM_DATA_PATH': str(appdata_path / "data"),
@@ -27,7 +27,7 @@ def setup_environment():
         'CFM_EXPORTS_PATH': str(documents_path / "exports"),
         'CFM_BACKUPS_PATH': str(documents_path / "backups")
     }
-    
+
     # Set environment variables
     for var_name, var_value in env_vars.items():
         os.environ[var_name] = var_value
@@ -36,16 +36,16 @@ def setup_environment():
 
 def main():
     """Main launcher"""
-    
+
     # Setup environment
     setup_environment()
-    
+
     # Get the directory where this launcher is located
     launcher_dir = Path(__file__).parent
-    
+
     # Find the main executable
     main_exe = launcher_dir / "Quan_Ly_Kho_Cam_&_Mix_Main.exe"
-    
+
     if main_exe.exists():
         # Launch main application with environment
         subprocess.run([str(main_exe)], env=os.environ)
@@ -55,3 +55,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

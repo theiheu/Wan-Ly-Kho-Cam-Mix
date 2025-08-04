@@ -81,7 +81,7 @@ def main():
     import sys
     from PyQt5.QtWidgets import QApplication
     from PyQt5.QtGui import QFont
-    from src.main import ChickenFarmApp
+    from src.main import Quan_Ly_Kho_Cam_Mix_App
     from src.utils.app_icon import create_app_icon
     from src.main import DEFAULT_FONT
 
@@ -93,7 +93,7 @@ def main():
     app.setFont(DEFAULT_FONT)
 
     print("Creating main window...")
-    window = ChickenFarmApp()
+    window = Quan_Ly_Kho_Cam_Mix_App()
     print("Showing main window...")
     window.show()
     print("Entering application event loop...")

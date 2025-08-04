@@ -109,8 +109,43 @@ class CustomDoubleSpinBox(QDoubleSpinBox):
         text = text.replace(',', '')
         return float(text)
 
-class ChickenFarmApp(QMainWindow):
+def setup_professional_environment():
+    """Setup environment for professional installation"""
+
+    # Check if running as frozen executable (PyInstaller)
+    if getattr(sys, 'frozen', False):
+        app_name = "Quan_Ly_Kho_Cam_&_Mix"
+
+        # Check if environment variables are already set
+        if 'CFM_DATA_PATH' not in os.environ:
+            print("🔧 Setting up professional environment...")
+
+            # Define paths
+            appdata_path = Path(os.environ.get('APPDATA', '')) / app_name
+            documents_path = Path(os.environ.get('USERPROFILE', '')) / 'Documents' / app_name
+
+            # Set environment variables for current process
+            env_vars = {
+                'CFM_DATA_PATH': str(appdata_path / "data"),
+                'CFM_CONFIG_PATH': str(appdata_path / "config"),
+                'CFM_LOGS_PATH': str(appdata_path / "logs"),
+                'CFM_REPORTS_PATH': str(documents_path / "reports"),
+                'CFM_EXPORTS_PATH': str(documents_path / "exports"),
+                'CFM_BACKUPS_PATH': str(documents_path / "backups")
+            }
+
+            for var_name, var_value in env_vars.items():
+                os.environ[var_name] = var_value
+                # Create directory
+                Path(var_value).mkdir(parents=True, exist_ok=True)
+
+            print("✅ Professional environment configured")
+
+class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
     def __init__(self):
+        # Setup professional environment first
+        setup_professional_environment()
+
         super().__init__()
         self.setWindowTitle("Phần mềm Quản lý Cám - Trại Gà")
 
@@ -17438,7 +17473,7 @@ def main():
     app.setFont(DEFAULT_FONT)
 
     print("Creating main window...")
-    window = ChickenFarmApp()
+    window = Quan_Ly_Kho_Cam_Mix_App()
     print("Showing main window...")
     window.show()
     print("Entering application event loop...")
