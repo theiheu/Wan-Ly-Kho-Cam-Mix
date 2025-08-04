@@ -520,12 +520,63 @@ class EnhancedFormulaTab(QWidget):
         validate_btn.clicked.connect(lambda: self.validate_formula(formula_type))
         validation_layout.addWidget(validate_btn)
 
+        # Export formula button
+        export_btn = QPushButton("📤 Xuất Excel")
+        export_btn.setFont(BUTTON_FONT)
+        export_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9C27B0;
+                color: white;
+                border-radius: 6px;
+                padding: 10px;
+                margin: 2px;
+            }
+            QPushButton:hover {
+                background-color: #7B1FA2;
+            }
+        """)
+        export_btn.clicked.connect(lambda: self.export_formula(formula_type))
+        validation_layout.addWidget(export_btn)
+
         layout.addWidget(validation_group)
 
         # Add stretch to push everything to top
         layout.addStretch()
 
         return widget
+
+    def export_formula(self, formula_type):
+        """Xuất công thức ra Excel với dialog tối ưu"""
+        try:
+            # Kiểm tra nếu parent có method open_export_dialog
+            if hasattr(self.parent, 'open_export_dialog'):
+                self.parent.open_export_dialog("formula")
+            else:
+                # Fallback: tạo dialog trực tiếp với ưu tiên dialog tối ưu
+                try:
+                    from src.ui.dialogs.enhanced_export_dialog import EnhancedExportDialog
+                    dialog = EnhancedExportDialog(self.parent, "formula")
+                    dialog.exec_()
+                except ImportError:
+                    try:
+                        from ui.dialogs.enhanced_export_dialog import EnhancedExportDialog
+                        dialog = EnhancedExportDialog(self.parent, "formula")
+                        dialog.exec_()
+                    except ImportError:
+                        # Fallback to simple dialog
+                        try:
+                            from src.ui.dialogs.simple_warehouse_export_dialog import SimpleWarehouseExportDialog
+                            dialog = SimpleWarehouseExportDialog(self.parent, "formula")
+                            dialog.exec_()
+                        except ImportError:
+                            try:
+                                from ui.dialogs.simple_warehouse_export_dialog import SimpleWarehouseExportDialog
+                                dialog = SimpleWarehouseExportDialog(self.parent, "formula")
+                                dialog.exec_()
+                            except ImportError as e:
+                                QMessageBox.critical(self, "Lỗi", f"Không thể tải dialog xuất báo cáo: {str(e)}")
+        except Exception as e:
+            QMessageBox.critical(self, "Lỗi", f"Không thể xuất công thức: {str(e)}")
 
     def load_formulas(self):
         """Load current formulas and update tables"""

@@ -97,7 +97,7 @@
             },
             "T4": {
                 "Sáng": "GD",
-                "Chiều": "CT3"
+                "Chiều": "CG1"
             },
             "T6": {
                 "Sáng": "CT2",
@@ -136,7 +136,7 @@
                 "Chiều": "GD"
             },
             "2N": {
-                "Sáng": "CT3",
+                "Sáng": "CG1",
                 "Chiều": "GD"
             }
         },
@@ -165,57 +165,58 @@
         "Khu 5": {
             "": {
                 "Sáng": "GD",
-                "Chiều": "CT3"
+                "Chiều": "CG1"
             }
         }
     },
     "feed_ingredients": {
-        "Bắp": 24590.2,
-        "Nành": 9104.2,
-        "Dầu": 133.3,
-        "Nguyên liệu tổ hợp": 578.2,
-        "DCP": 420.0,
-        "Đá hạt": 669.7,
-        "Đá bột mịn": 746.8,
-        "Cám gạo": 4470.3
+        "Nành": 16785.0,
+        "Dầu": 214.79999999999998,
+        "Nguyên liệu tổ hợp": 1133.5800000000002,
+        "DCP": 429.20000000000005,
+        "Đá hạt": 2219.0,
+        "Đá bột mịn": 740.0000000000001,
+        "Cám gạo": 6231.999999999999,
+        "Bắp": 40744.8,
+        "Cám Japfa": 2700.0
     },
     "mix_ingredients": {
-        "L-Lysine": 25.6,
-        "DL-Methionine": 55.9,
-        "Bio-Choline": 7.6,
-        "Phytast": 0.0,
+        "L-Lysine": 54.8,
+        "DL-Methionine": 100.32,
+        "Bio-Choline": 14.24,
+        "Phytast": 14.52,
         "Performix 0.25% layer": 0.0,
-        "Miamix": 9.7,
-        "Premix 0.25% layer": 0.0,
-        "Compound Enzyme FE808E": 5.9,
-        "Carophy Red (Màu đỏ)": 10.7,
-        "P-Zym": 7.8,
-        "Oxytetracylin": 1.0,
-        "Tiamulin": 0.8,
+        "Miamix": 62.400000000000006,
+        "Premix 0.25% layer": 151.2,
+        "Compound Enzyme FE808E": 11.22,
+        "Carophy Red (Màu đỏ)": 18.12,
+        "P-Zym": 7.86,
+        "Oxytetracylin": 2.82,
+        "Tiamulin": 2.82,
         "Amox": 0.0,
-        "Immunewall": 3.1,
-        "Lysoforte Dry": 8.9,
-        "Nutriprotect": 2.6,
-        "Defitox L1": 30.8,
-        "Men Ecobiol": 10.6,
-        "Lactic LD (axit hữu cơ)": 34.5,
-        "Sodium bicarbonate": 33.5,
-        "Bột đá mịn": 77.3,
-        "Muối": 114.8,
-        "DCP": 17.4
+        "Immunewall": 9.5,
+        "Lysoforte Dry": 15.1,
+        "Nutriprotect": 16.64,
+        "Defitox L1": 40.31999999999999,
+        "Men Ecobiol": 21.36,
+        "Lactic LD (axit hữu cơ)": 71.2,
+        "Sodium bicarbonate": 71.2,
+        "Bột đá mịn": 135.9,
+        "Muối": 258.0400000000001,
+        "DCP": 54.0
     },
-    "total_batches": 17.8,
+    "total_batches": 35.6,
     "total_batches_by_area": {
-        "Khu 1": 6.9,
-        "Khu 2": 5.3,
-        "Khu 3": 1.1,
-        "Khu 4": 4.4,
-        "Khu 5": 0.1
+        "Khu 1": 13.8,
+        "Khu 2": 10.6,
+        "Khu 3": 2.2,
+        "Khu 4": 8.8,
+        "Khu 5": 0.2
     },
     "default_formula": "GD",
-    "total_feed": 40712.7,
-    "total_mix": 458.5,
-    "batch_count": 17.8,
+    "total_feed": 71198.38,
+    "total_mix": 1133.5800000000004,
+    "batch_count": 35.6,
     "column_mix_formulas": {
         "0": "Khu 4(6, 7, 8)",
         "1": "Khu 4(6, 7, 8)",

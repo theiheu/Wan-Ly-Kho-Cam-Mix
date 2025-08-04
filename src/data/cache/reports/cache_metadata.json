@@ -1,0 +1,16 @@
+{
+  "cache_entries": {
+    "3a1a50ccb2145762a1194b339db5f4d9": {
+      "report_date": "20250924",
+      "report_type": "daily_consumption",
+      "additional_params": {},
+      "source_hash": "c19221baf8a4e5ba2901d56c8f3d8ba6",
+      "created_at": "2025-08-04T22:55:23.222374",
+      "last_accessed": "2025-08-04T22:57:38.598126",
+      "file_size": 14858,
+      "cache_file": "3a1a50ccb2145762a1194b339db5f4d9.json"
+    }
+  },
+  "last_cleanup": "2025-08-04T22:55:23.214465",
+  "total_cache_size": 14858
+}
