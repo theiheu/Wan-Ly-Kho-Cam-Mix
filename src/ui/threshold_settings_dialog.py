@@ -1934,17 +1934,24 @@ class ThresholdSettingsDialog(QDialog):
         self.update_color_preview()
 
     def load_individual_ingredients(self):
-        """Tải danh sách nguyên liệu cho tab ngưỡng riêng biệt"""
+        """Tải danh sách nguyên liệu cho tab ngưỡng riêng biệt với thứ tự nhất quán"""
         try:
-            # Get all ingredients from inventory
-            inventory = self.inventory_manager.get_inventory()
-            ingredients = sorted(inventory.keys())
+            # Get consistently sorted ingredients
+            ingredients = self.inventory_manager.get_sorted_unified_ingredients()
 
             self.individual_ingredient_combo.clear()
             self.individual_ingredient_combo.addItems(ingredients)
 
         except Exception as e:
             print(f"[ERROR] Lỗi khi tải danh sách nguyên liệu: {e}")
+            # Fallback to basic sorting
+            try:
+                inventory = self.inventory_manager.get_inventory()
+                ingredients = sorted(inventory.keys())
+                self.individual_ingredient_combo.clear()
+                self.individual_ingredient_combo.addItems(ingredients)
+            except Exception as fallback_e:
+                print(f"[ERROR] Lỗi fallback khi tải danh sách nguyên liệu: {fallback_e}")
 
     def load_individual_threshold_settings(self):
         """Tải cài đặt ngưỡng riêng biệt vào bảng"""

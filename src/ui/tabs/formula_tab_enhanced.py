@@ -116,19 +116,41 @@ class IngredientSelectionDialog(QDialog):
         layout.addWidget(button_box)
 
     def load_ingredients(self):
-        """Load available ingredients based on warehouse type"""
+        """Load available ingredients based on warehouse type with consistent sorting"""
         self.ingredients_list.clear()
 
-        if self.warehouse_type == "feed":
-            available_ingredients = self.inventory_manager.feed_inventory
-        else:
-            available_ingredients = self.inventory_manager.mix_inventory
+        try:
+            # Get consistently sorted ingredients for the warehouse
+            sorted_ingredients = self.inventory_manager.get_sorted_warehouse_ingredients(self.warehouse_type)
 
-        for ingredient_name, quantity in available_ingredients.items():
-            if ingredient_name not in self.existing_ingredients:
-                item = QListWidgetItem(f"{ingredient_name} ({format_number(quantity)} kg)")
-                item.setData(Qt.UserRole, ingredient_name)
-                self.ingredients_list.addItem(item)
+            if self.warehouse_type == "feed":
+                available_ingredients = self.inventory_manager.feed_inventory
+            else:
+                available_ingredients = self.inventory_manager.mix_inventory
+
+            # Use sorted order for display
+            for ingredient_name in sorted_ingredients:
+                if ingredient_name not in self.existing_ingredients and ingredient_name in available_ingredients:
+                    quantity = available_ingredients[ingredient_name]
+                    item = QListWidgetItem(f"{ingredient_name} ({format_number(quantity)} kg)")
+                    item.setData(Qt.UserRole, ingredient_name)
+                    self.ingredients_list.addItem(item)
+
+        except Exception as e:
+            print(f"Error loading ingredients with consistent sorting: {e}")
+            # Fallback to original method with basic sorting
+            if self.warehouse_type == "feed":
+                available_ingredients = self.inventory_manager.feed_inventory
+            else:
+                available_ingredients = self.inventory_manager.mix_inventory
+
+            # Sort ingredients alphabetically as fallback
+            sorted_items = sorted(available_ingredients.items(), key=lambda x: x[0])
+            for ingredient_name, quantity in sorted_items:
+                if ingredient_name not in self.existing_ingredients:
+                    item = QListWidgetItem(f"{ingredient_name} ({format_number(quantity)} kg)")
+                    item.setData(Qt.UserRole, ingredient_name)
+                    self.ingredients_list.addItem(item)
 
     def filter_ingredients(self, text):
         """Filter ingredients based on search text"""

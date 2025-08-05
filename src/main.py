@@ -4436,12 +4436,13 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
             feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
             feed_formula_ingredients = set(self.feed_formula.keys())
 
-            # Combine formula ingredients with all feed warehouse items
-            # Prioritize formula ingredients first, then add others from feed warehouse
-            feed_ingredients = list(feed_formula_ingredients)
-            for ingredient in feed_warehouse_inventory.keys():
-                if ingredient not in feed_formula_ingredients:
-                    feed_ingredients.append(ingredient)
+            # Get consistently sorted feed ingredients
+            # This ensures the same order every time the app is loaded
+            feed_ingredients = self.inventory_manager.get_sorted_warehouse_ingredients(
+                "feed", feed_formula_ingredients
+            )
+
+            print(f"📋 [Feed Inventory] Using consistent sort order for {len(feed_ingredients)} ingredients")
 
             self.feed_inventory_table.setRowCount(len(feed_ingredients))
 
@@ -4452,9 +4453,17 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
 
         except Exception as e:
             print(f"❌ [Feed Inventory] Error in initialization: {e}")
-            # Fallback to basic inventory display
-            feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
-            feed_ingredients = list(feed_warehouse_inventory.keys())
+            # Fallback to basic inventory display with consistent sorting
+            try:
+                feed_formula_ingredients = set(self.feed_formula.keys()) if hasattr(self, 'feed_formula') else set()
+                feed_ingredients = self.inventory_manager.get_sorted_warehouse_ingredients(
+                    "feed", feed_formula_ingredients
+                )
+            except:
+                # Ultimate fallback
+                feed_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("feed")
+                feed_ingredients = sorted(feed_warehouse_inventory.keys())
+
             self.feed_inventory_table.setRowCount(len(feed_ingredients))
             self.inventory = self.inventory_manager.get_inventory()
             feed_analysis = {}
@@ -4619,12 +4628,13 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
             mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
             mix_formula_ingredients = set(self.mix_formula.keys())
 
-            # Combine formula ingredients with all mix warehouse items
-            # Prioritize formula ingredients first, then add others from mix warehouse
-            mix_ingredients = list(mix_formula_ingredients)
-            for ingredient in mix_warehouse_inventory.keys():
-                if ingredient not in mix_formula_ingredients:
-                    mix_ingredients.append(ingredient)
+            # Get consistently sorted mix ingredients
+            # This ensures the same order every time the app is loaded
+            mix_ingredients = self.inventory_manager.get_sorted_warehouse_ingredients(
+                "mix", mix_formula_ingredients
+            )
+
+            print(f"📋 [Mix Inventory] Using consistent sort order for {len(mix_ingredients)} ingredients")
 
             self.mix_inventory_table.setRowCount(len(mix_ingredients))
 
@@ -4635,9 +4645,17 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
 
         except Exception as e:
             print(f"❌ [Mix Inventory] Error in initialization: {e}")
-            # Fallback to basic inventory display
-            mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
-            mix_ingredients = list(mix_warehouse_inventory.keys())
+            # Fallback to basic inventory display with consistent sorting
+            try:
+                mix_formula_ingredients = set(self.mix_formula.keys()) if hasattr(self, 'mix_formula') else set()
+                mix_ingredients = self.inventory_manager.get_sorted_warehouse_ingredients(
+                    "mix", mix_formula_ingredients
+                )
+            except:
+                # Ultimate fallback
+                mix_warehouse_inventory = self.inventory_manager.get_warehouse_inventory("mix")
+                mix_ingredients = sorted(mix_warehouse_inventory.keys())
+
             self.mix_inventory_table.setRowCount(len(mix_ingredients))
             self.inventory = self.inventory_manager.get_inventory()
             mix_analysis = {}
@@ -15669,28 +15687,27 @@ class EnhancedWarehouseImportDialog(QDialog):
         self.validate_form()
 
     def populate_ingredients(self):
-        """Populate ingredient combo box based on item type - enhanced to allow new ingredients"""
+        """Populate ingredient combo box based on item type with consistent sorting"""
         try:
             # Get existing ingredients from formula
-            existing_ingredients = []
+            formula_ingredients = set()
             if self.item_type == "feed":
-                feed_ingredients = self.parent_app.formula_manager.get_feed_formula().keys()
-                existing_ingredients = sorted(feed_ingredients)
+                formula_ingredients = set(self.parent_app.formula_manager.get_feed_formula().keys())
             else:
-                mix_ingredients = self.parent_app.formula_manager.get_mix_formula().keys()
-                existing_ingredients = sorted(mix_ingredients)
+                formula_ingredients = set(self.parent_app.formula_manager.get_mix_formula().keys())
 
-            # Add existing ingredients to combo box
-            self.ingredient_combo.addItems(existing_ingredients)
+            # Get consistently sorted ingredients for the warehouse
+            try:
+                sorted_ingredients = self.parent_app.inventory_manager.get_sorted_warehouse_ingredients(
+                    self.item_type, formula_ingredients
+                )
+            except:
+                # Fallback to basic sorting
+                inventory = self.parent_app.inventory_manager.get_inventory()
+                sorted_ingredients = sorted(inventory.keys())
 
-            # Get existing inventory items that might not be in formula
-            inventory = self.parent_app.inventory_manager.get_inventory()
-            inventory_ingredients = sorted(inventory.keys())
-
-            # Add inventory ingredients that are not already in the combo box
-            for ingredient in inventory_ingredients:
-                if ingredient not in existing_ingredients:
-                    self.ingredient_combo.addItem(ingredient)
+            # Add all ingredients to combo box in consistent order
+            self.ingredient_combo.addItems(sorted_ingredients)
 
             # Add placeholder for new ingredients
             self.ingredient_combo.addItem("--- Nhập thành phần mới ---")
