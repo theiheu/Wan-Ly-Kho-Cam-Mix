@@ -410,3 +410,4 @@ class ComprehensiveReportService:
             print(f"❌ [Comprehensive Report] {error_msg}")
             return False, error_msg
 
+

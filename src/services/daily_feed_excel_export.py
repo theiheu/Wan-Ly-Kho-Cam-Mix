@@ -680,3 +680,4 @@ def get_daily_feed_export_path(report_date: str, filename: str = None) -> str:
     """Lấy đường dẫn file xuất báo cáo tiêu thụ cám"""
     return str(daily_feed_excel_exporter._get_export_file_path(report_date, filename))
 
+

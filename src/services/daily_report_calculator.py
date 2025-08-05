@@ -263,45 +263,44 @@ class DailyReportCalculator:
 
         return farm_totals
 
-    def _calculate_efficiency_metrics(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Tính các chỉ số hiệu quả từ raw data"""
-        # Lấy tổng feed và mix từ raw data thay vì tính từ feed_usage
-        feed_total = float(raw_data.get('total_feed', 0))
-        mix_total = float(raw_data.get('total_mix', 0))
+    def _calculate_efficiency_metrics(self, report_data: Dict) -> Dict:
+        """Tính toán các chỉ số hiệu suất"""
+        try:
+            total_feed = report_data.get('total_feed', 0)
+            total_mix = report_data.get('total_mix', 0)
+            total_consumption = total_feed + total_mix
 
-        # Tính tổng tiêu thụ theo trại (để so sánh)
-        feed_usage = raw_data.get('feed_usage', {})
-        feed_usage_total = sum(
-            sum(float(amount or 0) for amount in shifts.values())
-            for farms in feed_usage.values()
-            for shifts in farms.values()
-        )
+            feed_ingredients = report_data.get('feed_ingredients', {})
+            mix_ingredients = report_data.get('mix_ingredients', {})
 
-        # Mix usage theo trại (nếu có)
-        mix_usage = raw_data.get('mix_usage', {})
-        mix_usage_total = sum(
-            sum(float(amount or 0) for amount in shifts.values())
-            for farms in mix_usage.values()
-            for shifts in farms.values()
-        )
+            # Calculate ingredient efficiency
+            total_ingredients_used = sum(feed_ingredients.values()) + sum(mix_ingredients.values())
 
-        total_consumption = feed_total + mix_total
+            # Calculate waste percentage (assuming 5% waste)
+            waste_percentage = 5.0
+            actual_consumption = total_consumption * (1 - waste_percentage / 100)
 
-        metrics = {
-            'feed_total': feed_total,
-            'mix_total': mix_total,
-            'total_consumption': total_consumption,
-            'feed_percentage': (feed_total / total_consumption * 100) if total_consumption > 0 else 0,
-            'mix_percentage': (mix_total / total_consumption * 100) if total_consumption > 0 else 0,
-            'feed_to_mix_ratio': feed_total / mix_total if mix_total > 0 else float('inf'),
-            # Thêm thông tin về tiêu thụ theo trại
-            'feed_usage_total': feed_usage_total,
-            'mix_usage_total': mix_usage_total,
-            'feed_usage_percentage': (feed_usage_total / feed_total * 100) if feed_total > 0 else 0,
-            'mix_usage_percentage': (mix_usage_total / mix_total * 100) if mix_total > 0 else 0
-        }
+            return {
+                'total_consumption': total_consumption,
+                'actual_consumption': actual_consumption,
+                'waste_percentage': waste_percentage,
+                'efficiency_ratio': (actual_consumption / total_consumption * 100) if total_consumption > 0 else 0,
+                'ingredients_utilization': {
+                    'total_ingredients_used': total_ingredients_used,
+                    'feed_ingredients_ratio': (sum(feed_ingredients.values()) / total_ingredients_used * 100) if total_ingredients_used > 0 else 0,
+                    'mix_ingredients_ratio': (sum(mix_ingredients.values()) / total_ingredients_used * 100) if total_ingredients_used > 0 else 0
+                }
+            }
 
-        return metrics
+        except Exception as e:
+            print(f"❌ Error calculating efficiency metrics: {e}")
+            return {
+                'total_consumption': 0,
+                'actual_consumption': 0,
+                'waste_percentage': 0,
+                'efficiency_ratio': 0,
+                'ingredients_utilization': {}
+            }
 
     def calculate_daily_report(self, report_date: str, force_recalculate: bool = False) -> Optional[Dict[str, Any]]:
         """Tính toán báo cáo tiêu thụ hàng ngày với bảo toàn dữ liệu người dùng"""
@@ -584,6 +583,19 @@ def invalidate_daily_report(report_date: str) -> bool:
 def get_available_daily_reports() -> List[str]:
     """Lấy danh sách báo cáo có sẵn"""
     return daily_report_calculator.get_available_reports()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

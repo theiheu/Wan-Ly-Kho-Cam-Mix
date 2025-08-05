@@ -5,7 +5,6 @@ __pycache__/
 *.so
 .Python
 env/
-build/
 develop-eggs/
 dist/
 downloads/
@@ -24,8 +23,7 @@ var/
 *.manifest
 *.spec
 
-# Build and packaging
-build/
+# Build and packagi
 dist/
 packages/
 *.zip

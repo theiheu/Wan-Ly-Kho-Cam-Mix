@@ -2111,3 +2111,4 @@ class OptimizedExportService:
         self._apply_advanced_formatting(efficiency_sheet, f"A1:E{efficiency_sheet.max_row}", "mix_efficiency")
 
 
+

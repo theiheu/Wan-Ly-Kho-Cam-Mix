@@ -16,7 +16,7 @@ cd installer\build
 python simple_professional_builder.py
 ```
 
-**Output:** `installer\output\ChickenFarmManager_Professional.exe` (36 MB)
+**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix_Professional.exe` (36 MB)
 
 - ✅ **Automatic Installation**: Self-installs to Program Files on first run
 - ✅ **Persistent Data Storage**: Saves data in AppData and Documents folders
@@ -32,10 +32,10 @@ python simple_professional_builder.py
 ```bash
 # From installer/build directory
 cd installer\build
-python standalone_exe_builder.py
+python installer\build\standalone_exe_builder.py
 ```
 
-**Output:** `installer\output\ChickenFarmManager.exe` (74 MB)
+**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix.exe` (74 MB)
 
 - ✅ True standalone executable - no Python installation required
 - ✅ Double-click to run - basic user experience
@@ -51,7 +51,7 @@ cd installer\build
 python portable_build.py
 ```
 
-**Output:** `installer\output\ChickenFarmManager_Portable.zip` (164 KB)
+**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix_Portable.zip` (164 KB)
 
 - ✅ Small download size with automatic dependency installation
 - ✅ Complete source code included for customization
@@ -124,9 +124,9 @@ installer/
 │   ├── license.txt               # Software license agreement
 │   └── readme.txt                # Installation instructions
 └── output/                       # Generated distribution packages
-    ├── ChickenFarmManager_Portable/ # Working portable application
-    ├── ChickenFarmManager_Portable.zip # Portable distribution package
-    └── ChickenFarmManager_v2.0.0_Professional_Distribution/ # Professional package
+    ├── Quan_Ly_Kho_Cam_&_Mix_Portable/ # Working portable application
+    ├── Quan_Ly_Kho_Cam_&_Mix_Portable.zip # Portable distribution package
+    └── Quan_Ly_Kho_Cam_&_Mix_v2.0.0_Professional_Distribution/ # Professional package
 ```
 
 ## 🚀 Build Instructions
@@ -146,8 +146,8 @@ installer/
    ```
 
 3. **Find Your Distribution**:
-   - Portable package: `installer/output/ChickenFarmManager_Portable.zip`
-   - Extracted files: `installer/output/ChickenFarmManager_Portable/`
+   - Portable package: `installer/output/Quan_Ly_Kho_Cam_&_Mix_Portable.zip`
+   - Extracted files: `installer/output/Quan_Ly_Kho_Cam_&_Mix_Portable/`
 
 ### Alternative Build Method: cx_Freeze
 
@@ -178,7 +178,7 @@ python installer/scripts/sign_installer.py
 
 1. **Professional Installer** (Recommended):
 
-   - Run `ChickenFarmManager_Setup.exe`
+   - Run `Quan_Ly_Kho_Cam_&_Mix_Setup.exe`
    - Follow the installation wizard
    - Complete Windows integration
 
@@ -189,7 +189,7 @@ python installer/scripts/sign_installer.py
    - Supports silent installation with `/S` flag
 
 3. **Portable Installation**:
-   - Extract and run `ChickenFarmManager.exe` directly
+   - Extract and run `Quan_Ly_Kho_Cam_&_Mix.exe` directly
    - No installation required
 
 ### Silent Installation
@@ -199,7 +199,7 @@ python installer/scripts/sign_installer.py
 install.bat /S
 
 # Silent installation with NSIS installer
-ChickenFarmManager_Setup.exe /S
+Quan_Ly_Kho_Cam_&_Mix_Setup.exe /S
 ```
 
 ## 🔐 Code Signing

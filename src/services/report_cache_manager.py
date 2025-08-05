@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Report Cache Manager - Quản lý cache báo cáo
-Lưu trữ và quản lý cache cho các báo cáo tiêu thụ hàng ngày
+Report Cache Manager - Quản lý cache báo cáo tiêu thụ hàng ngày
 """
 
 import os
 import json
+import time
 import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 from collections import defaultdict
 
 class ReportCacheManager:
@@ -179,7 +179,6 @@ class ReportCacheManager:
             if not source_hash:
                 print(f"⚠️ Cannot generate hash for source file {report_date}")
                 # Tạo hash từ dữ liệu báo cáo thay vì file nguồn
-                import json
                 data_str = json.dumps(report_data, sort_keys=True)
                 source_hash = hashlib.md5(data_str.encode('utf-8')).hexdigest()
                 print(f"🔄 Using data hash instead: {source_hash[:8]}...")
@@ -206,6 +205,7 @@ class ReportCacheManager:
                 'created_at': datetime.now().isoformat(),
                 'last_accessed': datetime.now().isoformat(),
                 'file_size': file_size,
+                'cache_file': f"{cache_key}.json",
                 'additional_params': additional_params or {}
             }
 
@@ -236,11 +236,11 @@ class ReportCacheManager:
                 should_remove = False
 
                 # Nếu chỉ định ngày cụ thể
-                if report_date and cache_entry['report_date'] == report_date:
+                if report_date and cache_entry.get('report_date') == report_date:
                     should_remove = True
 
                 # Nếu chỉ định loại báo cáo cụ thể
-                if report_type and cache_entry['report_type'] == report_type:
+                if report_type and cache_entry.get('report_type') == report_type:
                     should_remove = True
 
                 # Nếu không chỉ định gì, xóa tất cả
@@ -249,9 +249,11 @@ class ReportCacheManager:
 
                 if should_remove:
                     # Xóa file cache
-                    cache_file = self.cache_dir / cache_entry['cache_file']
+                    cache_filename = cache_entry.get('cache_file', f"{cache_key}.json")
+                    cache_file = self.cache_dir / cache_filename
                     if cache_file.exists():
                         cache_file.unlink()
+                        print(f"🗑️ Deleted cache file: {cache_filename}")
 
                     keys_to_remove.append(cache_key)
                     removed_count += 1
@@ -287,9 +289,11 @@ class ReportCacheManager:
                 # Kiểm tra thời gian hết hạn
                 if (now - cached_time).total_seconds() > self.cache_validity_hours * 3600:
                     # Xóa file cache
-                    cache_file = self.cache_dir / cache_entry['cache_file']
+                    cache_filename = cache_entry.get('cache_file', f"{cache_key}.json")
+                    cache_file = self.cache_dir / cache_filename
                     if cache_file.exists():
                         cache_file.unlink()
+                        print(f"🧹 Cleaned expired cache: {cache_filename}")
 
                     keys_to_remove.append(cache_key)
                     removed_count += 1
@@ -456,6 +460,14 @@ cache_invalidation_service = CacheInvalidationService()
 def monitor_and_invalidate_cache() -> Dict[str, Any]:
     """Giám sát và vô hiệu hóa cache tự động"""
     return cache_invalidation_service.monitor_file_changes()
+
+
+
+
+
+
+
+
 
 
 
