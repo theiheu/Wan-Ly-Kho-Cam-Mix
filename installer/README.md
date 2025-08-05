@@ -1,8 +1,8 @@
 # Professional Windows Installer System
 
-## Chicken Farm Manager - Complete Installation Package
+## Quan*Ly_Kho_Cam*&\_Mix - Complete Installation Package
 
-This directory contains a comprehensive, professional-grade Windows installer system for the Chicken Farm Manager application. The installer meets commercial software standards with modern UI, complete Windows integration, and enterprise-level features.
+This directory contains a comprehensive, professional-grade Windows installer system for the Quan*Ly_Kho_Cam*&\_Mix application. The installer meets commercial software standards with modern UI, complete Windows integration, and enterprise-level features.
 
 ## 🚀 Quick Start (PROFESSIONAL SOLUTIONS)
 
@@ -435,7 +435,7 @@ pip install pyinstaller>=5.0.0
 
 ## 📄 License
 
-This installer system is part of the Chicken Farm Manager project.
+This installer system is part of the Quan*Ly_Kho_Cam*&\_Mix project.
 © 2025 Minh-Tan_Phat. All rights reserved.
 
 See `installer/resources/license.txt` for complete license terms.

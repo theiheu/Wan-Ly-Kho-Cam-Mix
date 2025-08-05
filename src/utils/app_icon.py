@@ -2,7 +2,7 @@ from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QBrush, QPen, QFont
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint
 
 def create_app_icon():
-    """Create an app icon for the chicken farm app"""
+    """Create an app icon for the Quan_Ly_Kho_Cam_&_Mix farm app"""
     # Create a pixmap for the icon
     pixmap = QPixmap(64, 64)
     pixmap.fill(Qt.transparent)
@@ -11,9 +11,9 @@ def create_app_icon():
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
 
-    # Draw chicken silhouette
+    # Draw Quan_Ly_Kho_Cam_&_Mix silhouette
     painter.setPen(QPen(QColor(50, 50, 50), 2))
-    painter.setBrush(QBrush(QColor(255, 200, 0)))  # Golden yellow for chicken
+    painter.setBrush(QBrush(QColor(255, 200, 0)))  # Golden yellow for Quan_Ly_Kho_Cam_&_Mix
 
     # Body
     painter.drawEllipse(10, 20, 40, 30)
@@ -65,7 +65,7 @@ def create_app_icon():
     return QIcon(pixmap)
 
 def create_app_logo(size=QSize(200, 200)):
-    """Create a larger app logo for the chicken farm app"""
+    """Create a larger app logo for the Quan_Ly_Kho_Cam_&_Mix"""
     # Calculate scale factor
     scale_factor = min(size.width() / 64.0, size.height() / 64.0)
 
@@ -80,9 +80,9 @@ def create_app_logo(size=QSize(200, 200)):
     # Scale the painter
     painter.scale(scale_factor, scale_factor)
 
-    # Draw chicken silhouette
+    # Draw Quan_Ly_Kho_Cam_&_Mix silhouette
     painter.setPen(QPen(QColor(50, 50, 50), 2))
-    painter.setBrush(QBrush(QColor(255, 200, 0)))  # Golden yellow for chicken
+    painter.setBrush(QBrush(QColor(255, 200, 0)))  # Golden yellow for Quan_Ly_Kho_Cam_&_Mix
 
     # Body
     painter.drawEllipse(10, 20, 40, 30)

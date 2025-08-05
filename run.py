@@ -85,7 +85,7 @@ def main():
     from src.utils.app_icon import create_app_icon
     from src.main import DEFAULT_FONT
 
-    print("Starting Chicken Farm Application...")
+    print("Starting Quan_Ly_Kho_Cam_&_Mix Farm Application...")
     app = QApplication(sys.argv)
     app.setWindowIcon(create_app_icon())
 

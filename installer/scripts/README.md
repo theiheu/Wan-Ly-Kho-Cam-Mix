@@ -1,6 +1,6 @@
 # 🛠️ Installer Scripts & Tools
 
-This directory contains professional installer scripts, validation tools, and automation utilities for the Chicken Farm Manager application.
+This directory contains professional installer scripts, validation tools, and automation utilities for the Quan*Ly_Kho_Cam*&\_Mix application.
 
 ## 📁 Files Overview
 
@@ -318,7 +318,7 @@ python validate_installer.py --component shortcuts
 
 ## 📄 License
 
-These installer scripts are part of the Chicken Farm Manager project.
+These installer scripts are part of the Quan*Ly_Kho_Cam*&\_Mix project.
 © 2025 Minh-Tan_Phat. All rights reserved.
 
 ---

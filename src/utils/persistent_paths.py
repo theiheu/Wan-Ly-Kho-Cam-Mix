@@ -60,7 +60,7 @@ class PersistentPathManager:
                 return True
 
             # Check if data directories exist in expected professional locations
-            potential_data_path = Path.home() / "AppData" / "Local" / "ChickenFeedManager" / "data"
+            potential_data_path = Path.home() / "AppData" / "Local" / "Quan_Ly_Kho_Cam_&_MixFeedManager" / "data"
             if potential_data_path.exists():
                 self._safe_print("Professional installation detected via data directory")
                 return True

@@ -1,4 +1,4 @@
-; Professional Inno Setup Installer for Chicken Farm Manager
+; Professional Inno Setup Installer for Quan_Ly_Kho_Cam_&_Mix
 ; Modern wizard with complete Windows integration
 
 #define AppName "Phần mềm Quản lý Cám - Trại Gà"
@@ -6,7 +6,7 @@
 #define AppVersion "2.0.0"
 #define AppPublisher "Minh-Tan_Phat"
 #define AppURL "https://github.com/Minh-Tan_Phat"
-#define AppDescription "Professional Chicken Farm Management System"
+#define AppDescription "Professional Quan_Ly_Kho_Cam_&_Mix Farm Management System"
 #define AppCopyright "© 2025 Minh-Tan_Phat. All rights reserved."
 #define AppExeName "Quan_Ly_Kho_Cam_&_Mix.exe"
 

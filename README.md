@@ -1,28 +1,32 @@
-# 🐔 Quản Lý Kho Cám & Mix - Chicken Farm Manager
+# 🐔 Quản Lý Kho Cám & Mix
 
 Hệ thống quản lý kho cám và thức ăn gia súc chuyên nghiệp cho trang trại gà.
 
 ## 🚀 Tính Năng Chính
 
 ### 📦 Quản Lý Kho
+
 - **Quản lý tồn kho**: Theo dõi số lượng cám, mix và nguyên liệu
 - **Cảnh báo tồn kho thấp**: Thông báo khi nguyên liệu sắp hết
 - **Nhập/Xuất kho**: Ghi nhận các giao dịch nhập xuất
 - **Báo cáo tồn kho**: Báo cáo chi tiết theo thời gian
 
 ### 🧮 Quản Lý Công Thức
+
 - **Công thức cám**: Tạo và quản lý công thức sản xuất cám
 - **Công thức mix**: Quản lý công thức thức ăn hỗn hợp
 - **Tính toán nguyên liệu**: Tự động tính toán nguyên liệu cần thiết
 - **Preset công thức**: Lưu trữ các công thức thường dùng
 
 ### 👥 Quản Lý Nhân Sự
+
 - **Quản lý nhân viên**: Thông tin nhân viên và chức vụ
 - **Chấm công**: Theo dõi giờ làm việc và nghỉ phép
 - **Tính lương**: Tự động tính lương theo công và thưởng
 - **Báo cáo nhân sự**: Báo cáo chi tiết về nhân sự
 
 ### 📊 Báo Cáo & Thống Kê
+
 - **Báo cáo hàng ngày**: Tình hình sử dụng cám theo ngày
 - **Báo cáo tổng hợp**: Xuất Excel với nhiều định dạng
 - **Thống kê tiêu thụ**: Phân tích xu hướng sử dụng
@@ -43,6 +47,7 @@ python builder.py
 **Kết quả:** `installer\output\Quan_Ly_Kho_Cam_&_Mix.exe`
 
 **Tính năng:**
+
 - ✅ **Tự động cài đặt**: Tự cài vào Program Files khi chạy lần đầu
 - ✅ **Lưu trữ dữ liệu bền vững**: Dữ liệu được lưu trong AppData
 - ✅ **Tạo shortcut**: Tự động tạo shortcut trên Desktop
@@ -60,6 +65,7 @@ python build_workflow.py
 ### 🏃‍♂️ Chạy Ứng Dụng
 
 #### Từ Source Code
+
 ```bash
 # Cài đặt dependencies
 pip install -r requirements.txt
@@ -69,12 +75,14 @@ python run.py
 ```
 
 #### Từ Executable
+
 - Chạy file `Quan_Ly_Kho_Cam_&_Mix.exe` đã build
 - Hoặc sử dụng installer đã tạo
 
 ### 📋 Yêu Cầu Hệ Thống
 
 #### Môi Trường Phát Triển
+
 - Windows 10/11 (64-bit)
 - Python 3.8+
 - PyQt5
@@ -82,6 +90,7 @@ python run.py
 - OpenPyXL (cho xuất Excel)
 
 #### Hệ Thống Đích
+
 - Windows 10 (64-bit) trở lên
 - 4GB RAM tối thiểu
 - 200MB dung lượng trống
@@ -117,9 +126,11 @@ Wan_Ly_Kho_Cam_Mix/
 ## 🔧 Tính Năng Mới
 
 ### 📋 Copy Dữ Liệu JSON Tự Động
+
 Khi build ứng dụng, hệ thống sẽ tự động copy các file JSON cần thiết:
 
 **File Config được copy:**
+
 - `bonus_rates.json` - Tỷ lệ thưởng
 - `feed_formula.json` - Công thức cám
 - `mix_formula.json` - Công thức mix
@@ -131,6 +142,7 @@ Khi build ứng dụng, hệ thống sẽ tự động copy các file JSON cần
 - Và nhiều file khác...
 
 ### 🧪 Test Chức Năng Copy JSON
+
 ```bash
 # Test chức năng copy JSON
 cd installer\build
@@ -140,24 +152,28 @@ python test_copy_json.py
 ## 🎯 Hướng Dẫn Sử Dụng
 
 ### 1. Quản Lý Kho
+
 - Mở tab "Quản Lý Kho"
 - Nhập/cập nhật số lượng tồn kho
 - Thiết lập ngưỡng cảnh báo
 - Xem báo cáo tồn kho
 
 ### 2. Tạo Công Thức
+
 - Mở tab "Công Thức"
 - Chọn loại công thức (Cám/Mix)
 - Nhập tỷ lệ nguyên liệu
 - Lưu preset cho lần sau
 
 ### 3. Quản Lý Nhân Sự
+
 - Mở tab "Nhân Sự"
 - Thêm/sửa thông tin nhân viên
 - Chấm công hàng ngày
 - Tính lương theo tháng
 
 ### 4. Xuất Báo Cáo
+
 - Chọn loại báo cáo cần xuất
 - Thiết lập khoảng thời gian
 - Chọn thư mục lưu file
@@ -166,6 +182,7 @@ python test_copy_json.py
 ## 🐛 Khắc Phục Sự Cố
 
 ### Lỗi Build
+
 ```bash
 # Lỗi PyInstaller không tìm thấy
 pip install pyinstaller>=5.0.0
@@ -178,6 +195,7 @@ pip install -r requirements.txt
 ```
 
 ### Lỗi Chạy Ứng Dụng
+
 - Kiểm tra file cấu hình JSON có tồn tại
 - Đảm bảo thư mục data có quyền ghi
 - Kiểm tra log file để xem lỗi chi tiết

@@ -1,4 +1,4 @@
-; Professional NSIS Installer for Chicken Farm Manager
+; Professional NSIS Installer for Quan_Ly_Kho_Cam_&_Mix
 ; Modern UI with complete Windows integration
 
 !include "MUI2.nsh"
@@ -13,7 +13,7 @@
 !define APP_VERSION "2.0.0"
 !define APP_PUBLISHER "Minh-Tan_Phat"
 !define APP_URL "https://github.com/Minh-Tan_Phat"
-!define APP_DESCRIPTION "Professional Chicken Farm Management System"
+!define APP_DESCRIPTION "Professional t System"
 !define APP_COPYRIGHT "© 2025 Minh-Tan_Phat. All rights reserved."
 
 ; Installer Information
