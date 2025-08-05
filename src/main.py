@@ -13215,11 +13215,12 @@ class EditInventoryItemDialog(QDialog):
         quantity_label.setStyleSheet("color: #333333;")
         form_layout.addRow(quantity_label, self.quantity_input)
 
-        # Bag size field
+        # Bag size field (0 allowed for bulk items)
         self.bag_size_input = QSpinBox()
         self.bag_size_input.setFont(QFont("Arial", 12))
-        self.bag_size_input.setRange(1, 1000)
+        self.bag_size_input.setRange(0, 1000)  # Allow 0 for bulk items
         self.bag_size_input.setSuffix(" kg/bao")
+        self.bag_size_input.setSpecialValueText("Bulk (không đóng bao)")  # Show special text for 0
         self.bag_size_input.setStyleSheet("""
             QSpinBox {
                 padding: 10px;
@@ -13231,10 +13232,24 @@ class EditInventoryItemDialog(QDialog):
                 border-color: #2196F3;
             }
         """)
-        bag_size_label = QLabel("Kích thước bao: *")
+        bag_size_label = QLabel("Kích thước bao:")  # Removed * (not required)
         bag_size_label.setFont(QFont("Arial", 12, QFont.Bold))
         bag_size_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(bag_size_label, self.bag_size_input)
+
+        # Add help text for bag size
+        bag_help_label = QLabel("💡 Đặt 0 cho hàng bán lẻ hoặc không đóng bao")
+        bag_help_label.setFont(QFont("Arial", 10))
+        bag_help_label.setStyleSheet("color: #666666; margin-top: 5px;")
+
+        bag_container = QVBoxLayout()
+        bag_container.addWidget(self.bag_size_input)
+        bag_container.addWidget(bag_help_label)
+        bag_container.setSpacing(5)
+
+        bag_widget = QWidget()
+        bag_widget.setLayout(bag_container)
+
+        form_layout.addRow(bag_size_label, bag_widget)
 
         form_frame.setLayout(form_layout)
         layout.addWidget(form_frame)
@@ -13365,9 +13380,9 @@ class EditInventoryItemDialog(QDialog):
             is_valid = False
             error_messages.append("Số lượng phải >= 0")
 
-        if self.bag_size_input.value() <= 0:
+        if self.bag_size_input.value() < 0:
             is_valid = False
-            error_messages.append("Kích thước bao phải > 0")
+            error_messages.append("Kích thước bao phải >= 0")
 
         # Check for name conflicts (if name changed)
         new_name = self.name_input.text().strip()
@@ -14323,9 +14338,10 @@ class BulkEditDialog(QDialog):
         bag_layout.addWidget(self.bag_checkbox)
 
         self.bag_value = QSpinBox()
-        self.bag_value.setRange(1, 1000)
+        self.bag_value.setRange(0, 1000)  # Allow 0 for bulk items
         self.bag_value.setValue(25)
         self.bag_value.setSuffix(" kg/bao")
+        self.bag_value.setSpecialValueText("Bulk (không đóng bao)")  # Show special text for 0
         self.bag_value.setEnabled(False)
         bag_layout.addWidget(self.bag_value)
 
@@ -16987,12 +17003,13 @@ class AddInventoryItemDialog(QDialog):
         unit_label.setStyleSheet("color: #333333;")
         form_layout.addRow(unit_label, self.unit_combo)
 
-        # Bag size field (required)
+        # Bag size field (0 allowed for bulk items)
         self.bag_size_input = QSpinBox()
         self.bag_size_input.setFont(QFont("Arial", 12))
-        self.bag_size_input.setRange(1, 1000)
+        self.bag_size_input.setRange(0, 1000)  # Allow 0 for bulk items
         self.bag_size_input.setValue(25)  # Default bag size
         self.bag_size_input.setSuffix(" kg/bao")
+        self.bag_size_input.setSpecialValueText("Bulk (không đóng bao)")  # Show special text for 0
         self.bag_size_input.setStyleSheet("""
             QSpinBox {
                 padding: 10px;
@@ -17004,10 +17021,24 @@ class AddInventoryItemDialog(QDialog):
                 border-color: #4CAF50;
             }
         """)
-        bag_size_label = QLabel("Kích thước bao: *")
+        bag_size_label = QLabel("Kích thước bao:")  # Removed * (not required)
         bag_size_label.setFont(QFont("Arial", 12, QFont.Bold))
         bag_size_label.setStyleSheet("color: #333333;")
-        form_layout.addRow(bag_size_label, self.bag_size_input)
+
+        # Add help text for bag size
+        bag_help_label = QLabel("💡 Đặt 0 cho hàng bán lẻ hoặc không đóng bao")
+        bag_help_label.setFont(QFont("Arial", 10))
+        bag_help_label.setStyleSheet("color: #666666; margin-top: 5px;")
+
+        bag_container = QVBoxLayout()
+        bag_container.addWidget(self.bag_size_input)
+        bag_container.addWidget(bag_help_label)
+        bag_container.setSpacing(5)
+
+        bag_widget = QWidget()
+        bag_widget.setLayout(bag_container)
+
+        form_layout.addRow(bag_size_label, bag_widget)
 
         # Minimum stock level field (required)
         self.min_stock_input = QDoubleSpinBox()
@@ -17230,9 +17261,9 @@ class AddInventoryItemDialog(QDialog):
             is_valid = False
             error_messages.append("Mức tồn kho tối thiểu phải >= 0")
 
-        if self.bag_size_input.value() <= 0:
+        if self.bag_size_input.value() < 0:
             is_valid = False
-            error_messages.append("Kích thước bao phải > 0")
+            error_messages.append("Kích thước bao phải >= 0")
 
         # Use InventoryManager's validation method
         if self.name_input.text().strip() and self.parent_app:

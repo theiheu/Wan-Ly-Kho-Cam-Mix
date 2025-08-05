@@ -170,14 +170,14 @@ class InventoryManager:
                 if ingredient in legacy_packaging:
                     warehouse_packaging[ingredient] = legacy_packaging[ingredient]
                 else:
-                    # Default bag size
-                    warehouse_packaging[ingredient] = 25 if warehouse_type == "feed" else 20
+                    # Default bag size is now 0 (optional)
+                    warehouse_packaging[ingredient] = 0
 
             return warehouse_packaging
 
         except Exception as e:
-            print(f"Error migrating packaging info for {warehouse_type}: {e}")
-            return self.get_default_packaging_info()
+            print(f"Error migrating packaging from legacy: {e}")
+            return {}  # Return an empty dictionary if migration fails
 
     def get_default_packaging_info(self) -> Dict[str, int]:
         """Get default packaging info"""
@@ -349,8 +349,8 @@ class InventoryManager:
             self.inventory[ingredient] = amount
         return self.save_inventory()
 
-    def add_new_item(self, item_name: str, initial_quantity: float = 0, bag_size: int = 25, warehouse_type: str = None) -> bool:
-        """Add a new inventory item with initial quantity and bag size to appropriate warehouse"""
+    def add_new_item(self, item_name: str, initial_quantity: float = 0, bag_size: int = 0, warehouse_type: str = None) -> bool:
+        """Add a new inventory item - bag_size defaults to 0 (optional)"""
         try:
             # Determine warehouse type if not specified
             if warehouse_type is None:
@@ -462,8 +462,8 @@ class InventoryManager:
             return False, "Số lượng phải >= 0"
 
         # Check bag size
-        if bag_size <= 0:
-            return False, "Kích thước bao phải > 0"
+        if bag_size < 0:
+            return False, "Kích thước bao phải >= 0"
 
         return True, ""
 
@@ -502,14 +502,14 @@ class InventoryManager:
             return False
 
     def get_item_details(self, item_name: str) -> Dict[str, Any]:
-        """Get detailed information about an inventory item"""
+        """Get detailed information about an inventory item - handle zero bag size"""
         try:
             if item_name not in self.inventory:
                 return {}
 
             quantity = self.inventory[item_name]
-            bag_size = self.packaging_info.get(item_name, 25)
-            num_bags = quantity / bag_size if bag_size > 0 else 0
+            bag_size = self.packaging_info.get(item_name, 0)  # Default to 0 instead of 25
+            num_bags = quantity / bag_size if bag_size > 0 else 0  # Handle zero bag size
 
             return {
                 'name': item_name,
@@ -675,9 +675,9 @@ class InventoryManager:
         return True, ""
 
     def validate_bag_size(self, bag_size: int) -> Tuple[bool, str]:
-        """Validate bag size value"""
-        if bag_size <= 0:
-            return False, "Kích thước bao phải > 0"
+        """Validate bag size value - allow 0 and make optional"""
+        if bag_size < 0:
+            return False, "Kích thước bao phải >= 0"
 
         if bag_size > 1000:
             return False, "Kích thước bao không được vượt quá 1,000 kg"
@@ -685,7 +685,7 @@ class InventoryManager:
         return True, ""
 
     def validate_item_data_comprehensive(self, name: str, quantity: float, bag_size: int, exclude_name: str = None) -> Tuple[bool, List[str]]:
-        """Comprehensive validation for item data"""
+        """Comprehensive validation for item data - bag size is optional"""
         errors = []
 
         # Validate name
@@ -698,7 +698,7 @@ class InventoryManager:
         if not qty_valid:
             errors.append(qty_error)
 
-        # Validate bag size
+        # Validate bag size - now allows 0
         bag_valid, bag_error = self.validate_bag_size(bag_size)
         if not bag_valid:
             errors.append(bag_error)
@@ -937,10 +937,10 @@ class InventoryManager:
         return validation_result
 
     def calculate_bags(self, ingredient: str, amount: float) -> float:
-        """Calculate number of bags for a given amount of ingredient"""
+        """Calculate number of bags - handle zero bag size"""
         bag_size = self.get_bag_size(ingredient)
         if bag_size <= 0:
-            return 0
+            return 0  # Return 0 bags if bag size is 0 or invalid
         return amount / bag_size
 
     def get_low_stock_items(self, threshold_days: int = 7, daily_usage: Dict[str, float] = None) -> List[Tuple[str, float, float]]:
