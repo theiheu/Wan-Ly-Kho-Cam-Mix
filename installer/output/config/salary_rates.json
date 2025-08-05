@@ -1,0 +1,13 @@
+{
+  "position_salaries": {
+    "Tổ trưởng": 8000000,
+    "Phó tổ trưởng": 7000000,
+    "Kỹ thuật viên": 6500000,
+    "Thủ kho": 6000000,
+    "Công nhân": 5500000
+  },
+  "working_days_per_month": 30,
+  "allowances": {},
+  "last_updated": "2025-08-05 21:17:19",
+  "updated_by": "System"
+}

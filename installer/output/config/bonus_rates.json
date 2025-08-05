@@ -1,0 +1,11 @@
+{
+  "default_rates": {
+    "Bắp": 400000,
+    "Nành": 400000,
+    "Cám gạo": 270000,
+    "Khác": 350000
+  },
+  "specific_rates": {},
+  "last_updated": "2025-08-05 21:17:19",
+  "updated_by": "System"
+}

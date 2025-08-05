@@ -6,17 +6,26 @@ This directory contains a comprehensive, professional-grade Windows installer sy
 
 ## 🚀 Quick Start (PROFESSIONAL SOLUTIONS)
 
-### 🎯 RECOMMENDED: Professional Self-Installing Application
+### 🎯 RECOMMENDED: Enhanced Build System with JSON Data Copy
 
-**Status: ✅ WORKING** - Complete Windows application with automatic installation and data persistence
+**Status: ✅ WORKING** - Complete Windows application with automatic installation, data persistence, and JSON configuration files
 
 ```bash
 # From installer/build directory
 cd installer\build
-python simple_professional_builder.py
+python builder.py
 ```
 
-**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix_Professional.exe` (36 MB)
+**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix.exe`
+
+**NEW FEATURES:**
+
+- ✅ **Automatic JSON Data Copy**: Essential configuration files automatically copied to output
+- ✅ **Enhanced Data Persistence**: All JSON config files included in distribution
+- ✅ **Professional Build Management**: Improved build process with better error handling
+- ✅ **Configuration Preservation**: User settings and business data properly packaged
+
+**Core Features:**
 
 - ✅ **Automatic Installation**: Self-installs to Program Files on first run
 - ✅ **Persistent Data Storage**: Saves data in AppData and Documents folders
@@ -25,21 +34,39 @@ python simple_professional_builder.py
 - ✅ **Data Persistence**: User data survives application restarts and system reboots
 - ✅ **No Setup Required**: Single .exe file handles everything automatically
 
-### ✅ ALTERNATIVE: Standalone .exe (Basic)
+### 🧪 NEW: JSON Copy Testing
 
-**Status: ✅ WORKING** - Simple standalone executable
+**Status: ✅ WORKING** - Test the JSON file copying functionality
 
 ```bash
 # From installer/build directory
 cd installer\build
-python installer\build\standalone_exe_builder.py
+python test_copy_json.py
 ```
 
-**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix.exe` (74 MB)
+**Features:**
+
+- ✅ Tests copying of all essential JSON configuration files
+- ✅ Validates file integrity and structure
+- ✅ Creates test output directory for verification
+- ✅ Comprehensive reporting of copy operations
+
+### ✅ ALTERNATIVE: Standalone .exe (Basic)
+
+**Status: ✅ WORKING** - Simple standalone executable with JSON data
+
+```bash
+# From installer/build directory
+cd installer\build
+python builder.py
+```
+
+**Output:** `installer\output\Quan_Ly_Kho_Cam_&_Mix.exe`
 
 - ✅ True standalone executable - no Python installation required
-- ✅ Double-click to run - basic user experience
-- ⚠️ **Data Loss Warning**: Data may be lost between sessions (portable mode)
+- ✅ **NEW**: Essential JSON configuration files included
+- ✅ Double-click to run - enhanced user experience
+- ✅ **Improved Data Persistence**: Configuration data properly preserved
 
 ### ✅ ALTERNATIVE: Portable Application
 
@@ -78,6 +105,27 @@ python build_workflow.py
 
 ## 🎯 Features
 
+### 🆕 Enhanced JSON Data Management
+
+- **Automatic JSON Copy**: Essential configuration files automatically copied during build
+- **Configuration Preservation**: All user settings and business data properly packaged
+- **Data Integrity**: JSON files validated and tested during copy process
+- **Structured Organization**: Config and business data organized in separate directories
+- **Test Validation**: Comprehensive testing system for JSON copy functionality
+
+**JSON Files Included:**
+
+- `bonus_rates.json` - Employee bonus calculation rates
+- `feed_formula.json` - Feed production formulas
+- `mix_formula.json` - Mix production formulas
+- `inventory.json` - Inventory management data
+- `packaging_info.json` - Product packaging information
+- `salary_rates.json` - Employee salary structures
+- `thresholds.json` - Alert and warning thresholds
+- `user_preferences.json` - User interface preferences
+- `threshold_config.json` - Advanced threshold configurations
+- And more essential configuration files...
+
 ### Professional Installation Experience
 
 - **Modern Wizard UI**: Multi-screen installation wizard with professional graphics
@@ -105,8 +153,11 @@ python build_workflow.py
 
 ```text
 installer/
-├── build/                          # Optimized build system
-│   ├── portable_build.py          # Primary portable application builder
+├── build/                          # Enhanced build system with JSON support
+│   ├── builder.py                 # 🆕 PRIMARY: Enhanced builder with JSON copy
+│   ├── test_copy_json.py          # 🆕 JSON copy functionality testing
+│   ├── portable_build.py          # Alternative portable application builder
+│   ├── build_workflow.py          # Complete build workflow
 │   ├── cx_freeze_build.py         # Alternative executable builder
 │   ├── version_info.py            # Windows version information
 │   ├── cleanup.py                 # Build cleanup utility
@@ -123,15 +174,19 @@ installer/
 │   ├── header_image.bmp          # Installer header image
 │   ├── license.txt               # Software license agreement
 │   └── readme.txt                # Installation instructions
-└── output/                       # Generated distribution packages
-    ├── Quan_Ly_Kho_Cam_&_Mix_Portable/ # Working portable application
-    ├── Quan_Ly_Kho_Cam_&_Mix_Portable.zip # Portable distribution package
-    └── Quan_Ly_Kho_Cam_&_Mix_v2.0.0_Professional_Distribution/ # Professional package
+├── output/                       # Generated distribution packages
+│   ├── Quan_Ly_Kho_Cam_&_Mix.exe # 🆕 Enhanced executable with JSON data
+│   ├── data/                     # 🆕 Copied JSON configuration files
+│   │   ├── config/               # 🆕 Application configuration files
+│   │   └── business/             # 🆕 Business logic configuration
+│   └── test_output/              # 🆕 Test output for JSON copy validation
+└── test_output/                  # 🆕 JSON copy test results
+    └── data/                     # 🆕 Test copied JSON files
 ```
 
 ## 🚀 Build Instructions
 
-### Primary Build Method: Portable Application
+### 🎯 PRIMARY: Enhanced Build Method with JSON Data Copy
 
 1. **Navigate to Build Directory**:
 
@@ -139,27 +194,54 @@ installer/
    cd installer\build
    ```
 
-2. **Create Portable Application**:
+2. **Create Enhanced Executable with JSON Data**:
 
    ```bash
-   python portable_build.py
+   python builder.py
    ```
 
 3. **Find Your Distribution**:
-   - Portable package: `installer/output/Quan_Ly_Kho_Cam_&_Mix_Portable.zip`
-   - Extracted files: `installer/output/Quan_Ly_Kho_Cam_&_Mix_Portable/`
+   - Enhanced executable: `installer/output/Quan_Ly_Kho_Cam_&_Mix.exe`
+   - JSON configuration files: `installer/output/data/`
+   - Config files: `installer/output/data/config/`
+   - Business data: `installer/output/data/business/`
 
-### Alternative Build Method: cx_Freeze
+### 🧪 Test JSON Copy Functionality
+
+```bash
+# Test JSON file copying before building
+python test_copy_json.py
+
+# Verify test results in installer/test_output/
+```
+
+### 🔄 Complete Build Workflow
+
+```bash
+# Run complete build process with validation
+python build_workflow.py
+```
+
+### Alternative Build Methods
+
+#### Portable Application
+
+```bash
+# Create portable application
+python portable_build.py
+```
+
+#### cx_Freeze Alternative
 
 ```bash
 # Alternative executable creation
-python installer/build/cx_freeze_build.py
+python cx_freeze_build.py
 
 # Test dependencies (optional)
-python installer/build/test_dependencies.py
+python test_dependencies.py
 
 # Clean build artifacts (if needed)
-python installer/build/cleanup.py
+python cleanup.py
 ```
 
 ### Validation and Testing
