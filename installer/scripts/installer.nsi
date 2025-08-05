@@ -9,7 +9,7 @@
 
 ; Application Information
 !define APP_NAME "Phần mềm Quản lý Cám - Trại Gà"
-!define APP_NAME_SHORT "ChickenFarmManager"
+!define APP_NAME_SHORT "Quan_Ly_Kho_Cam_&_Mix"
 !define APP_VERSION "2.0.0"
 !define APP_PUBLISHER "Minh-Tan_Phat"
 !define APP_URL "https://github.com/Minh-Tan_Phat"

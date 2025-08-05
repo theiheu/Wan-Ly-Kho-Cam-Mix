@@ -22,7 +22,7 @@ class InstallerValidator:
 
         # Test configuration
         self.app_info = {
-            "name": "ChickenFarmManager",
+            "name": "Quan_Ly_Kho_Cam_&_Mix",
             "display_name": "Phần mềm Quản lý Cám - Trại Gà",
             "version": "2.0.0",
             "company": "Minh-Tan_Phat"

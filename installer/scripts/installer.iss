@@ -2,13 +2,13 @@
 ; Modern wizard with complete Windows integration
 
 #define AppName "Phần mềm Quản lý Cám - Trại Gà"
-#define AppNameShort "ChickenFarmManager"
+#define AppNameShort "Quan_Ly_Kho_Cam_&_Mix"
 #define AppVersion "2.0.0"
 #define AppPublisher "Minh-Tan_Phat"
 #define AppURL "https://github.com/Minh-Tan_Phat"
 #define AppDescription "Professional Chicken Farm Management System"
 #define AppCopyright "© 2025 Minh-Tan_Phat. All rights reserved."
-#define AppExeName "ChickenFarmManager.exe"
+#define AppExeName "Quan_Ly_Kho_Cam_&_Mix.exe"
 
 [Setup]
 ; Application Information
