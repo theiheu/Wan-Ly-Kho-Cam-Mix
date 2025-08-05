@@ -864,6 +864,81 @@ class InventoryManager:
         """Get bag size for a specific ingredient"""
         return self.packaging_info.get(ingredient, 0)
 
+    def check_file_permissions(self) -> bool:
+        """Check if we have write permissions to all necessary files"""
+        try:
+            files_to_check = [
+                self.feed_inventory_file,
+                self.mix_inventory_file,
+                self.feed_packaging_file,
+                self.mix_packaging_file
+            ]
+
+            for file_path in files_to_check:
+                # Check if directory exists and is writable
+                directory = os.path.dirname(file_path)
+                if not os.path.exists(directory):
+                    try:
+                        os.makedirs(directory, exist_ok=True)
+                    except PermissionError:
+                        print(f"❌ [InventoryManager] No permission to create directory: {directory}")
+                        return False
+
+                # Check if file is writable (if it exists)
+                if os.path.exists(file_path):
+                    if not os.access(file_path, os.W_OK):
+                        print(f"❌ [InventoryManager] No write permission to file: {file_path}")
+                        return False
+                else:
+                    # Check if we can create the file
+                    try:
+                        with open(file_path, 'a'):
+                            pass
+                        # Remove the test file if it was created
+                        if os.path.getsize(file_path) == 0:
+                            os.remove(file_path)
+                    except PermissionError:
+                        print(f"❌ [InventoryManager] No permission to create file: {file_path}")
+                        return False
+
+            print("✅ [InventoryManager] All file permissions OK")
+            return True
+
+        except Exception as e:
+            print(f"❌ [InventoryManager] Error checking file permissions: {e}")
+            return False
+
+    def reload_all_data(self):
+        """Force reload all data from files to ensure consistency"""
+        try:
+            print("🔄 [InventoryManager] Force reloading all data from files...")
+
+            # Check file permissions first
+            if not self.check_file_permissions():
+                print("❌ [InventoryManager] File permission check failed")
+                return False
+
+            # Reload warehouse inventories from files
+            self.feed_inventory = self.load_warehouse_inventory("feed")
+            self.mix_inventory = self.load_warehouse_inventory("mix")
+
+            # Reload packaging info from files
+            self.feed_packaging_info = self.load_warehouse_packaging_info("feed")
+            self.mix_packaging_info = self.load_warehouse_packaging_info("mix")
+
+            # Rebuild unified data structures
+            self.inventory = self.get_unified_inventory()
+            self.packaging_info = self.get_unified_packaging_info()
+
+            print("✅ [InventoryManager] All data reloaded successfully")
+            return True
+
+        except Exception as e:
+            print(f"❌ [InventoryManager] Error reloading data: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def check_ingredient_availability(self, ingredient: str, required_amount: float, warehouse_type: str = None) -> bool:
         """Check if ingredient is available in sufficient quantity in specified warehouse"""
         if warehouse_type is None:

@@ -8374,12 +8374,21 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
             print(f"Notification message: {message}")
 
     def refresh_all_inventory_displays(self):
-        """Refresh all inventory-related displays after data changes"""
+        """Refresh all inventory-related displays after data changes with force reload"""
         try:
+            print("🔄 [Main App] Force refreshing all inventory displays...")
+
+            # Force reload all data from files
+            self.inventory_manager.reload_all_data()
+
             # Refresh inventory reference from manager
             self.inventory = self.inventory_manager.get_inventory()
 
-            # Update inventory tables
+            # Clear remaining usage calculator cache
+            if hasattr(self, 'remaining_usage_calculator'):
+                self.remaining_usage_calculator.clear_cache()
+
+            # Update inventory tables with fresh data
             if hasattr(self, 'update_feed_inventory_table'):
                 self.update_feed_inventory_table()
             if hasattr(self, 'update_mix_inventory_table'):
@@ -13477,37 +13486,96 @@ class EditInventoryItemDialog(QDialog):
         return msg.clickedButton() == save_btn
 
     def apply_changes(self, new_data, changes):
-        """Apply the changes to inventory"""
+        """Apply the changes to inventory with enhanced error handling"""
         try:
+            print(f"🔄 [EditDialog] Applying changes for {self.original_data['name']}")
+            print(f"   Changes: {changes}")
+
             inventory_manager = self.parent_app.inventory_manager
+
+            # Verify item still exists before making changes
+            current_inventory = inventory_manager.get_inventory()
+            if self.original_data['name'] not in current_inventory:
+                print(f"❌ [EditDialog] Item {self.original_data['name']} no longer exists in inventory")
+                return False
 
             # Handle name change (most complex case)
             if new_data['name'] != self.original_data['name']:
+                print(f"🔄 [EditDialog] Handling name change: {self.original_data['name']} → {new_data['name']}")
+
                 # Remove old item
-                inventory_manager.remove_item(self.original_data['name'])
+                remove_success = inventory_manager.remove_item(self.original_data['name'])
+                if not remove_success:
+                    print(f"❌ [EditDialog] Failed to remove old item: {self.original_data['name']}")
+                    return False
+
                 # Add new item with new name
-                success = inventory_manager.add_new_item(
+                add_success = inventory_manager.add_new_item(
                     new_data['name'],
                     new_data['quantity'],
                     new_data['bag_size']
                 )
-                if not success:
+                if not add_success:
+                    print(f"❌ [EditDialog] Failed to add new item: {new_data['name']}")
                     # Rollback: restore original item
-                    inventory_manager.add_new_item(
+                    rollback_success = inventory_manager.add_new_item(
                         self.original_data['name'],
                         self.original_data['quantity'],
                         self.original_data['bag_size']
                     )
+                    if rollback_success:
+                        print(f"✅ [EditDialog] Rollback successful: restored {self.original_data['name']}")
+                    else:
+                        print(f"❌ [EditDialog] Rollback failed: could not restore {self.original_data['name']}")
                     return False
+
+                print(f"✅ [EditDialog] Name change successful: {self.original_data['name']} → {new_data['name']}")
             else:
                 # Update existing item
-                inventory_manager.update_inventory(self.original_data['name'], new_data['quantity'])
+                print(f"🔄 [EditDialog] Updating existing item: {self.original_data['name']}")
+                print(f"   Quantity: {self.original_data['quantity']} → {new_data['quantity']}")
+
+                update_success = inventory_manager.update_inventory(self.original_data['name'], new_data['quantity'])
+                if not update_success:
+                    print(f"❌ [EditDialog] Failed to update quantity for {self.original_data['name']}")
+                    return False
+
+                print(f"✅ [EditDialog] Quantity updated successfully for {self.original_data['name']}")
 
                 # Update packaging info if changed
                 if new_data['bag_size'] != self.original_data['bag_size']:
-                    packaging_info = inventory_manager.get_packaging_info()
-                    packaging_info[self.original_data['name']] = new_data['bag_size']
-                    inventory_manager.save_packaging_info()
+                    # Determine which warehouse this item belongs to
+                    ingredient_name = self.original_data['name']
+
+                    # Update warehouse-specific packaging info
+                    if ingredient_name in inventory_manager.feed_inventory:
+                        inventory_manager.feed_packaging_info[ingredient_name] = new_data['bag_size']
+                        warehouse_type = "feed"
+                    elif ingredient_name in inventory_manager.mix_inventory:
+                        inventory_manager.mix_packaging_info[ingredient_name] = new_data['bag_size']
+                        warehouse_type = "mix"
+                    else:
+                        # Determine warehouse type and update accordingly
+                        warehouse_type = inventory_manager.determine_warehouse_type(ingredient_name)
+                        if warehouse_type == "feed":
+                            inventory_manager.feed_packaging_info[ingredient_name] = new_data['bag_size']
+                        else:
+                            inventory_manager.mix_packaging_info[ingredient_name] = new_data['bag_size']
+
+                    # Save warehouse-specific packaging info
+                    packaging_save_success = inventory_manager.save_warehouse_packaging_info(warehouse_type)
+
+                    if not packaging_save_success:
+                        print(f"❌ Failed to save packaging info for {ingredient_name}")
+                        return False
+
+                    # Update unified packaging info in memory
+                    inventory_manager.packaging_info = inventory_manager.get_unified_packaging_info()
+
+                    print(f"✅ Updated bag size for {ingredient_name}: {new_data['bag_size']} kg/bao in {warehouse_type} warehouse")
+
+            # Force refresh all cached data after changes
+            inventory_manager.reload_all_data()
 
             return True
 
@@ -13820,19 +13888,27 @@ class DeleteInventoryItemDialog(QDialog):
             success = self.parent_app.inventory_manager.remove_item(self.item_name)
 
             if success:
-                # Refresh inventory data in parent app
+                # Force complete refresh of all inventory data in parent app
                 if hasattr(self.parent_app, 'inventory'):
                     self.parent_app.inventory = self.parent_app.inventory_manager.get_inventory()
 
-                # Update inventory displays
-                if hasattr(self.parent_app, 'update_feed_inventory_table'):
-                    self.parent_app.update_feed_inventory_table()
-                if hasattr(self.parent_app, 'update_mix_inventory_table'):
-                    self.parent_app.update_mix_inventory_table()
+                # Force refresh all inventory displays
+                if hasattr(self.parent_app, 'refresh_all_inventory_displays'):
+                    self.parent_app.refresh_all_inventory_displays()
+                else:
+                    # Fallback to individual updates
+                    if hasattr(self.parent_app, 'update_feed_inventory_table'):
+                        self.parent_app.update_feed_inventory_table()
+                    if hasattr(self.parent_app, 'update_mix_inventory_table'):
+                        self.parent_app.update_mix_inventory_table()
 
-                # Refresh analysis if available
+                # Force refresh analysis
                 if hasattr(self.parent_app, 'refresh_inventory_analysis'):
                     self.parent_app.refresh_inventory_analysis()
+
+                # Force refresh remaining usage calculator cache
+                if hasattr(self.parent_app, 'remaining_usage_calculator'):
+                    self.parent_app.remaining_usage_calculator.clear_cache()
 
                 # Show success message
                 QMessageBox.information(

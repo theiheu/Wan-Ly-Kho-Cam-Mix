@@ -553,3 +553,33 @@ class RemainingUsageCalculator:
         except Exception as e:
             print(f"❌ [Usage Calculator] Error calculating remaining days for {warehouse_type}: {e}")
             return {}
+
+    def clear_cache(self):
+        """Clear all cached data to force fresh calculations"""
+        try:
+            print("🔄 [Usage Calculator] Clearing all cached data...")
+
+            # Clear any cached analysis results
+            if hasattr(self, '_cached_analysis'):
+                delattr(self, '_cached_analysis')
+
+            # Clear any cached usage statistics
+            if hasattr(self, '_cached_usage_stats'):
+                delattr(self, '_cached_usage_stats')
+
+            # Clear cached inventory data
+            if hasattr(self, '_feed_inventory'):
+                delattr(self, '_feed_inventory')
+            if hasattr(self, '_mix_inventory'):
+                delattr(self, '_mix_inventory')
+
+            # Clear cached packaging info
+            if hasattr(self, '_feed_packaging'):
+                delattr(self, '_feed_packaging')
+            if hasattr(self, '_mix_packaging'):
+                delattr(self, '_mix_packaging')
+
+            print("✅ [Usage Calculator] Cache cleared successfully")
+
+        except Exception as e:
+            print(f"❌ [Usage Calculator] Error clearing cache: {e}")
