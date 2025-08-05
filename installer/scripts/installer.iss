@@ -81,8 +81,8 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#AppName}"; Filen
 
 [Registry]
 Root: HKLM; Subkey: "Software\{#AppPublisher}\{#AppNameShort}"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\{#AppPublisher}\{#AppNameShort}"; ValueType: string; ValueName: "DataPath"; ValueData: "{userappdata}\{#AppNameShort}"; Flags: uninsdeletekey
 Root: HKLM; Subkey: "Software\{#AppPublisher}\{#AppNameShort}"; ValueType: string; ValueName: "Version"; ValueData: "{#AppVersion}"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\{#AppPublisher}\{#AppNameShort}"; ValueType: string; ValueName: "Publisher"; ValueData: "{#AppPublisher}"; Flags: uninsdeletekey
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
@@ -154,17 +154,28 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
+  AppDataPath: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    // Create data directory
-    CreateDir(DataDirPage.Values[0]);
+    // Create AppData directory structure (not Program Files)
+    AppDataPath := ExpandConstant('{userappdata}\{#AppNameShort}');
+    CreateDir(AppDataPath);
+    CreateDir(AppDataPath + '\data');
+    CreateDir(AppDataPath + '\data\config');
+    CreateDir(AppDataPath + '\data\presets');
+    CreateDir(AppDataPath + '\data\presets\feed');
+    CreateDir(AppDataPath + '\data\presets\mix');
+    CreateDir(AppDataPath + '\logs');
+    CreateDir(AppDataPath + '\reports');
+    CreateDir(AppDataPath + '\exports');
+    CreateDir(AppDataPath + '\backups');
 
-    // Set permissions for data directory
-    Exec('icacls', '"' + DataDirPage.Values[0] + '" /grant Users:(OI)(CI)F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    // Set permissions for AppData directory (users already have access)
+    Exec('icacls', '"' + AppDataPath + '" /grant Users:(OI)(CI)F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-    // Create registry entry for data directory
-    RegWriteStringValue(HKLM, 'Software\{#AppPublisher}\{#AppNameShort}', 'DataPath', DataDirPage.Values[0]);
+    // Copy initial data files to AppData
+    FileCopy(ExpandConstant('{app}\data\*'), AppDataPath + '\data\', False);
   end;
 end;
 

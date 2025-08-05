@@ -37,13 +37,25 @@ class FormulaManager:
     """Class to manage feed and mix formulas"""
 
     def __init__(self):
-        # Use persistent path manager for proper data paths
-        self.feed_formula_file = str(get_config_file_path("feed_formula.json"))
-        self.mix_formula_file = str(get_config_file_path("mix_formula.json"))
-        self.formula_links_file = str(get_config_file_path("formula_links.json"))
-        self.formulas_dir = str(persistent_path_manager.data_path / "presets")
-        self.default_formula_file = str(get_config_file_path("default_formula.json"))
-        self.column_mix_formulas_file = str(get_config_file_path("column_mix_formulas.json"))
+        # Detect execution environment and set paths accordingly
+        try:
+            from src.utils.persistent_paths import persistent_path_manager
+            self.path_manager = persistent_path_manager
+        except ImportError:
+            try:
+                from utils.persistent_paths import persistent_path_manager
+                self.path_manager = persistent_path_manager
+            except ImportError:
+                # Create fallback path manager
+                self.path_manager = self._create_fallback_path_manager()
+
+        # Use path manager for all file paths
+        self.feed_formula_file = str(self.path_manager.get_config_file_path("feed_formula.json"))
+        self.mix_formula_file = str(self.path_manager.get_config_file_path("mix_formula.json"))
+        self.formula_links_file = str(self.path_manager.get_config_file_path("formula_links.json"))
+        self.formulas_dir = str(self.path_manager.data_path / "presets")
+        self.default_formula_file = str(self.path_manager.get_config_file_path("default_formula.json"))
+        self.column_mix_formulas_file = str(self.path_manager.get_config_file_path("column_mix_formulas.json"))
 
         # Create formulas directory if it doesn't exist
         if not os.path.exists(self.formulas_dir):
@@ -377,3 +389,27 @@ class FormulaManager:
     def get_column_mix_formula(self, column_index: str) -> str:
         """Lấy tên công thức mix cho cột cụ thể"""
         return self.column_mix_formulas.get(column_index, "")
+
+    def _create_fallback_path_manager(self):
+        """Create fallback path manager for executable environment"""
+        class FallbackPathManager:
+            def __init__(self):
+                if getattr(sys, 'frozen', False):
+                    # Always use AppData for executable, never Program Files
+                    app_name = "Quan_Ly_Kho_Cam_&_Mix"
+                    appdata_path = Path(os.environ.get('APPDATA', '')) / app_name
+                    self.data_path = appdata_path / "data"
+                    self.config_path = appdata_path / "data" / "config"
+
+                    # Ensure directories exist
+                    self.data_path.mkdir(parents=True, exist_ok=True)
+                    self.config_path.mkdir(parents=True, exist_ok=True)
+                else:
+                    # Development mode
+                    self.data_path = Path(__file__).parent.parent.parent / "src" / "data"
+                    self.config_path = self.data_path / "config"
+
+            def get_config_file_path(self, filename):
+                return self.config_path / filename
+
+        return FallbackPathManager()

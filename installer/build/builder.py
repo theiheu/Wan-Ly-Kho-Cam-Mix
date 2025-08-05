@@ -9,6 +9,7 @@ import sys
 import subprocess
 import shutil
 from pathlib import Path
+import json
 
 def cleanup_build_artifacts(project_root, output_dir):
     """Clean up build artifacts after successful build"""
@@ -46,6 +47,53 @@ def cleanup_build_artifacts(project_root, output_dir):
 
     except Exception as e:
         print(f"⚠️ Error during cleanup (build still successful): {e}")
+        return False
+
+def copy_complete_data_structure(project_root, output_dir):
+    """Copy complete data structure with proper path mapping"""
+    print("📋 Copying complete data structure...")
+
+    try:
+        # Create path mapping for executable environment
+        path_mapping = {
+            "src/data": "data",
+            "src/core": "core"
+        }
+
+        for source_path, target_name in path_mapping.items():
+            source_dir = project_root / source_path
+            target_dir = output_dir / target_name
+
+            if source_dir.exists():
+                if target_dir.exists():
+                    shutil.rmtree(target_dir)
+
+                shutil.copytree(source_dir, target_dir)
+
+                # Create path mapping file for executable
+                mapping_file = output_dir / "path_mapping.json"
+                mapping_data = {
+                    "execution_env": "executable",
+                    "data_path": str(target_dir) if target_name == "data" else None,
+                    "core_path": str(target_dir) if target_name == "core" else None
+                }
+
+                with open(mapping_file, 'w', encoding='utf-8') as f:
+                    json.dump(mapping_data, f, indent=2, ensure_ascii=False)
+
+                print(f"   ✅ Copied {source_path}/ -> {target_name}/")
+                print(f"      📄 JSON files: {json_files}")
+                print(f"      🐍 Python files: {py_files}")
+
+                total_copied += total_files
+            else:
+                print(f"   ⚠️ Source not found: {source_path}")
+
+        print(f"✅ Total files copied: {total_copied}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error copying data structure: {e}")
         return False
 
 def build_standalone_exe():
@@ -151,7 +199,10 @@ def build_standalone_exe():
             exe_file = output_dir / "Quan_Ly_Kho_Cam_&_Mix.exe"
 
             if exe_file.exists():
-                file_size = exe_file.stat().st_size / (1024 * 1024)  # MB
+                # Copy complete data structure including core
+                copy_complete_data_structure(project_root, output_dir)
+
+                file_size = exe_file.stat().st_size / (1024 * 1024)
                 print(f"✅ Build successful!")
                 print(f"📁 Output: {exe_file}")
                 print(f"📊 Size: {file_size:.1f} MB")

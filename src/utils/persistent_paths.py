@@ -10,31 +10,83 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+def detect_execution_environment():
+    """Detect if running from executable or development"""
+    import sys
+
+    # Check if running from PyInstaller bundle
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        return 'executable'
+
+    # Check if main script is in expected development location
+    main_file = Path(sys.argv[0]).resolve()
+    if 'src' in main_file.parts:
+        return 'development'
+
+    return 'executable'
+
+def is_installed_application():
+    """Check if running as installed application (should use AppData)"""
+    if not getattr(sys, 'frozen', False):
+        return False
+
+    exe_path = Path(sys.executable).resolve()
+
+    # Check if installed in Program Files or similar system directories
+    system_dirs = [
+        Path(os.environ.get('PROGRAMFILES', 'C:\\Program Files')),
+        Path(os.environ.get('PROGRAMFILES(X86)', 'C:\\Program Files (x86)')),
+        Path(os.environ.get('PROGRAMW6432', 'C:\\Program Files'))
+    ]
+
+    for system_dir in system_dirs:
+        try:
+            if system_dir in exe_path.parents:
+                return True
+        except (OSError, ValueError):
+            continue
+
+    # Check for installation marker or registry entry
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                           r"Software\Quan_Ly_Kho_Cam_&_Mix\Quan_Ly_Kho_Cam_&_Mix")
+        winreg.CloseKey(key)
+        return True
+    except (ImportError, FileNotFoundError, OSError):
+        pass
+
+    return False
+
 class PersistentPathManager:
     """Manages persistent data paths for the application"""
 
     def __init__(self):
-        self.app_name = "Quan_Ly_Kho_Cam_&_Mix"
+        self.execution_env = detect_execution_environment()
+        self.is_installed = is_installed_application()
 
-        # Check if running in professional installation mode
-        self.is_professional_install = self._detect_installation_mode()
+        if self.execution_env == 'executable':
+            app_name = "Quan_Ly_Kho_Cam_&_Mix"
 
-        if self.is_professional_install:
-            # Use environment variables set by installation manager
-            self.data_path = Path(os.environ.get('CFM_DATA_PATH', self._get_fallback_data_path()))
-            self.config_path = Path(os.environ.get('CFM_CONFIG_PATH', self._get_fallback_config_path()))
-            self.logs_path = Path(os.environ.get('CFM_LOGS_PATH', self._get_fallback_logs_path()))
-            self.reports_path = Path(os.environ.get('CFM_REPORTS_PATH', self._get_fallback_reports_path()))
-            self.exports_path = Path(os.environ.get('CFM_EXPORTS_PATH', self._get_fallback_exports_path()))
-            self.backups_path = Path(os.environ.get('CFM_BACKUPS_PATH', self._get_fallback_backups_path()))
+            if self.is_installed:
+                # Always use AppData for installed applications
+                base_path = Path(os.environ.get('APPDATA', '')) / app_name
+                print(f"🔧 Installed application detected - using AppData: {base_path}")
+            else:
+                # Standalone executable - use AppData as well for consistency
+                base_path = Path(os.environ.get('APPDATA', '')) / app_name
+                print(f"🔧 Standalone executable - using AppData: {base_path}")
         else:
-            # Fallback to relative paths for development/portable mode
-            self.data_path = self._get_fallback_data_path()
-            self.config_path = self._get_fallback_config_path()
-            self.logs_path = self._get_fallback_logs_path()
-            self.reports_path = self._get_fallback_reports_path()
-            self.exports_path = self._get_fallback_exports_path()
-            self.backups_path = self._get_fallback_backups_path()
+            # Development mode - use project structure
+            base_path = Path(__file__).parent.parent / "data"
+            print(f"🔧 Development mode - using project data: {base_path}")
+
+        self.data_path = base_path
+        self.config_path = base_path / "config"
+        self.logs_path = base_path / "logs"
+        self.reports_path = base_path / "reports"
+        self.exports_path = base_path / "exports"
+        self.backups_path = base_path / "backups"
 
         # Ensure all directories exist
         self._ensure_directories()
