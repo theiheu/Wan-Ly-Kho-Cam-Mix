@@ -1039,6 +1039,55 @@ class InventoryManager:
         low_stock.sort(key=lambda x: x[2])
         return low_stock
 
+    def get_sorted_warehouse_ingredients(self, warehouse_type: str, formula_ingredients: set = None) -> List[str]:
+        """Get sorted list of ingredient names for specific warehouse
+
+        Args:
+            warehouse_type (str): 'feed' or 'mix'
+            formula_ingredients (set, optional): Set of formula ingredients for priority sorting
+
+        Returns:
+            List[str]: Sorted list of ingredient names
+        """
+        try:
+            if warehouse_type == "feed":
+                ingredients = list(self.feed_inventory.keys())
+            elif warehouse_type == "mix":
+                ingredients = list(self.mix_inventory.keys())
+            else:
+                raise ValueError(f"Invalid warehouse type: {warehouse_type}")
+
+            # If formula ingredients are provided, sort with formula ingredients first
+            if formula_ingredients:
+                formula_ingredients_list = [ing for ing in ingredients if ing in formula_ingredients]
+                other_ingredients_list = [ing for ing in ingredients if ing not in formula_ingredients]
+
+                # Sort each group alphabetically
+                formula_ingredients_list.sort()
+                other_ingredients_list.sort()
+
+                # Return formula ingredients first, then others
+                return formula_ingredients_list + other_ingredients_list
+            else:
+                # Sort alphabetically for consistent ordering
+                return sorted(ingredients)
+        except Exception as e:
+            print(f"Error getting sorted warehouse ingredients: {e}")
+            return []
+
+    def get_sorted_unified_ingredients(self) -> List[str]:
+        """Get sorted list of all ingredient names from both warehouses"""
+        try:
+            all_ingredients = set()
+            all_ingredients.update(self.feed_inventory.keys())
+            all_ingredients.update(self.mix_inventory.keys())
+
+            # Sort alphabetically for consistent ordering
+            return sorted(list(all_ingredients))
+        except Exception as e:
+            print(f"Error getting sorted unified ingredients: {e}")
+            return []
+
     def analyze_consumption_patterns(self, days: int = 7) -> Dict[str, float]:
         """
         Analyze consumption patterns from recent reports

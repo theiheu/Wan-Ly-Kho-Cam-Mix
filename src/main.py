@@ -4522,7 +4522,7 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
                 self.feed_inventory_table.setItem(i, 3, bags_item)
 
                 # Days until empty (column 4) - Enhanced with new calculator data
-                if remaining_days >= 999:
+                if remaining_days == float('inf') or remaining_days >= 999:
                     days_text = "∞"
                     days_item = QTableWidgetItem(days_text)
                     days_item.setBackground(QColor("#f5f5f5"))  # Light gray for infinite
@@ -4714,7 +4714,7 @@ class Quan_Ly_Kho_Cam_Mix_App(QMainWindow):
                 self.mix_inventory_table.setItem(i, 3, bags_item)
 
                 # Days until empty (column 4) - Enhanced with new calculator data
-                if remaining_days >= 999:
+                if remaining_days == float('inf') or remaining_days >= 999:
                     days_text = "∞"
                     days_item = QTableWidgetItem(days_text)
                     days_item.setBackground(QColor("#f5f5f5"))  # Light gray for infinite

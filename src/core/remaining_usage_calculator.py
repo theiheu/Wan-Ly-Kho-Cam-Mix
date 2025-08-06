@@ -251,10 +251,14 @@ class RemainingUsageCalculator:
 
                 # Calculate remaining days
                 if daily_consumption > 0:
-                    remaining_days = current_amount / daily_consumption
+                    if current_amount > 0:
+                        remaining_days = current_amount / daily_consumption
+                    else:
+                        # No stock but has usage - critically low (0 days)
+                        remaining_days = 0.0
                 else:
-                    # If no usage data, assume infinite (or very high number)
-                    remaining_days = 999.0
+                    # If no usage data, assume infinite
+                    remaining_days = float('inf')
 
                 # Determine status based on remaining days
                 if remaining_days <= 1:
@@ -357,7 +361,7 @@ class RemainingUsageCalculator:
 
     def format_remaining_days(self, days: float) -> str:
         """Format remaining days for display"""
-        if days >= 999:
+        if days == float('inf') or days >= 999:
             return "∞"
         elif days >= 30:
             return f"{days:.0f} ngày"
@@ -517,9 +521,14 @@ class RemainingUsageCalculator:
 
                 # Calculate remaining days
                 if daily_consumption > 0:
-                    remaining_days = current_amount / daily_consumption
+                    if current_amount > 0:
+                        remaining_days = current_amount / daily_consumption
+                    else:
+                        # No stock but has usage - critically low (0 days)
+                        remaining_days = 0.0
                 else:
-                    remaining_days = 999.0
+                    # No usage data - infinite remaining days
+                    remaining_days = float('inf')
 
                 # Use ThresholdManager if available
                 if hasattr(self, 'threshold_manager'):
