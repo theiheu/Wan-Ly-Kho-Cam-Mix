@@ -5,6 +5,7 @@ Enhanced Export Dialog - Dialog xuất báo cáo được tối ưu hóa với n
 
 import os
 import subprocess
+from typing import List
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                             QGroupBox, QCheckBox, QMessageBox, QProgressBar,
                             QRadioButton, QButtonGroup, QComboBox, QSpinBox,
